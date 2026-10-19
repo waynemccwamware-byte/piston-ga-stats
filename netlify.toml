@@ -1,0 +1,4 @@
+# Netlify publishes the site/ folder as is. No build step.
+[build]
+  publish = "site"
+  command = ""

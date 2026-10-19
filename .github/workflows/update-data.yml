@@ -1,0 +1,138 @@
+# Monthly data update for Piston GA Stats.
+# Downloads the NTSB accident database (Access .mdb) and the FAA aircraft registry, rebuilds site/data,
+# checks the result, and commits it. Netlify then redeploys the site from the new commit.
+# Run by hand: GitHub > Actions > "Update NTSB and FAA data" > Run workflow.
+#
+# NOTE: the NTSB says it will move this download to its Enterprise API on 05-Apr-2027
+# (notice on data.ntsb.gov/avdata, read 19-Oct-2026). The download steps below will need replacing then.
+
+name: Update NTSB and FAA data
+
+on:
+  schedule:
+    - cron: "0 15 2 * *"     # 2nd of each month, 15:00 UTC (NTSB posts avall.zip on the 1st)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Rebuild even if the source files have not changed"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      NTSB: https://data.ntsb.gov/avdata/FileDirectory/DownloadFile?fileID=C%3A%5Cavdata%5C
+      FAA_URL: https://registry.faa.gov/database/ReleasableAircraft.zip
+      UA: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mdbtools (reads the NTSB Access files)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mdbtools
+
+      - name: Restore Pre2008 database (1982-2007; static, cached)
+        id: pre
+        uses: actions/cache/restore@v4
+        with:
+          path: raw/Pre2008.zip
+          key: ntsb-pre2008-v1
+
+      - name: Download Pre2008.zip (only if not cached)
+        if: steps.pre.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p raw
+          curl -fL --retry 3 --retry-delay 20 -A "$UA" -o raw/Pre2008.zip "${NTSB}Pre2008.zip"
+
+      - name: Save Pre2008 cache
+        if: steps.pre.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: raw/Pre2008.zip
+          key: ntsb-pre2008-v1
+
+      - name: Download avall.zip (2008 on, updated monthly)
+        run: |
+          mkdir -p raw
+          curl -fL --retry 3 --retry-delay 20 -A "$UA" -o raw/avall.zip "${NTSB}avall.zip"
+
+      - name: Download FAA registry
+        id: faa
+        continue-on-error: true
+        run: curl -fL --retry 3 --retry-delay 20 -A "$UA" -o raw/ReleasableAircraft.zip "$FAA_URL"
+
+      - name: Fall back to the last good FAA registry if the download failed
+        if: steps.faa.outcome != 'success'
+        uses: actions/cache/restore@v4
+        with:
+          path: raw/ReleasableAircraft.zip
+          key: faa-registry-none
+          restore-keys: faa-registry-
+
+      - name: Read source dates; stop if nothing is new
+        id: dates
+        run: |
+          test -f raw/ReleasableAircraft.zip || { echo "No FAA registry available (download failed, no cached copy)"; exit 1; }
+          NTSB_AS_OF=$(python3 build/zipdate.py raw/avall.zip avall.mdb)
+          REG_AS_OF=$(python3 build/zipdate.py raw/ReleasableAircraft.zip MASTER.txt)
+          OLD=$(python3 -c "import json;m=json.load(open('site/data/accidents.json'))['meta'];print(m['ntsbAsOf'],m['regAsOf'])")
+          echo "NTSB file $NTSB_AS_OF, FAA registry $REG_AS_OF; live data: $OLD"
+          echo "NTSB_AS_OF=$NTSB_AS_OF" >> "$GITHUB_ENV"
+          echo "REG_AS_OF=$REG_AS_OF" >> "$GITHUB_ENV"
+          if [ "$NTSB_AS_OF $REG_AS_OF" = "$OLD" ] && [ "${{ inputs.force }}" != "true" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"; echo "Data already current - nothing to do."
+          fi
+
+      - name: Save FAA registry cache (fallback for next time)
+        if: steps.faa.outcome == 'success' && steps.dates.outputs.skip != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: raw/ReleasableAircraft.zip
+          key: faa-registry-${{ env.REG_AS_OF }}-${{ github.run_id }}
+
+      - name: Unpack and export to CSV
+        if: steps.dates.outputs.skip != 'true'
+        run: |
+          D=$HOME/data
+          mkdir -p $D/ntsb/csv $D/pre/csv $D/reg work
+          unzip -o -q raw/avall.zip -d work
+          unzip -o -q raw/Pre2008.zip -d work
+          unzip -o -q raw/ReleasableAircraft.zip MASTER.txt DEREG.txt ACFTREF.txt -d $D/reg
+          for t in events aircraft engines Events_Sequence Findings narratives; do mdb-export work/avall.mdb $t > $D/ntsb/csv/$t.csv; done
+          for t in events aircraft engines Occurrences ct_seqevt narratives; do mdb-export work/Pre2008.mdb $t > $D/pre/csv/$t.csv; done
+          ls -la $D/ntsb/csv $D/pre/csv $D/reg
+
+      - name: Rebuild site data
+        if: steps.dates.outputs.skip != 'true'
+        run: |
+          # keep the live file for comparison, then remove it so a failed rebuild cannot pass the check
+          mv site/data/accidents.json work/accidents-before.json
+          ln -sfn "$GITHUB_WORKSPACE/build" "$HOME/scripts"
+          mkdir -p "$HOME/app" && ln -sfn "$GITHUB_WORKSPACE/site" "$HOME/app/piston-ga-stats"
+          cd build
+          python3 codes.py    > ../work/codes.log
+          python3 build_reg.py > ../work/build_reg.log;  sed -n 1p ../work/build_reg.log
+          python3 build_all.py > ../work/build_all.log;  cat ../work/build_all.log
+          python3 bundle.py    > ../work/bundle.log;     cut -c1-200 ../work/bundle.log
+
+      - name: Check the rebuilt data before publishing
+        if: steps.dates.outputs.skip != 'true'
+        run: python3 build/check_data.py work/accidents-before.json site/data/accidents.json
+
+      - name: Commit and push (Netlify redeploys from this commit)
+        if: steps.dates.outputs.skip != 'true'
+        run: |
+          git config user.name "piston-ga-stats data bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/data
+          if git diff --cached --quiet; then echo "No data changes."; exit 0; fi
+          git commit -m "Data update: NTSB $NTSB_AS_OF, FAA registry $REG_AS_OF"
+          git push

@@ -1,0 +1,6 @@
+# raw downloads and intermediate files never go in the repo
+raw/
+work/
+*.mdb
+*.zip
+__pycache__/

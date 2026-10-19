@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Piston GA Stats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:#10141a;
+  --bg-panel:#1b222c;
+  --bezel:#2a323f;
+  --bezel-hi:#3a4454;
+  --amber:#f5a623;
+  --amber-dim:#7a5a1e;
+  --amber-glow:rgba(245,166,35,0.35);
+  --text-primary:#e7e4dc;
+  --text-muted:#8b93a1;
+  --teal:#3fa7a0;
+  --focus:#f5a623;
+  --alert:#e0705f;
+  /* app-specific: chart series colors, validated on --bg-panel (dataviz validator, 18-Oct-2026) */
+  --series-a:#c4820f;
+  --series-b:#4d94f0;
+}
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+*,*::before,*::after{ box-sizing:inherit; }
+html{
+  background:var(--bg-deep);
+  overscroll-behavior:none;
+  scroll-padding-top:env(safe-area-inset-top, 0px);
+  color-scheme:dark;
+}
+body{
+  margin:0;
+  min-height:100vh;
+  overscroll-behavior:none;
+  background:radial-gradient(ellipse at 50% 0%, #171d26 0%, var(--bg-deep) 60%);
+  font-family:'IBM Plex Sans', sans-serif;
+  color:var(--text-primary);
+  padding:14px 12px 40px;
+}
+.mono{ font-family:'IBM Plex Mono', monospace; }
+.rig{ width:100%; max-width:780px; margin:0 auto; }
+
+.btn{
+  font:500 13px 'IBM Plex Sans', sans-serif; padding:10px 16px; border-radius:6px;
+  border:1px solid var(--bezel-hi); background:transparent; color:var(--text-muted); cursor:pointer;
+  transition:color .15s ease, border-color .15s ease;
+}
+.btn:hover{ color:var(--amber); border-color:var(--amber); }
+.btn:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+.btn.primary{ color:var(--amber); border-color:var(--amber-dim); background:rgba(245,166,35,0.08); }
+.step.has-share{ position:relative; }
+.step.has-share > h2{ padding-right:150px; }
+.share-cmp{ position:absolute; top:9px; right:10px; display:flex; flex-direction:row-reverse; align-items:center; gap:8px; }
+.share-cmp .btn{ display:inline-flex; align-items:center; gap:5px; font-size:11.5px; padding:3px 9px; border-radius:5px; color:var(--text-muted); border-color:var(--bezel-hi); background:transparent; }
+.share-cmp .btn:hover{ color:var(--amber); border-color:var(--amber); }
+.share-cmp .btn svg{ width:12px; height:12px; }
+.sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+@media (max-width:420px){ .share-cmp .wide{ display:none; } .step.has-share > h2{ padding-right:80px; } }
+
+.title-row{
+  display:flex; align-items:baseline; justify-content:space-between;
+  margin-bottom:2px; padding:0 4px;
+}
+.title-row h1{ font-size:19px; font-weight:600; margin:0; letter-spacing:0.01em; }
+.title-row .ver{ font-size:11px; color:var(--text-muted); }
+.purpose-line{
+  font-size:12.5px; color:var(--teal);
+  margin:4px 4px 10px; line-height:1.5;
+}
+.purpose-label{ color:var(--text-primary); }
+
+/* panel + step cards */
+.panel{ background:var(--bg-panel); border:1px solid var(--bezel); border-radius:10px; padding:12px; }
+.step{ border:1px solid var(--bezel); border-radius:8px; padding:12px; margin-bottom:12px; background:rgba(16,20,26,0.35); }
+.step:last-child{ margin-bottom:0; }
+.step h2{ font-size:13.5px; font-weight:600; margin:0 0 8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.step h2 .num{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--amber); border:1px solid var(--amber-dim); border-radius:4px; padding:1px 5px; }
+.step h2 .sub{ font-weight:400; font-size:11.5px; color:var(--text-muted); }
+.note{ font-size:11.5px; color:var(--text-muted); line-height:1.5; margin:6px 0 0; }
+.note b{ color:var(--text-primary); font-weight:500; }
+
+/* controls */
+.ctl-grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; }
+.ctl{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.ctl label, .ctl .lbl{ font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; }
+.ctl .row{ display:flex; gap:6px; min-width:0; }
+select{
+  font:500 13.5px 'IBM Plex Sans',sans-serif; color:var(--text-primary); background:var(--bg-deep);
+  border:1px solid var(--bezel-hi); border-radius:6px; padding:8px 8px; min-width:0; flex:1;
+}
+select:focus-visible{ outline:2px solid var(--amber); outline-offset:1px; }
+.swatch{ display:inline-block; width:10px; height:10px; border-radius:2px; vertical-align:middle; margin-right:5px; }
+.sw-a{ background:var(--series-a); } .sw-b{ background:var(--series-b); }
+.seg{ display:inline-flex; border:1px solid var(--bezel-hi); border-radius:6px; overflow:hidden; flex-wrap:wrap; }
+.seg button{ font:500 12px 'IBM Plex Sans',sans-serif; background:transparent; color:var(--text-muted); border:0; padding:7px 10px; cursor:pointer; border-right:1px solid var(--bezel-hi); }
+.seg button:last-child{ border-right:0; }
+.seg button[aria-pressed="true"]{ color:var(--amber); background:rgba(245,166,35,0.10); }
+.seg button:focus-visible{ outline:2px solid var(--amber); outline-offset:-2px; }
+.ctl-wide{ grid-column:1 / -1; }
+
+/* summary table */
+table.sum{ width:100%; border-collapse:collapse; font-size:13px; }
+table.sum th, table.sum td{ padding:6px 6px; border-bottom:1px solid var(--bezel); text-align:right; vertical-align:top; }
+table.sum th:first-child, table.sum td:first-child{ text-align:left; color:var(--text-muted); font-weight:400; }
+table.sum thead th{ font-size:12px; font-weight:600; color:var(--text-primary); }
+table.sum td .ci{ display:block; font-size:10.5px; color:var(--text-muted); }
+table.sum tr.key td{ font-weight:600; }
+.flag{ color:var(--alert); font-size:10.5px; }
+
+/* paired bars */
+.legend{ display:flex; gap:14px; font-size:12px; color:var(--text-muted); margin-bottom:6px; flex-wrap:wrap; }
+.bars{ display:flex; flex-direction:column; gap:7px; }
+.brow{ display:grid; grid-template-columns:minmax(110px,38%) minmax(0,1fr); gap:8px; align-items:center; cursor:default; border-radius:5px; padding:2px 3px; }
+.brow.clickable{ cursor:pointer; }
+.brow.clickable:hover{ background:rgba(255,255,255,0.03); }
+.brow.sel{ background:rgba(245,166,35,0.08); outline:1px solid var(--amber-dim); }
+.blabel{ font-size:12.5px; line-height:1.25; color:var(--text-primary); }
+.blabel small{ display:block; color:var(--text-muted); font-size:10.5px; }
+.btrack{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.bline{ display:flex; align-items:center; gap:6px; min-width:0; }
+.bfill{ height:9px; border-radius:0 4px 4px 0; min-width:1px; }
+.bfill.a{ background:var(--series-a); } .bfill.b{ background:var(--series-b); }
+.bval{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-muted); white-space:nowrap; }
+.empty{ font-size:12.5px; color:var(--text-muted); padding:6px 0; }
+
+/* trend chart */
+.chart-wrap{ position:relative; }
+svg.trend{ width:100%; height:auto; display:block; touch-action:pan-y; }
+svg.trend .grid{ stroke:var(--bezel); stroke-width:1; }
+svg.trend .axis{ fill:var(--text-muted); font:11px 'IBM Plex Mono',monospace; }
+svg.trend .la{ fill:none; stroke:var(--series-a); stroke-width:2; }
+svg.trend .lb{ fill:none; stroke:var(--series-b); stroke-width:2; }
+svg.trend .xh{ stroke:var(--text-muted); stroke-width:1; stroke-dasharray:3 3; }
+svg.trend .dash{ stroke-dasharray:4 4; }
+.subhead{ font-size:12.5px; font-weight:600; margin:16px 0 8px; padding-top:12px; border-top:1px solid var(--bezel); }
+.tip{ position:absolute; pointer-events:none; background:#0d1117; border:1px solid var(--bezel-hi); border-radius:6px; padding:6px 8px; font-size:11.5px; line-height:1.45; color:var(--text-primary); white-space:nowrap; z-index:5; display:none; box-shadow:0 4px 14px rgba(0,0,0,.4); }
+.tip .t{ color:var(--text-muted); }
+
+/* findings */
+.fcols{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+.fcol h3{ font-size:12px; margin:0 0 6px; font-weight:600; }
+.fitem{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px; font-size:12px; padding:4px 0; border-bottom:1px solid var(--bezel); }
+.fitem span:last-child{ font-family:'IBM Plex Mono',monospace; color:var(--text-muted); font-size:11px; }
+.fitem small{ display:block; color:var(--text-muted); font-size:10.5px; }
+
+/* recent list */
+.acc{ border-bottom:1px solid var(--bezel); }
+.acc button.head{ all:unset; display:grid; grid-template-columns:14px 86px minmax(0,1fr) auto; gap:8px; width:100%; padding:7px 2px; cursor:pointer; font-size:12.5px; box-sizing:border-box; }
+.acc button.head:focus-visible{ outline:2px solid var(--amber); outline-offset:-2px; }
+.acc .dt{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-muted); }
+.acc .what small{ display:block; color:var(--text-muted); font-size:11px; }
+.acc .inj{ font-size:11px; text-align:right; white-space:nowrap; }
+.inj.fatl{ color:var(--alert); } .inj.sers{ color:var(--amber); } .inj.minr, .inj.none{ color:var(--text-muted); }
+.acc .body{ display:none; padding:0 2px 10px 116px; font-size:12px; line-height:1.5; color:var(--text-primary); }
+.acc.open .body{ display:block; }
+.acc .body .meta{ color:var(--text-muted); font-size:11px; margin-top:4px; }
+.acc .mdl{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-primary); }
+.dgrid{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:2px 10px; font-size:11.5px; margin:6px 0; }
+.dgrid dt{ color:var(--text-muted); } .dgrid dd{ margin:0; }
+.chip{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--amber); border:1px solid var(--amber-dim); border-radius:12px; padding:2px 8px; margin:0 0 8px; }
+.chip button{ all:unset; cursor:pointer; color:var(--text-muted); }
+.chip button:hover{ color:var(--amber); }
+
+.fine{ font-size:11px; color:var(--text-muted); line-height:1.55; margin:12px 4px 0; }
+.fine p{ margin:0 0 6px; }
+.fine a{ color:var(--teal); }
+
+footer.page-footer{ text-align:center; font-size:11px; color:var(--text-muted); margin-top:16px; }
+.back-link{ margin-bottom:10px; }
+.back-link a{
+  display:inline-block; background:var(--bezel); color:var(--amber); text-decoration:none;
+  border:1px solid var(--bezel-hi); border-radius:5px; padding:6px 14px; font-size:12px;
+}
+.back-link a:hover{ background:var(--bezel-hi); text-decoration:none; }
+.credit-line{ margin-bottom:2px; }
+.credit-line a{ color:var(--text-muted); }
+.hit-counter{ margin-top:8px; font-size:11px; color:var(--text-muted); }
+.share-btn{
+  display:inline-flex; align-items:center; gap:7px; margin-top:10px;
+  background:transparent; border:1px solid var(--bezel-hi); border-radius:20px; padding:8px 16px;
+  color:var(--text-muted); font-family:'IBM Plex Sans', sans-serif; font-size:12.5px; cursor:pointer;
+  transition:color .15s ease, border-color .15s ease;
+}
+.share-btn:hover{ color:var(--amber); border-color:var(--amber); }
+.share-icon{ width:15px; height:15px; flex-shrink:0; }
+.loading{ font-size:13px; color:var(--text-muted); padding:20px 4px; text-align:center; }
+
+@media (max-width:560px){
+  .ctl-grid{ grid-template-columns:minmax(0,1fr); }
+  .fcols{ grid-template-columns:minmax(0,1fr); }
+  .brow{ grid-template-columns:minmax(0,1fr); gap:3px; }
+  .acc .body{ padding-left:2px; }
+  table.sum{ font-size:12px; }
+}
+</style>
+</head>
+<body>
+<div class="rig">
+  <div class="title-row">
+    <h1>Piston GA Stats</h1>
+    <span class="ver mono">v0.8</span>
+  </div>
+  <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for two piston types by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents.</p>
+
+  <div class="panel" id="panel">
+    <div class="loading" id="loading">Loading NTSB accident data…</div>
+    <div id="app" hidden>
+
+      <section class="step has-share" aria-labelledby="h1">
+        <h2 id="h1"><span class="num">1</span> Choose types and filters</h2>
+        <div class="ctl-grid">
+          <div class="ctl">
+            <span class="lbl"><span class="swatch sw-a"></span>Type A</span>
+            <div class="row"><select id="brandA" aria-label="Type A brand"></select><select id="famA" aria-label="Type A model family"></select></div>
+          </div>
+          <div class="ctl">
+            <span class="lbl"><span class="swatch sw-b"></span>Type B (compare)</span>
+            <div class="row"><select id="brandB" aria-label="Type B brand"></select><select id="famB" aria-label="Type B model family"></select></div>
+          </div>
+          <div class="ctl">
+            <span class="lbl">Years</span>
+            <div class="row"><select id="y0" aria-label="From year"></select><select id="y1" aria-label="To year"></select></div>
+          </div>
+          <div class="ctl">
+            <span class="lbl">Purpose of flight</span>
+            <div class="seg" id="purSeg" role="group" aria-label="Purpose of flight">
+              <button type="button" data-v="all" aria-pressed="true">All</button>
+              <button type="button" data-v="0" aria-pressed="false">Personal</button>
+              <button type="button" data-v="1" aria-pressed="false">Instructional</button>
+              <button type="button" data-v="2" aria-pressed="false">Business/other</button>
+            </div>
+          </div>
+        </div>
+        <p class="note" id="dataNote"></p>
+        <div class="share-cmp">
+          <button type="button" class="btn" id="shareCmpBtn" aria-label="Share this comparison">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>
+            <span>Share<span class="wide"> comparison</span></span>
+          </button>
+          <span class="sr-only" id="shareCmpMsg" aria-live="polite"></span>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="h2">
+        <h2 id="h2"><span class="num">2</span> Summary <span class="sub">Part 91 accidents, US-registered aircraft</span></h2>
+        <table class="sum" id="sumTable"></table>
+        <p class="note" id="sumNote"></p>
+      </section>
+
+      <section class="step" aria-labelledby="h3">
+        <h2 id="h3"><span class="num">3</span> Accident category <span class="sub">share of each type's accidents · tap a row to list those accidents</span></h2>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <div class="seg" id="sevSeg" role="group" aria-label="Accidents to include">
+            <button type="button" data-v="all" aria-pressed="true">All accidents</button>
+            <button type="button" data-v="fatal" aria-pressed="false">Fatal only</button>
+          </div>
+        </div>
+        <div class="legend" id="legCat"></div>
+        <div class="bars" id="catBars"></div>
+        <p class="note" id="catNote"></p>
+      </section>
+
+      <section class="step" aria-labelledby="h4">
+        <h2 id="h4"><span class="num">4</span> Phase of flight <span class="sub">phase of the defining event</span></h2>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <div class="seg" id="phSevSeg" role="group" aria-label="Accidents to include">
+            <button type="button" data-v="all" aria-pressed="true">All accidents</button>
+            <button type="button" data-v="fatal" aria-pressed="false">Fatal only</button>
+          </div>
+        </div>
+        <div class="legend" id="legPh"></div>
+        <div class="bars" id="phBars"></div>
+        <p class="note" id="phNote"></p>
+      </section>
+
+      <section class="step" aria-labelledby="h5">
+        <h2 id="h5"><span class="num">5</span> Severity <span class="sub">49 CFR 830.2 definitions</span></h2>
+        <div class="legend" id="legSev"></div>
+        <div class="bars" id="injBars"></div>
+        <div style="height:10px"></div>
+        <div class="bars" id="dmgBars"></div>
+      </section>
+
+      <section class="step" aria-labelledby="h6">
+        <h2 id="h6"><span class="num">6</span> Trend <span class="sub">accidents per 1,000 registered aircraft per year</span></h2>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <div class="seg" id="trMeasure" role="group" aria-label="Measure">
+            <button type="button" data-v="all" aria-pressed="true">All accidents</button>
+            <button type="button" data-v="fatal" aria-pressed="false">Fatal accidents</button>
+          </div>
+          <div class="seg" id="trSmooth" role="group" aria-label="Smoothing">
+            <button type="button" data-v="3" aria-pressed="true">3-yr average</button>
+            <button type="button" data-v="1" aria-pressed="false">Yearly</button>
+          </div>
+        </div>
+        <div class="legend" id="legTr"></div>
+        <div class="chart-wrap" id="trWrap"><svg class="trend" id="trend" viewBox="0 0 700 260" role="img" aria-label="Accident rate by year"></svg><div class="tip" id="trTip"></div></div>
+        <p class="note" id="trNote"></p>
+        <h3 class="subhead">Registered aircraft</h3>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <div class="seg" id="rgMeasure" role="group" aria-label="Registration measure">
+            <button type="button" data-v="active" aria-pressed="true">Active registrations</button>
+            <button type="button" data-v="new" aria-pressed="false">New registrations</button>
+          </div>
+          <div class="seg" id="rgSmooth" role="group" aria-label="Smoothing">
+            <button type="button" data-v="3" aria-pressed="true">3-yr average</button>
+            <button type="button" data-v="1" aria-pressed="false">Yearly</button>
+          </div>
+        </div>
+        <div class="legend" id="legRg"></div>
+        <div class="chart-wrap" id="rgWrap"><svg class="trend" id="rgChart" viewBox="0 0 700 260" role="img" aria-label="Registered aircraft by year"></svg><div class="tip" id="rgTip"></div></div>
+        <p class="note" id="rgNote"></p>
+      </section>
+
+      <section class="step" aria-labelledby="h7">
+        <h2 id="h7"><span class="num">7</span> Top NTSB findings <span class="sub">% of accidents citing each finding (cause or factor) · 2008 on</span></h2>
+        <div class="fcols" id="findCols"></div>
+        <p class="note" id="findNote"></p>
+      </section>
+
+      <section class="step" aria-labelledby="h8">
+        <h2 id="h8"><span class="num">8</span> Latest accidents <span class="sub" id="recentSub"></span></h2>
+        <div class="seg" id="recentWhich" role="group" aria-label="Which type" style="margin-bottom:8px">
+          <button type="button" data-v="both" aria-pressed="true">Both types</button>
+          <button type="button" data-v="a" aria-pressed="false">Type A</button>
+          <button type="button" data-v="b" aria-pressed="false">Type B</button>
+        </div>
+        <div id="recentChip"></div>
+        <div id="recentList"></div>
+        <div style="margin-top:8px"><button type="button" class="btn" id="moreBtn">Show 25 more</button></div>
+      </section>
+
+    </div>
+  </div>
+
+  <div class="fine">
+    <p><b>Data.</b> NTSB aviation accident database (avall.mdb for 2008 on, Pre2008.mdb for 1982–2007) and the FAA Releasable Aircraft Database (current and deregistered aircraft), both bundled with this page, not fetched live. Aircraft are matched to the FAA registry by N-number and serial number to get the exact model; when no match exists the NTSB's make/model text is used. Included: certificated (non-homebuilt) piston airplanes from Cirrus, Diamond, Cessna, Piper, Beech and Mooney, US-registered, flights under Part 91. Excluded: incidents, Part 135/137 and public-use flights, ag and warbird types.</p>
+    <p><b>Categories.</b> From 2008 on, the category is the NTSB's own "defining event," which follows the CAST/ICAO (CICTT) taxonomy. Before 2008 the NTSB used an older coding with no defining event; for those years this app maps the first listed occurrence to the nearest category. Those years are marked "derived" and use two extra labels (Weather encounter; Power loss, non-mechanical) where the old codes don't split cleanly.</p>
+    <p><b>Rates.</b> "Registered aircraft" counts every airframe on the FAA registry at any time in the year, flying or not. Training aircraft fly many more hours per year than owner-flown aircraft, so per-registered-aircraft rates favor owner-flown types; no per-model flight-hour data exists. Registration counts before about 2011 include many aircraft no longer flying (the FAA's re-registration program, which ended 01-Jan-2014, cleared them out), so early-year rates read low. The range in grey is a 95% interval for random variation (Poisson).</p>
+    <p><b>Recent years.</b> NTSB investigations take about two years; recent accidents may be preliminary, without probable cause or findings, and the latest months are incomplete.</p>
+  </div>
+
+  <footer class="page-footer">
+    <div class="back-link"><a href="https://geezer-geek-pilot-control-panel.netlify.app">&larr; Back to GeezerGeek Pilot Apps</a></div>
+    <div class="credit-line">Wayne McClelland, <a href="https://youtube.com/@GeezerGeekPilot" target="_blank" rel="noopener">GeezerGeek Pilot</a>, <a href="https://docs.google.com/document/d/1chfDa3JBCjsGykGjwrAFwOqMAS7d3_dIY9ieROLCIyU/preview" target="_blank" rel="noopener">Reference Materials</a></div>
+    <div class="hit-counter" id="hitCounter"></div>
+    <button id="shareBtn" class="share-btn" type="button">
+      <svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/>
+      </svg>
+      <span>Share this app with pilot friends</span>
+    </button>
+  </footer>
+</div>
+
+<script>
+// ---- Piston GA Stats app logic ----
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const CAT = {
+  'LOC-I':['Loss of control – in flight','incl. stall/spin, inflight upset'],
+  'LOC-G':['Loss of control – on ground','directional control on takeoff/landing roll'],
+  'CFIT':['Controlled flight into terrain/obstacle',''],
+  'SCF-PP':['Powerplant failure / malfunction','total or partial power loss, mechanical'],
+  'SCF-NP':['System/component failure (non-powerplant)','flight controls, structure, gear, electrical…'],
+  'FUEL':['Fuel related','exhaustion, starvation, contamination'],
+  'PWR-NM':['Power loss – non-mechanical','pre-2008 code; mostly fuel or carb ice'],
+  'ARC':['Abnormal runway contact','hard landing, gear collapse/up, nose-over'],
+  'RE':['Runway excursion','overrun or veer-off'],
+  'CTOL':['Collision with obstacle – takeoff/landing',''],
+  'LALT':['Low-altitude operation',''],
+  'USOS':['Undershoot / overshoot',''],
+  'GCOL':['Ground collision',''],
+  'MAC':['Midair / near midair',''],
+  'UIMC':['VFR into IMC / loss of visual reference',''],
+  'WX':['Weather encounter','pre-2008 code; IMC, icing, windshear…'],
+  'TURB':['Turbulence encounter',''],
+  'WSTRW':['Windshear or thunderstorm',''],
+  'ICE':['Icing',''],
+  'F-NI':['Fire/smoke (non-impact)',''],
+  'BIRD':['Birdstrike',''],'WILD':['Wildlife encounter',''],
+  'AMAN':['Abrupt maneuver',''],'LOLI':['Loss of lift',''],'MED':['Medical event',''],
+  'NAV':['Navigation / wrong airport',''],'RAMP':['Ground handling',''],'RI':['Runway incursion',''],
+  'ATM':['Air traffic event',''],'OTHR':['Other',''],'UNK':['Unknown / undetermined','']
+};
+const INJ = ['None','Minor','Serious','Fatal'];
+const INJC = ['none','minr','sers','fatl'];
+const DMG = ['None','Minor','Substantial','Destroyed'];
+const PUR = ['Personal','Instructional','Business/other','Not reported'];
+const LIGHT = {DAYL:'Day',DUSK:'Dusk',DAWN:'Dawn',NDRK:'Night, dark',NBRT:'Night, bright',NITE:'Night',NR:'Not reported'};
+const WXC = {VMC:'VMC',IMC:'IMC',Unk:'Unknown'};
+const MON = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// row columns
+const C = {y:0,m:1,d:2,fam:3,cat:4,der:5,ph:6,phd:7,inj:8,dmg:9,pur:10,fat:11,ser:12,ntsb:13,reg:14,st:15,fnd:16,mdl:17,yb:18,wx:19,lt:20,city:21};
+let M, R, FAMS, BRANDS;
+// a selection is "f:<family index>", "b:<Brand>" (all types of that brand),
+// "s:<Brand>" (all single-engine types) or "m:<Brand>" (all multi-engine types), or null
+// Multi-engine families, by "<Brand> <family>" name (everything else is single-engine)
+const TWINS = new Set(['Beech Baron 55/58','Beech Duchess 76','Beech Travel Air 95',
+  'Cessna 310/320','Cessna 335/340','Cessna 336/337','Cessna 401-421 twins',
+  'Diamond DA42','Diamond DA62',
+  'Piper PA-23 Apache/Aztec','Piper PA-30/39 Twin Comanche','Piper PA-31 Navajo','Piper PA-34 Seneca','Piper PA-44 Seminole']);
+const isTwin = i => TWINS.has(FAMS[i][0]+' '+FAMS[i][1]);
+const GROUP = { b:['all types','types',':*'], s:['all singles','singles',':singles'], m:['all twins','twins',':twins'] };
+// a brand gets the singles/twins options only if it has both kinds
+const hasBoth = b => { const k=FAMS.map((f,i)=>f[0]===b?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25 };
+const causeCache = {};
+const famSetCache = {};
+
+function fmtDate(r){ const d=String(r[C.d]).padStart(2,'0'); return (r[C.d]?d+'-':'')+(MON[r[C.m]]||'')+'-'+r[C.y]; }
+function shortFind(s){ const p=s.split('-'); if(p.length<=2) return s; const n=p[p.length-2].startsWith('(general)')?3:2; return p.slice(-n).join(' – ').replace(' – (general)',''); }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// ----- selection helpers
+function selFams(sel){
+  if(!sel) return new Set();
+  if(famSetCache[sel]) return famSetCache[sel];
+  let s;
+  if(sel.startsWith('f:')) s=new Set([+sel.slice(2)]);
+  else { const g=sel[0], b=sel.slice(2);
+    s=new Set(FAMS.map((f,i)=>f[0]===b && (g==='b' || (g==='m')===isTwin(i)) ? i : -1).filter(i=>i>=0)); }
+  return (famSetCache[sel]=s);
+}
+function selBrand(sel){ return !sel ? '' : !sel.startsWith('f:') ? sel.slice(2) : FAMS[+sel.slice(2)][0]; }
+function selLabel(sel){ if(!sel) return '—'; return !sel.startsWith('f:') ? `${sel.slice(2)} – ${GROUP[sel[0]][0]}` : FAMS[+sel.slice(2)].join(' '); }
+function selShort(sel){ if(!sel) return '—'; return sel.startsWith('b:') ? `All ${sel.slice(2)}` : !sel.startsWith('f:') ? `${sel.slice(2)} ${GROUP[sel[0]][1]}` : FAMS[+sel.slice(2)][1]; }
+function fleetYear(sel,y){ let v=0; for(const i of selFams(sel)) v+=M.fleet[i][y-M.fleetY0]||0; return v; }
+const lastYear = () => M.fleetY0+M.fleet[0].length-1;
+
+// Wilson–Hilferty approximation to the exact Poisson 95% interval
+function pci(k){
+  const lo = k===0 ? 0 : k*Math.pow(1-1/(9*k)-1.96/(3*Math.sqrt(k)),3);
+  const k1=k+1, hi = k1*Math.pow(1-1/(9*k1)+1.96/(3*Math.sqrt(k1)),3);
+  return [lo,hi];
+}
+// Share of the last data year covered by the NTSB file (v0.8): its data runs to the day before ntsbAsOf.
+// 01-Oct file -> through 30-Sep -> 9/12; 01-Jan file -> the whole previous year -> 1.
+function ntsbEnd(){ const [y,m,d]=M.ntsbAsOf.split('-').map(Number); return new Date(Date.UTC(y,m-1,d-1)); }
+function dataFrac(){ const e=ntsbEnd(), dim=new Date(Date.UTC(e.getUTCFullYear(),e.getUTCMonth()+1,0)).getUTCDate();
+  return (e.getUTCMonth()+e.getUTCDate()/dim)/12; }
+function acYears(sel){
+  if(!sel) return 0; const last=lastYear(); let s=0;
+  const fr=dataFrac(); for(let y=st.y0;y<=st.y1;y++){ const v=fleetYear(sel,y); s+= y===last ? v*fr : v; }
+  return s;
+}
+// sevKey: which "fatal only" toggle applies ('sev' for section 3/7/8, 'sevPh' for section 4), or none
+function rowsFor(sel, sevKey){
+  if(!sel) return [];
+  const fs=selFams(sel), fatalOnly = sevKey && st[sevKey]==='fatal';
+  return R.filter(r => fs.has(r[C.fam]) && r[C.y]>=st.y0 && r[C.y]<=st.y1 &&
+    (st.pur==='all' || r[C.pur]===+st.pur) && (!fatalOnly || r[C.inj]===3));
+}
+
+// ---------- controls ----------
+function buildControls(){
+  for (const side of ['A','B']){
+    const bs=$('brand'+side), key=side.toLowerCase();
+    bs.innerHTML=(side==='B'?'<option value="">— none —</option>':'')+BRANDS.map(b=>`<option>${b}</option>`).join('');
+    bs.addEventListener('change',()=>{ fillFam(side); const f=$('fam'+side); st[key]= f.value||null; st.cat=null; st.shown=25; update(); });
+    $('fam'+side).addEventListener('change',e=>{ st[key]= e.target.value||null; st.cat=null; st.shown=25; update(); });
+  }
+  const last=lastYear();
+  for (const id of ['y0','y1']){
+    const s=$(id); let h=''; for(let y=1982;y<=last;y++) h+=`<option>${y}</option>`; s.innerHTML=h;
+    s.addEventListener('change',()=>{ st.y0=+$('y0').value; st.y1=+$('y1').value; if(st.y0>st.y1){ if(id==='y0'){st.y1=st.y0;} else {st.y0=st.y1;} } st.shown=25; update(); });
+  }
+  seg('purSeg', v=>{ st.pur=v; st.shown=25; });
+  seg('sevSeg', v=>{ st.sev=v; st.cat=null; st.shown=25; });
+  seg('phSevSeg', v=>{ st.sevPh=v; });
+  seg('trMeasure', v=>{ st.trM=v; });
+  seg('trSmooth', v=>{ st.trS=+v; });
+  seg('rgMeasure', v=>{ st.rgM=v; });
+  seg('rgSmooth', v=>{ st.rgS=+v; });
+  seg('recentWhich', v=>{ st.recent=v; st.shown=25; });
+  $('moreBtn').addEventListener('click',()=>{ st.shown+=25; renderRecent(); });
+  $('shareCmpBtn').addEventListener('click', shareComparison);
+}
+function seg(id, fn){
+  $(id).addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b || b.disabled) return;
+    $(id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+    fn(b.dataset.v); update();
+  });
+}
+function setSeg(id, v){ $(id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', String(x.dataset.v===String(v)))); }
+function fillFam(side){
+  const b=$('brand'+side).value, f=$('fam'+side);
+  if(!b){ f.innerHTML='<option value="">—</option>'; f.disabled=true; return; }
+  f.disabled=false;
+  const opts=FAMS.map((x,i)=>[x,i]).filter(([x])=>x[0]===b).sort((p,q)=>p[0][1].localeCompare(q[0][1],undefined,{numeric:true}));
+  // specific families first (the first one is the default), then "All <brand> singles" / "twins" (brands with both), then "All <brand> types"
+  const grp = hasBoth(b) ? `<option value="s:${esc(b)}">All ${esc(b)} singles</option><option value="m:${esc(b)}">All ${esc(b)} twins</option>` : '';
+  f.innerHTML=opts.map(([x,i])=>`<option value="f:${i}">${esc(x[1])}</option>`).join('')+grp+`<option value="b:${esc(b)}">All ${esc(b)} types</option>`;
+}
+function syncControls(){
+  for (const side of ['A','B']){
+    const sel=st[side.toLowerCase()];
+    $('brand'+side).value = sel ? selBrand(sel) : '';
+    fillFam(side);
+    if (sel) $('fam'+side).value=sel;
+  }
+  $('y0').value=String(st.y0); $('y1').value=String(st.y1);
+  setSeg('purSeg',st.pur); setSeg('sevSeg',st.sev); setSeg('phSevSeg',st.sevPh); setSeg('trMeasure',st.trM); setSeg('trSmooth',st.trS); setSeg('rgMeasure',st.rgM); setSeg('rgSmooth',st.rgS); setSeg('recentWhich',st.recent);
+}
+
+// ---------- URL hash (shareable state) ----------
+function selFromName(s){
+  if(!s) return null;
+  const m=s.match(/^(.+):\*$/); if(m && BRANDS.includes(m[1])) return 'b:'+m[1];
+  const g=s.match(/^(.+):(singles|twins)$/); if(g && BRANDS.includes(g[1]) && hasBoth(g[1])) return (g[2]==='twins'?'m:':'s:')+g[1];
+  const i=FAMS.findIndex(f=>(f[0]+' '+f[1])===s); return i<0?null:'f:'+i;
+}
+function selToName(sel){ return !sel.startsWith('f:') ? sel.slice(2)+GROUP[sel[0]][2] : FAMS[+sel.slice(2)].join(' '); }
+function readHash(){
+  const p=new URLSearchParams(location.hash.slice(1)), last=lastYear();
+  if (p.has('a')) st.a=selFromName(p.get('a')) || st.a;
+  if (p.has('b')) st.b=selFromName(p.get('b'));
+  if (p.has('y0')) st.y0=Math.min(Math.max(+p.get('y0')||2000,1982),last);
+  if (p.has('y1')) st.y1=Math.min(Math.max(+p.get('y1')||last,1982),last);
+  if (st.y0>st.y1) st.y0=st.y1;
+  if (p.has('p') && ['all','0','1','2'].includes(p.get('p'))) st.pur=p.get('p');
+  // section toggles (v0.6): only written when not the default
+  if (p.get('s')==='fatal') st.sev='fatal';
+  if (p.get('ps')==='fatal') st.sevPh='fatal';
+  if (p.get('tm')==='fatal') st.trM='fatal';
+  if (p.get('ts')==='1') st.trS=1;
+  if (p.get('rm')==='new') st.rgM='new';
+  if (p.get('rs')==='1') st.rgS=1;
+  if (['a','b'].includes(p.get('r'))) st.recent=p.get('r');
+  if (p.has('c') && M.cats.includes(p.get('c'))) st.cat=p.get('c');
+  if (st.recent==='b' && !st.b) st.recent='both';
+}
+function writeHash(){
+  const p=new URLSearchParams();
+  if (st.a) p.set('a',selToName(st.a));
+  if (st.b) p.set('b',selToName(st.b));
+  p.set('y0',st.y0); p.set('y1',st.y1); if(st.pur!=='all') p.set('p',st.pur);
+  if (st.sev!=='all') p.set('s',st.sev);
+  if (st.sevPh!=='all') p.set('ps',st.sevPh);
+  if (st.trM!=='all') p.set('tm',st.trM);
+  if (st.trS!==3) p.set('ts',st.trS);
+  if (st.rgM!=='active') p.set('rm',st.rgM);
+  if (st.rgS!==3) p.set('rs',st.rgS);
+  if (st.recent!=='both') p.set('r',st.recent);
+  if (st.cat) p.set('c',st.cat);
+  history.replaceState(null,'','#'+p.toString());
+}
+
+// ---------- rendering ----------
+function legend(id){
+  const a=st.a?`<span><span class="swatch sw-a"></span>${esc(selLabel(st.a))}</span>`:'';
+  const b=st.b?`<span><span class="swatch sw-b"></span>${esc(selLabel(st.b))}</span>`:'';
+  $(id).innerHTML=a+b;
+}
+function renderSummary(){
+  const sides=[st.a,st.b].filter(Boolean);
+  const data=sides.map(sel=>{
+    const rr=rowsFor(sel), fat=rr.filter(r=>r[C.inj]===3), sers=rr.filter(r=>r[C.inj]===2);
+    const ay=acYears(sel), years=st.y1-st.y0+1;
+    const fs=selFams(sel), purAll=R.filter(r=>fs.has(r[C.fam])&&r[C.y]>=st.y0&&r[C.y]<=st.y1);
+    const inst=purAll.filter(r=>r[C.pur]===1).length;
+    return {n:rr.length, f:fat.length, deaths:fat.reduce((s,r)=>s+r[C.fat],0), s:sers.length, ay, fleet:ay/years, inst, purN:purAll.length};
+  });
+  const th=sides.map((sel,i)=>`<th><span class="swatch ${i?'sw-b':'sw-a'}"></span>${esc(selShort(sel))}</th>`).join('');
+  const rate=(k,ay)=>{ if(ay<1) return '—'; const v=1000*k/ay, [lo,hi]=pci(k).map(x=>1000*x/ay);
+    return `${v.toFixed(2)}<span class="ci">${lo.toFixed(2)}–${hi.toFixed(2)}</span>${k<10?'<span class="flag">small sample</span>':''}`; };
+  const pct=(a,b)=> b? Math.round(100*a/b)+'%' : '—';
+  const rows=[
+    ['Accidents', d=>d.n.toLocaleString()],
+    ['Fatal accidents', d=>`${d.f.toLocaleString()} <span class="ci">${pct(d.f,d.n)} of accidents</span>`],
+    ['Fatalities', d=>d.deaths.toLocaleString()],
+    ['Serious-injury accidents', d=>d.s.toLocaleString()],
+    ['Avg. registered fleet', d=>Math.round(d.fleet).toLocaleString()],
+    ['Accidents per 1,000 registered aircraft-years', d=>rate(d.n,d.ay), 'key'],
+    ['Fatal accidents per 1,000 registered aircraft-years', d=>rate(d.f,d.ay), 'key'],
+    ['Instructional share of accidents', d=>pct(d.inst,d.purN)],
+  ];
+  $('sumTable').innerHTML=`<thead><tr><th></th>${th}</tr></thead><tbody>`+
+    rows.map(([l,fn,cls])=>`<tr class="${cls||''}"><td>${l}</td>${data.map(d=>`<td>${fn(d)}</td>`).join('')}</tr>`).join('')+'</tbody>';
+  const yrs=`${st.y0}–${st.y1}`, pur=st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()+' flights only';
+  const fr=dataFrac(), e=ntsbEnd(), endTxt=`${String(e.getUTCDate()).padStart(2,'0')}-${MON[e.getUTCMonth()+1]}-${e.getUTCFullYear()}`;
+  const partial = (st.y1===lastYear() && fr<0.999) ? ` ${st.y1} counts as ${Math.round(fr*100)}% of a year (data through ${endTxt}).` : '';
+  const derived = st.y0<2008 ? ' Years before 2008 use derived categories.' : '';
+  const allB = sides.some(s=>!s.startsWith('f:')) ? ' "All types", "all singles" and "all twins" cover the model families this app lists for that brand (ag aircraft and antiques/warbirds are not included); the Cessna 336/337 (centerline thrust) counts as a twin.' : '';
+  $('sumNote').innerHTML=`${yrs}, ${pur}. Rates are per registered aircraft, not per flight hour: a type used heavily for training will look worse than an owner-flown type with the same per-hour risk. Grey figures are the 95% range.${partial}${derived}${allB}`;
+}
+function pairedBars(el, keys, getLabel, countsA, countsB, totA, totB, clickFn){
+  if(!keys.length){ el.innerHTML='<div class="empty">No accidents match these filters.</div>'; return; }
+  const max=Math.max(1e-9,...keys.map(k=>Math.max(totA?(countsA[k]||0)/totA:0, totB?(countsB[k]||0)/totB:0)));
+  el.innerHTML=keys.map(k=>{
+    const [lab,sub]=getLabel(k);
+    const line=(cnt,tot,cls,name)=>{ if(tot==null) return ''; const p=tot?cnt/tot:0;
+      return `<div class="bline"><div class="bfill ${cls}" style="width:${(85*p/max).toFixed(1)}%" title="${esc(name)}: ${cnt} of ${tot}"></div><span class="bval">${Math.round(100*p)}% · ${cnt}</span></div>`; };
+    return `<div class="brow${clickFn?' clickable':''}${clickFn&&st.cat===k?' sel':''}" data-k="${esc(k)}" ${clickFn?'role="button" tabindex="0"':''}>
+      <div class="blabel">${esc(lab)}${sub?`<small>${esc(sub)}</small>`:''}</div>
+      <div class="btrack">${line(countsA[k]||0,totA,'a',selLabel(st.a))}${line(countsB[k]||0,totB,'b',selLabel(st.b))}</div></div>`;
+  }).join('');
+  if(clickFn){
+    el.querySelectorAll('.brow').forEach(n=>{
+      const go=()=>clickFn(n.dataset.k);
+      n.addEventListener('click',go);
+      n.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); }});
+    });
+  }
+}
+function countBy(rows, fn){ const c={}; for(const r of rows){ const k=fn(r); c[k]=(c[k]||0)+1; } return c; }
+function renderCats(){
+  const A=st.a?rowsFor(st.a,'sev'):null, B=st.b?rowsFor(st.b,'sev'):null;
+  const ca=A?countBy(A,r=>M.cats[r[C.cat]]):{}, cb=B?countBy(B,r=>M.cats[r[C.cat]]):{};
+  const ta=A?A.length:null, tb=B?B.length:null;
+  const score=k=>(ta?(ca[k]||0)/ta:0)+(tb?(cb[k]||0)/tb:0);
+  const keys=[...new Set([...Object.keys(ca),...Object.keys(cb)])].sort((p,q)=>score(q)-score(p));
+  const top=keys.slice(0,12), rest=keys.slice(12);
+  if(rest.length){ ca['__rest']=rest.reduce((s,k)=>s+(ca[k]||0),0); cb['__rest']=rest.reduce((s,k)=>s+(cb[k]||0),0); top.push('__rest'); }
+  legend('legCat');
+  pairedBars($('catBars'), top, k=> k==='__rest'?[`All other categories (${rest.length})`,'']:(CAT[k]||[k,'']), ca, cb, ta, tb,
+    k=>{ if(k==='__rest') return; st.cat = st.cat===k?null:k; st.shown=25; writeHash(); renderCats(); renderRecent(); $('h8').scrollIntoView({behavior:'smooth',block:'start'}); });
+  const der=[A,B].some(x=>x&&x.some(r=>r[C.der]===1));
+  $('catNote').innerHTML=(st.sev==='fatal'?'Fatal accidents only (also applies to sections 7 and 8). ':'')+(der?'Includes pre-2008 accidents with derived categories. ':'')+'Each accident has one defining event; it groups accidents of a similar type and does not by itself mean cause.';
+}
+const PH_ORDER=['Standing','Taxi','Takeoff','Initial climb','Enroute','Maneuvering','Approach','Go-around','Landing','Emergency/uncontrolled descent','Other','Unknown'];
+const PH_SUB={'Enroute':'climb to cruise, cruise, descent','Approach':'incl. VFR pattern, IFR approach','Go-around':'VFR go-around, IFR missed approach','Landing':'flare/touchdown, roll, aborted landing','Maneuvering':'incl. low-altitude flying, aerobatics'};
+function renderPhases(){
+  const A=st.a?rowsFor(st.a,'sevPh'):null, B=st.b?rowsFor(st.b,'sevPh'):null;
+  const ca=A?countBy(A,r=>M.phases[r[C.ph]]):{}, cb=B?countBy(B,r=>M.phases[r[C.ph]]):{};
+  const keys=PH_ORDER.filter(k=>ca[k]||cb[k]);
+  legend('legPh');
+  pairedBars($('phBars'), keys, k=>[k,PH_SUB[k]||''], ca, cb, A?A.length:null, B?B.length:null, null);
+  $('phNote').textContent=(st.sevPh==='fatal'?'Fatal accidents only. ':'')+'Phases are grouped from the NTSB sub-phases; open an accident in section 8 to see its exact sub-phase.';
+}
+function renderSeverity(){
+  const A=st.a?rowsFor(st.a):null, B=st.b?rowsFor(st.b):null;
+  legend('legSev');
+  const okI=r=>r[C.inj]>=0, okD=r=>r[C.dmg]>=0;
+  const ia=A?countBy(A.filter(okI),r=>INJ[r[C.inj]]):{}, ib=B?countBy(B.filter(okI),r=>INJ[r[C.inj]]):{};
+  pairedBars($('injBars'), ['Fatal','Serious','Minor','None'], k=>['Highest injury: '+k, k==='Fatal'?'death within 30 days':(k==='Serious'?'e.g. hospitalized >48 h, fractures, internal injury':'')], ia, ib,
+    A?A.filter(okI).length:null, B?B.filter(okI).length:null, null);
+  const da=A?countBy(A.filter(okD),r=>DMG[r[C.dmg]]):{}, db=B?countBy(B.filter(okD),r=>DMG[r[C.dmg]]):{};
+  pairedBars($('dmgBars'), ['Destroyed','Substantial','Minor'].filter(k=>da[k]||db[k]), k=>['Aircraft damage: '+k,''], da, db,
+    A?A.filter(okD).length:null, B?B.filter(okD).length:null, null);
+}
+function renderTrend(){
+  legend('legTr');
+  const svg=$('trend'), W=700, H=260, L=44, Rm=12, T=12, Bm=28;
+  const years=[]; for(let y=st.y0;y<=st.y1;y++) years.push(y);
+  const last=lastYear(), sels=[st.a,st.b];
+  const series=sels.map(sel=>{
+    if(!sel) return null;
+    const cnt={}; for(const r of rowsFor(sel)) if(st.trM==='all'||r[C.inj]===3) cnt[r[C.y]]=(cnt[r[C.y]]||0)+1;
+    return years.map(y=>{
+      let k=0, ay=0; const h=(st.trS-1)/2;
+      for(let yy=y-h; yy<=y+h; yy++){ if(yy<st.y0||yy>st.y1) continue; const f=fleetYear(sel,yy); k+=cnt[yy]||0; ay+= yy===last? f*dataFrac() : f; }
+      return ay>0 ? {y, v:1000*k/ay, k, ay} : {y, v:null, k, ay};
+    });
+  });
+  const vals=series.flat().filter(p=>p&&p.v!=null).map(p=>p.v);
+  if(!vals.length){ svg.innerHTML=''; $('trNote').textContent='No data for this range.'; return; }
+  const ymax=niceMax(Math.max(...vals)), xs=y=> years.length===1 ? L+(W-L-Rm)/2 : L+(W-L-Rm)*(y-st.y0)/(st.y1-st.y0), ys=v=>T+(H-T-Bm)*(1-v/ymax);
+  let g='';
+  for(let i=0;i<=4;i++){ const v=ymax*i/4, y=ys(v); g+=`<line class="grid" x1="${L}" x2="${W-Rm}" y1="${y}" y2="${y}"/><text class="axis" x="${L-6}" y="${y+4}" text-anchor="end">${v.toFixed(v<1?2:1)}</text>`; }
+  const step=Math.max(1,Math.ceil(years.length/9));
+  years.forEach((y,i)=>{ if(i%step===0||i===years.length-1) g+=`<text class="axis" x="${xs(y)}" y="${H-8}" text-anchor="middle">${y}</text>`; });
+  series.forEach((s,i)=>{ if(!s) return; let d='', pen=false;
+    s.forEach(p=>{ if(p.v==null){pen=false;return;} d+=(pen?'L':'M')+xs(p.y).toFixed(1)+','+ys(p.v).toFixed(1); pen=true; });
+    g+=`<path class="${i?'lb':'la'}" d="${d}"/>`;
+    if(s.filter(p=>p.v!=null).length===1){ const p=s.find(p=>p.v!=null); g+=`<circle cx="${xs(p.y)}" cy="${ys(p.v)}" r="4" fill="var(--series-${i?'b':'a'})"/>`; }
+  });
+  g+=`<line class="xh" id="xh" x1="0" x2="0" y1="${T}" y2="${H-Bm}" visibility="hidden"/><rect x="${L}" y="${T}" width="${W-L-Rm}" height="${H-T-Bm}" fill="transparent" id="hit"/>`;
+  svg.innerHTML=g;
+  const tip=$('trTip'), wrap=$('trWrap'), hit=$('hit'), xh=$('xh');
+  const move=e=>{
+    const rc=svg.getBoundingClientRect(), x=(e.clientX-rc.left)*W/rc.width;
+    let yr=Math.round(st.y0+(x-L)/(W-L-Rm)*(st.y1-st.y0)); yr=Math.max(st.y0,Math.min(st.y1,yr));
+    const i=yr-st.y0; xh.setAttribute('x1',xs(yr)); xh.setAttribute('x2',xs(yr)); xh.setAttribute('visibility','visible');
+    let h=`<div class="t">${st.trS===3?`${Math.max(st.y0,yr-1)}–${Math.min(st.y1,yr+1)} avg (centered on ${yr})`:yr}</div>`;
+    series.forEach((s,j)=>{ if(!s) return; const p=s[i]; h+=`<div><span class="swatch ${j?'sw-b':'sw-a'}"></span>${esc(selShort(sels[j]))}: ${p.v==null?'—':p.v.toFixed(2)} <span class="t">(${p.k} acc. / ${Math.round(p.ay).toLocaleString()} ac-yrs)</span></div>`; });
+    tip.innerHTML=h; tip.style.display='block';
+    const wr=wrap.getBoundingClientRect(); let left=e.clientX-wr.left+12; if(left+tip.offsetWidth>wr.width) left=e.clientX-wr.left-tip.offsetWidth-12; tip.style.left=Math.max(0,left)+'px'; tip.style.top='6px';
+  };
+  hit.addEventListener('pointermove',move); hit.addEventListener('pointerdown',move);
+  hit.addEventListener('pointerleave',()=>{ tip.style.display='none'; xh.setAttribute('visibility','hidden'); });
+  const reg = st.y0<2014 ? ' Registered counts before about 2011 include aircraft no longer flying, so early rates read low.' : '';
+  $('trNote').textContent=(st.trS===3?'Centered 3-year average; ends of the range use the years available. ':'Single years are noisy for small fleets. ')+'Rate = accidents ÷ registered aircraft that year × 1,000.'+reg;
+}
+// ---- Registered aircraft chart (v0.7): active registrations (M.fleet) or new registrations (M.newreg)
+function regYear(sel,y,key){ let v=0; for(const i of selFams(sel)) v+=M[key][i][y-M.fleetY0]||0; return v; }
+function renderReg(){
+  legend('legRg');
+  const svg=$('rgChart'), W=700, H=260, L=52, Rm=12, T=12, Bm=28, key=st.rgM==='new'?'newreg':'fleet';
+  const years=[]; for(let y=st.y0;y<=st.y1;y++) years.push(y);
+  const last=lastYear(), sels=[st.a,st.b];
+  // the registry file's own year is partial: new registrations for it are scaled up to a full year (marked dashed)
+  const ra=M.regAsOf.split('-').map(Number), frac= ra[0]>lastYear() ? 1 : (Date.UTC(ra[0],ra[1]-1,ra[2])-Date.UTC(ra[0],0,1))/86400000/365;
+  const raw=(sel,y)=> key==='newreg' && y===last && frac<0.999 ? regYear(sel,y,key)/frac : regYear(sel,y,key);
+  const series=sels.map(sel=>{
+    if(!sel) return null;
+    return years.map(y=>{ const h=(st.rgS-1)/2; let s=0,n=0;
+      for(let yy=y-h; yy<=y+h; yy++){ if(yy<st.y0||yy>st.y1) continue; s+=raw(sel,yy); n++; }
+      return {y, v:n? s/n : null, raw: regYear(sel,y,key)};
+    });
+  });
+  const vals=series.flat().filter(p=>p&&p.v!=null).map(p=>p.v);
+  if(!vals.length){ svg.innerHTML=''; $('rgNote').textContent='No data for this range.'; return; }
+  const ymax=niceMax(Math.max(1,...vals)), xs=y=> years.length===1 ? L+(W-L-Rm)/2 : L+(W-L-Rm)*(y-st.y0)/(st.y1-st.y0), ys=v=>T+(H-T-Bm)*(1-v/ymax);
+  const partial = key==='newreg' && st.y1===last && frac<0.999;
+  let g='';
+  for(let i=0;i<=4;i++){ const v=ymax*i/4, y=ys(v); g+=`<line class="grid" x1="${L}" x2="${W-Rm}" y1="${y}" y2="${y}"/><text class="axis" x="${L-6}" y="${y+4}" text-anchor="end">${Math.round(v).toLocaleString()}</text>`; }
+  const step=Math.max(1,Math.ceil(years.length/9));
+  years.forEach((y,i)=>{ if(i%step===0||i===years.length-1) g+=`<text class="axis" x="${xs(y)}" y="${H-8}" text-anchor="middle">${y}</text>`; });
+  series.forEach((s,i)=>{ if(!s) return; const pts=s.filter(p=>p.v!=null), cls=i?'lb':'la';
+    const solid=partial? pts.filter(p=>p.y<last) : pts, d=solid.map((p,j)=>(j?'L':'M')+xs(p.y).toFixed(1)+','+ys(p.v).toFixed(1)).join('');
+    if(d) g+=`<path class="${cls}" d="${d}"/>`;
+    if(partial && pts.length>1){ const a=pts[pts.length-2], b=pts[pts.length-1]; g+=`<path class="${cls} dash" d="M${xs(a.y).toFixed(1)},${ys(a.v).toFixed(1)}L${xs(b.y).toFixed(1)},${ys(b.v).toFixed(1)}"/>`; }
+    if(pts.length===1) g+=`<circle cx="${xs(pts[0].y)}" cy="${ys(pts[0].v)}" r="4" fill="var(--series-${i?'b':'a'})"/>`;
+  });
+  g+=`<line class="xh" id="rgXh" x1="0" x2="0" y1="${T}" y2="${H-Bm}" visibility="hidden"/><rect x="${L}" y="${T}" width="${W-L-Rm}" height="${H-T-Bm}" fill="transparent" id="rgHit"/>`;
+  svg.innerHTML=g;
+  const tip=$('rgTip'), wrap=$('rgWrap'), hit=$('rgHit'), xh=$('rgXh');
+  const move=e=>{
+    const rc=svg.getBoundingClientRect(), x=(e.clientX-rc.left)*W/rc.width;
+    let yr=Math.round(st.y0+(x-L)/(W-L-Rm)*(st.y1-st.y0)); yr=Math.max(st.y0,Math.min(st.y1,yr));
+    const i=yr-st.y0; xh.setAttribute('x1',xs(yr)); xh.setAttribute('x2',xs(yr)); xh.setAttribute('visibility','visible');
+    let h=`<div class="t">${st.rgS===3?`${Math.max(st.y0,yr-1)}–${Math.min(st.y1,yr+1)} avg (centered on ${yr})`:yr}</div>`;
+    series.forEach((s,j)=>{ if(!s) return; const p=s[i]; const v=p.v==null?'—':(p.v<10&&st.rgS===3?p.v.toFixed(1):Math.round(p.v).toLocaleString());
+      h+=`<div><span class="swatch ${j?'sw-b':'sw-a'}"></span>${esc(selShort(sels[j]))}: ${v} <span class="t">(${yr}: ${p.raw.toLocaleString()}${key==='newreg'&&yr===last?' so far':''})</span></div>`; });
+    tip.innerHTML=h; tip.style.display='block';
+    const wr=wrap.getBoundingClientRect(); let left=e.clientX-wr.left+12; if(left+tip.offsetWidth>wr.width) left=e.clientX-wr.left-tip.offsetWidth-12; tip.style.left=Math.max(0,left)+'px'; tip.style.top='6px';
+  };
+  hit.addEventListener('pointermove',move); hit.addEventListener('pointerdown',move);
+  hit.addEventListener('pointerleave',()=>{ tip.style.display='none'; xh.setAttribute('visibility','hidden'); });
+  const fmt=s=>{ const [y,m,dd]=s.split('-'); return `${dd}-${MON[+m]}-${y}`; };
+  const sm = st.rgS===3 ? 'Centered 3-year average. ' : '';
+  const note = key==='fleet'
+    ? 'Airframes on the FAA registry at any time in the year, flying or not. Counts before about 2011 include many aircraft no longer flying (the re-registration program that ended 01-Jan-2014 cleared them out).'
+    : `Airframes registered in the US for the first time that year: new production plus used imports. Aircraft returning to the registry after a gap are not counted, because the FAA files don't link an old deregistration to a later re-registration.${partial?` ${last} runs only to ${fmt(M.regAsOf)}; its count is scaled up to a full year and drawn dashed.`:''}`;
+  $('rgNote').textContent=sm+note;
+}
+function niceMax(v){ if(v<=0) return 1; const p=Math.pow(10,Math.floor(Math.log10(v))), n=v/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; }
+function renderFindings(){
+  const cols=[st.a,st.b].map((sel,j)=>{
+    if(!sel) return '';
+    const rr=rowsFor(sel,'sev').filter(r=>r[C.y]>=2008), withF=rr.filter(r=>r[C.fnd].length);
+    const c={}, cc={};
+    for(const r of withF){ const seen=new Set(); for(const x of r[C.fnd]){ const id=x>>1; if(seen.has(id)) continue; seen.add(id); c[id]=(c[id]||0)+1; if(x&1) cc[id]=(cc[id]||0)+1; } }
+    const top=Object.keys(c).sort((p,q)=>c[q]-c[p]).slice(0,10);
+    const body = !withF.length ? '<div class="empty">No findings for 2008 on in this selection.</div>' :
+      top.map(id=>{ const full=M.findings[id]; return `<div class="fitem" title="${esc(full)}"><span>${esc(shortFind(full))}<small>${esc(full.split('-').slice(0,2).join(' › '))}${cc[id]?` · cause in ${cc[id]}`:''}</small></span><span>${Math.round(100*c[id]/withF.length)}%</span></div>`; }).join('');
+    return `<div class="fcol"><h3><span class="swatch ${j?'sw-b':'sw-a'}"></span>${esc(selLabel(sel))} <span class="ci" style="color:var(--text-muted);font-weight:400">· ${withF.length} accidents with findings</span></h3>${body}</div>`;
+  });
+  $('findCols').innerHTML=cols.join('');
+  $('findNote').textContent=(st.sev==='fatal'?'Fatal accidents only (set in section 3). ':'')+'NTSB findings exist from 2008 on, only for completed investigations. An accident usually has several findings, so the percentages add to more than 100%. Hover or long-press a finding to see the NTSB’s full wording.';
+}
+async function loadCauses(brand){
+  const key=brand.toLowerCase();
+  if(!causeCache[key]) causeCache[key]=fetch(`data/causes-${key}.json`).then(r=>r.ok?r.json():{}).catch(()=>({}));
+  return causeCache[key];
+}
+function renderRecent(){
+  const list=$('recentList'), chip=$('recentChip');
+  const bBtn=$('recentWhich').querySelector('[data-v="b"]'), bothBtn=$('recentWhich').querySelector('[data-v="both"]');
+  bBtn.disabled = bothBtn.disabled = !st.b;
+  let which = st.b ? st.recent : 'a';
+  if(!st.b) setSeg('recentWhich','a');
+  // rows tagged with the side they belong to (a row can match both sides; it is listed once per side)
+  const tagged=[];
+  if(which!=='b' && st.a) for(const r of rowsFor(st.a,'sev')) tagged.push([r,0]);
+  if(which!=='a' && st.b) for(const r of rowsFor(st.b,'sev')) tagged.push([r,1]);
+  let rr = st.cat ? tagged.filter(([r])=>M.cats[r[C.cat]]===st.cat) : tagged;
+  rr.sort((p,q)=> (q[0][C.y]-p[0][C.y]) || (q[0][C.m]-p[0][C.m]) || (q[0][C.d]-p[0][C.d]));
+  $('recentSub').textContent=`newest first · ${rr.length.toLocaleString()} in this selection`;
+  const chips=[];
+  if(st.cat) chips.push(`<span class="chip">Category: ${esc((CAT[st.cat]||[st.cat])[0])} <button type="button" data-clear="cat" aria-label="Clear category filter">✕</button></span>`);
+  if(st.sev==='fatal') chips.push(`<span class="chip">Fatal only (section 3) <button type="button" data-clear="sev" aria-label="Show all accidents">✕</button></span>`);
+  chip.innerHTML=chips.join(' ');
+  chip.querySelectorAll('button[data-clear]').forEach(b=>b.onclick=()=>{ if(b.dataset.clear==='cat') st.cat=null; else { st.sev='all'; setSeg('sevSeg','all'); } st.shown=25; update(); });
+  const show=rr.slice(0,st.shown);
+  list.innerHTML = show.length ? show.map(([r,side],i)=>{
+    const cls=r[C.inj]>=0?INJC[r[C.inj]]:'none';
+    const injTxt = r[C.inj]===3 ? `Fatal (${r[C.fat]})` : (r[C.inj]>=0?INJ[r[C.inj]]:'—');
+    const fam=FAMS[r[C.fam]];
+    const mdl = r[C.mdl] && r[C.mdl]!==fam[1].toUpperCase() ? `${fam[0]} ${r[C.mdl]}` : fam.join(' ');
+    return `<div class="acc" data-i="${i}"><button type="button" class="head" aria-expanded="false">
+      <span class="swatch ${side?'sw-b':'sw-a'}" style="margin-top:3px" aria-label="${side?'Type B':'Type A'}"></span>
+      <span class="dt">${fmtDate(r)}</span>
+      <span class="what"><span class="mdl">${esc(mdl)}</span>${r[C.yb]?` <span class="t" style="font-size:11px;color:var(--text-muted)">(${esc(r[C.yb])})</span>`:''}<br>${esc((CAT[M.cats[r[C.cat]]]||[M.cats[r[C.cat]]])[0])}<small>${esc(M.phases[r[C.ph]])}${r[C.st]?' · '+esc(r[C.city]?r[C.city]+', '+r[C.st]:r[C.st]):''} · ${esc(r[C.reg])}</small></span>
+      <span class="inj ${cls}">${injTxt}</span></button>
+      <div class="body"></div></div>`; }).join('') : '<div class="empty">No accidents match.</div>';
+  $('moreBtn').hidden = rr.length<=st.shown;
+  list.querySelectorAll('.acc').forEach(n=>{
+    const [r]=show[+n.dataset.i];
+    n.querySelector('.head').addEventListener('click', async ()=>{
+      const open=!n.classList.contains('open'); n.classList.toggle('open',open);
+      n.querySelector('.head').setAttribute('aria-expanded',String(open));
+      if(!open || n.dataset.loaded) return;
+      const body=n.querySelector('.body'); body.innerHTML='<span class="t">Loading probable cause…</span>';
+      const cz=await loadCauses(FAMS[r[C.fam]][0]); n.dataset.loaded='1';
+      const pc=cz[r[C.ntsb]];
+      const fl=r[C.fnd].map(x=>`${shortFind(M.findings[x>>1])}${x&1?' (cause)':''}`);
+      const fam=FAMS[r[C.fam]];
+      const dl=[
+        ['Aircraft', `${fam[0]} ${r[C.mdl]||fam[1]} · family ${fam[1]}${r[C.yb]?` · built ${r[C.yb]}`:''} · ${r[C.reg]}`],
+        ['Where', [r[C.city],r[C.st]].filter(Boolean).join(', ')||'—'],
+        ['Conditions', [WXC[r[C.wx]]||'', LIGHT[r[C.lt]]||''].filter(Boolean).join(' · ')||'Not reported'],
+        ['Flight', `${PUR[r[C.pur]]} · ${M.phases[r[C.ph]]}${M.phd[r[C.phd]]&&M.phd[r[C.phd]]!==M.phases[r[C.ph]]?` (${M.phd[r[C.phd]]})`:''}`],
+        ['Category', `${(CAT[M.cats[r[C.cat]]]||[M.cats[r[C.cat]]])[0]}${r[C.der]?' (derived, pre-2008 coding)':''}`],
+        ['Outcome', `Injury: ${r[C.inj]>=0?INJ[r[C.inj]]:'—'}${r[C.fat]?` · ${r[C.fat]} fatal`:''}${r[C.ser]?` · ${r[C.ser]} serious`:''} · damage: ${r[C.dmg]>=0?DMG[r[C.dmg]]:'—'}`],
+        ['NTSB no.', r[C.ntsb]]
+      ];
+      body.innerHTML = `<dl class="dgrid">${dl.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`+
+        (pc?`<div><b>NTSB probable cause:</b> ${esc(pc)}</div>`:'<div class="t">No probable cause in the data yet (investigation may still be open).</div>')+
+        (fl.length?`<div class="meta">Findings: ${esc(fl.join('; '))}</div>`:'')+
+        ntsbLinks(r[C.ntsb]);
+    });
+  });
+}
+// NTSB case page (v0.5): web.ntsb.gov/investigations/?ntsbnumber=<no.> shows the NTSB's narrative plus its own
+// "View Report" (final report PDF) and "View Docket" links. Checked 18-Oct-2026 in a browser for
+// WPR26FA354, ERA10LA105, MIA03LA038 and LAX91LA063. Multi-aircraft A/B suffix stripped (one case page per event).
+function ntsbBase(n){ const m=String(n).match(/^([A-Z]{3}\d\d[A-Z]{2}\d{3})[A-Z]?$/); return m?m[1]:String(n); }
+function ntsbLinks(n){
+  const base=ntsbBase(n);
+  return `<div class="meta"><a href="https://web.ntsb.gov/investigations/?ntsbnumber=${encodeURIComponent(base)}" target="_blank" rel="noopener" style="color:var(--teal)">NTSB case page for ${esc(base)} &#8599;</a> <span class="t">&mdash; narrative, final report and docket</span></div>`;
+}
+// "Share this comparison" (v0.6): shares the canonical URL plus the current settings in the hash
+function shareComparison(){
+  writeHash();
+  const url='https://piston-ga-stats.netlify.app/'+location.hash;
+  const names=[st.a,st.b].filter(Boolean).map(selLabel).join(' vs ');
+  const title=`Piston GA Stats: ${names} (${st.y0}\u2013${st.y1})`;
+  const text=`NTSB accident comparison, ${names}, ${st.y0}\u2013${st.y1}.`;
+  const lab=$('shareCmpBtn').querySelector('span'), orig=lab.innerHTML, msg=$('shareCmpMsg');
+  const say=t=>{ lab.textContent=t; msg.textContent=t; setTimeout(()=>{ lab.innerHTML=orig; msg.textContent=''; },2200); };
+  (async()=>{
+    if (navigator.share){
+      try { await navigator.share({ title, text, url }); return; }
+      catch(err){ if (err && err.name==='AbortError') return; /* else fall through */ }
+    }
+    try { await navigator.clipboard.writeText(url); say('Link copied!'); }
+    catch(err){ window.location.href='mailto:?subject='+encodeURIComponent(title)+'&body='+encodeURIComponent(text+' '+url); }
+  })();
+}
+function update(){
+  writeHash();
+  renderSummary(); renderCats(); renderPhases(); renderSeverity(); renderTrend(); renderReg(); renderFindings(); renderRecent();
+}
+
+fetch('data/accidents.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).then(d=>{
+  M=d.meta; R=d.rows; FAMS=M.fams; BRANDS=[...new Set(FAMS.map(f=>f[0]))].sort();
+  st.a=selFromName('Diamond DA40'); st.b=selFromName('Cirrus SR20'); st.y0=2000; st.y1=lastYear();
+  readHash();
+  buildControls(); syncControls();
+  const fmt=s=>{ const [y,m,dd]=s.split('-'); return `${dd}-${MON[+m]}-${y}`; };
+  $('dataNote').innerHTML=`<b>${R.length.toLocaleString()}</b> accidents, 1982 to date. NTSB data as of ${fmt(M.ntsbAsOf)}; FAA registry as of ${fmt(M.regAsOf)}. Each brand's list ends with "All … types." All your settings are saved in the page link, so you can bookmark this comparison or share it.`;
+  $('loading').hidden=true; $('app').hidden=false;
+  update();
+}).catch(err=>{
+  $('loading').textContent='Could not load the accident data ('+err.message+'). Please reload the page.';
+});
+})();
+
+// ---- share button (App-Conventions §6a) ----
+(() => {
+  const APP_URL   = 'https://piston-ga-stats.netlify.app/';   // canonical live URL from §1
+  const APP_TITLE = 'Piston GA Stats';
+  const APP_TEXT  = 'Compare NTSB accident records for piston airplane types: categories, phase of flight, severity and fleet rates.';
+  const btn = document.getElementById('shareBtn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const label = btn.querySelector('span') || btn;
+    const original = label.textContent;
+    if (navigator.share){
+      try { await navigator.share({ title: APP_TITLE, text: APP_TEXT, url: APP_URL }); return; }
+      catch (err) { if (err && err.name === 'AbortError') return; /* else fall through */ }
+    }
+    try {
+      await navigator.clipboard.writeText(APP_URL);
+      label.textContent = 'Link copied to clipboard!';
+      setTimeout(() => { label.textContent = original; }, 2200);
+    } catch (err) {
+      window.location.href = 'mailto:?subject=' + encodeURIComponent(APP_TITLE)
+        + '&body=' + encodeURIComponent(APP_TEXT + ' ' + APP_URL);
+    }
+  });
+})();
+
+// ---- open counter (App-Conventions §6b; Tally, fails silently) ----
+fetch('https://tally.yuki.sh/hits/wamware/piston-ga-stats.json')
+  .then(r => r.json())
+  .then(d => {
+    const el = document.getElementById('hitCounter');
+    const n = d && d.visit;
+    if (el && typeof n === 'number') el.textContent = 'Opened ' + n.toLocaleString() + (n === 1 ? ' time' : ' times');
+  })
+  .catch(() => { /* counter is a nice-to-have, never block the app */ });
+</script>
+</body>
+</html>
