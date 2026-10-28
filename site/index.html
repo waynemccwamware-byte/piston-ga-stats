@@ -230,7 +230,7 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 <div class="rig">
   <div class="title-row">
     <h1>Piston GA Stats</h1>
-    <span class="ver mono">v0.10</span>
+    <span class="ver mono">v0.11</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for two piston types by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -425,7 +425,8 @@ const MON = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 const C = {y:0,m:1,d:2,fam:3,cat:4,der:5,ph:6,phd:7,inj:8,dmg:9,pur:10,fat:11,ser:12,ntsb:13,reg:14,st:15,fnd:16,mdl:17,yb:18,wx:19,lt:20,city:21};
 let M, R, FAMS, BRANDS;
 // a selection is "f:<family index>", "b:<Brand>" (all types of that brand),
-// "s:<Brand>" (all single-engine types) or "m:<Brand>" (all multi-engine types), or null
+// "s:<Brand>" (all single-engine types) or "m:<Brand>" (all multi-engine types), or null.
+// Brand "*" (v0.11) = every brand in the app: "b:*" all pistons, "s:*" all piston singles, "m:*" all piston twins.
 // Multi-engine families, by "<Brand> <family>" name (everything else is single-engine)
 const TWINS = new Set(['Beech Baron 55/58','Beech Duchess 76','Beech Travel Air 95',
   'Cessna 310/320','Cessna 335/340','Cessna 336/337','Cessna 401-421 twins',
@@ -434,7 +435,9 @@ const TWINS = new Set(['Beech Baron 55/58','Beech Duchess 76','Beech Travel Air 
 const isTwin = i => TWINS.has(FAMS[i][0]+' '+FAMS[i][1]);
 const GROUP = { b:['all types','types',':*'], s:['all singles','singles',':singles'], m:['all twins','twins',':twins'] };
 // a brand gets the singles/twins options only if it has both kinds
-const hasBoth = b => { const k=FAMS.map((f,i)=>f[0]===b?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
+const ALL='*', ALL_NAME='All';  // brand sentinel and its link-hash name (a=All:* / All:singles / All:twins)
+const inBrand = (f,b) => b===ALL || f[0]===b;
+const hasBoth = b => { const k=FAMS.map((f,i)=>inBrand(f,b)?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
 const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25 };
 const causeCache = {};
 const famSetCache = {};
@@ -449,12 +452,13 @@ function selFams(sel){
   let s;
   if(sel.startsWith('f:')) s=new Set([+sel.slice(2)]);
   else { const g=sel[0], b=sel.slice(2);
-    s=new Set(FAMS.map((f,i)=>f[0]===b && (g==='b' || (g==='m')===isTwin(i)) ? i : -1).filter(i=>i>=0)); }
+    s=new Set(FAMS.map((f,i)=>inBrand(f,b) && (g==='b' || (g==='m')===isTwin(i)) ? i : -1).filter(i=>i>=0)); }
   return (famSetCache[sel]=s);
 }
 function selBrand(sel){ return !sel ? '' : !sel.startsWith('f:') ? sel.slice(2) : FAMS[+sel.slice(2)][0]; }
-function selLabel(sel){ if(!sel) return '—'; return !sel.startsWith('f:') ? `${sel.slice(2)} – ${GROUP[sel[0]][0]}` : FAMS[+sel.slice(2)].join(' '); }
-function selShort(sel){ if(!sel) return '—'; return sel.startsWith('b:') ? `All ${sel.slice(2)}` : !sel.startsWith('f:') ? `${sel.slice(2)} ${GROUP[sel[0]][1]}` : FAMS[+sel.slice(2)][1]; }
+const ALL_LBL = { b:'All pistons', s:'All piston singles', m:'All piston twins' };
+function selLabel(sel){ if(!sel) return '—'; if(sel.slice(2)===ALL) return ALL_LBL[sel[0]]; return !sel.startsWith('f:') ? `${sel.slice(2)} – ${GROUP[sel[0]][0]}` : FAMS[+sel.slice(2)].join(' '); }
+function selShort(sel){ if(!sel) return '—'; if(sel.slice(2)===ALL) return ALL_LBL[sel[0]]; return sel.startsWith('b:') ? `All ${sel.slice(2)}` : !sel.startsWith('f:') ? `${sel.slice(2)} ${GROUP[sel[0]][1]}` : FAMS[+sel.slice(2)][1]; }
 function fleetYear(sel,y){ let v=0; for(const i of selFams(sel)) v+=M.fleet[i][y-M.fleetY0]||0; return v; }
 const lastYear = () => M.fleetY0+M.fleet[0].length-1;
 
@@ -486,7 +490,7 @@ function rowsFor(sel, sevKey){
 function buildControls(){
   for (const side of ['A','B']){
     const bs=$('brand'+side), key=side.toLowerCase();
-    bs.innerHTML=(side==='B'?'<option value="">— none —</option>':'')+BRANDS.map(b=>`<option>${b}</option>`).join('');
+    bs.innerHTML=(side==='B'?'<option value="">— none —</option>':'')+BRANDS.map(b=>`<option>${b}</option>`).join('')+`<option value="${ALL}">All pistons</option>`;
     bs.addEventListener('change',()=>{ fillFam(side); const f=$('fam'+side); st[key]= f.value||null; st.cat=null; st.shown=25; update(); });
     $('fam'+side).addEventListener('change',e=>{ st[key]= e.target.value||null; st.cat=null; st.shown=25; update(); });
   }
@@ -518,6 +522,10 @@ function fillFam(side){
   const b=$('brand'+side).value, f=$('fam'+side);
   if(!b){ f.innerHTML='<option value="">—</option>'; f.disabled=true; return; }
   f.disabled=false;
+  if(b===ALL){ // all-brands choice: all types first (the default), then singles and twins
+    f.innerHTML=`<option value="b:${ALL}">All piston types</option><option value="s:${ALL}">All piston singles</option><option value="m:${ALL}">All piston twins</option>`;
+    return;
+  }
   const opts=FAMS.map((x,i)=>[x,i]).filter(([x])=>x[0]===b).sort((p,q)=>p[0][1].localeCompare(q[0][1],undefined,{numeric:true}));
   // specific families first (the first one is the default), then "All <brand> singles" / "twins" (brands with both), then "All <brand> types"
   const grp = hasBoth(b) ? `<option value="s:${esc(b)}">All ${esc(b)} singles</option><option value="m:${esc(b)}">All ${esc(b)} twins</option>` : '';
@@ -537,11 +545,12 @@ function syncControls(){
 // ---------- URL hash (shareable state) ----------
 function selFromName(s){
   if(!s) return null;
+  const am=s.match(/^All:(\*|singles|twins)$/); if(am) return ({'*':'b:','singles':'s:','twins':'m:'})[am[1]]+ALL;
   const m=s.match(/^(.+):\*$/); if(m && BRANDS.includes(m[1])) return 'b:'+m[1];
   const g=s.match(/^(.+):(singles|twins)$/); if(g && BRANDS.includes(g[1]) && hasBoth(g[1])) return (g[2]==='twins'?'m:':'s:')+g[1];
   const i=FAMS.findIndex(f=>(f[0]+' '+f[1])===s); return i<0?null:'f:'+i;
 }
-function selToName(sel){ return !sel.startsWith('f:') ? sel.slice(2)+GROUP[sel[0]][2] : FAMS[+sel.slice(2)].join(' '); }
+function selToName(sel){ return !sel.startsWith('f:') ? (sel.slice(2)===ALL?ALL_NAME:sel.slice(2))+GROUP[sel[0]][2] : FAMS[+sel.slice(2)].join(' '); }
 function readHash(){
   const p=new URLSearchParams(location.hash.slice(1)), last=lastYear();
   if (p.has('a')) st.a=selFromName(p.get('a')) || st.a;
@@ -612,7 +621,7 @@ function renderSummary(){
   const fr=dataFrac(), e=ntsbEnd(), endTxt=`${String(e.getUTCDate()).padStart(2,'0')}-${MON[e.getUTCMonth()+1]}-${e.getUTCFullYear()}`;
   const partial = (st.y1===lastYear() && fr<0.999) ? ` ${st.y1} counts as ${Math.round(fr*100)}% of a year (data through ${endTxt}).` : '';
   const derived = st.y0<2008 ? ' Years before 2008 use derived categories.' : '';
-  const allB = sides.some(s=>!s.startsWith('f:')) ? ' "All types", "all singles" and "all twins" cover the model families this app lists for that brand (ag aircraft and antiques/warbirds are not included); the Cessna 336/337 (centerline thrust) counts as a twin.' : '';
+  const allB = sides.some(s=>!s.startsWith('f:')) ? ' "All types", "all singles" and "all twins" cover the model families this app lists for that brand (ag aircraft and antiques/warbirds are not included); the Cessna 336/337 (centerline thrust) counts as a twin.'+(sides.some(s=>s.slice(2)===ALL)?` "All pistons" sums those lists across all ${BRANDS.length} brands in the app (${BRANDS.join(', ')}); it is not the whole US piston fleet.`:'') : '';
   $('sumNote').innerHTML=`${yrs}, ${pur}. Rates are per registered aircraft, not per flight hour: a type used heavily for training will look worse than an owner-flown type with the same per-hour risk. Grey figures are the 95% range.${partial}${derived}${allB}`;
 }
 function pairedBars(el, keys, getLabel, countsA, countsB, totA, totB, clickFn){
@@ -881,7 +890,7 @@ fetch('data/accidents.json').then(r=>{ if(!r.ok) throw new Error(r.status); retu
   readHash();
   buildControls(); syncControls();
   const fmt=s=>{ const [y,m,dd]=s.split('-'); return `${dd}-${MON[+m]}-${y}`; };
-  $('dataNote').innerHTML=`<b>${R.length.toLocaleString()}</b> accidents, 1982 to date. NTSB data as of ${fmt(M.ntsbAsOf)}; FAA registry as of ${fmt(M.regAsOf)}. Each brand's list ends with "All … types." All your settings are saved in the page link, so you can bookmark this comparison or share it.`;
+  $('dataNote').innerHTML=`<b>${R.length.toLocaleString()}</b> accidents, 1982 to date. NTSB data as of ${fmt(M.ntsbAsOf)}; FAA registry as of ${fmt(M.regAsOf)}. Each brand's list ends with "All … types"; the brand list ends with "All pistons" (every brand in the app, with all types, singles or twins). All your settings are saved in the page link, so you can bookmark this comparison or share it.`;
   $('loading').hidden=true; $('app').hidden=false;
   update();
 }).catch(err=>{
