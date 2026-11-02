@@ -260,7 +260,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>Piston GA Stats</h1>
-    <span class="ver mono">v0.12</span>
+    <span class="ver mono">v0.13</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for two piston types by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -590,7 +590,7 @@ function selFromName(s){
 function selToName(sel){ return !sel.startsWith('f:') ? (sel.slice(2)===ALL?ALL_NAME:sel.slice(2))+GROUP[sel[0]][2] : FAMS[+sel.slice(2)].join(' '); }
 function readHash(){
   const p=new URLSearchParams(location.hash.slice(1)), last=lastYear();
-  const pr=PRESETS.find(x=>x.id===p.get('pair'));  // v0.12: a preset link sets A and B (years etc. still come from the link)
+  const pr=PRESETS.find(x=>x.id===p.get('pair') && !x.reset);  // v0.12: a preset link sets A and B (years etc. still come from the link)
   if (pr){ st.preset=pr.id; st.a=selFromName(pr.a); st.b=selFromName(pr.b); }
   else {
     if (p.has('a')) st.a=selFromName(p.get('a')) || st.a;
@@ -909,16 +909,16 @@ function ntsbLinks(n){
 const PRESETS = [
   {id:'singles-twins', a:'All:singles', b:'All:twins', label:'All singles vs all twins',
    hook:'The big picture: how does the piston-twin accident record differ from the singles’?'},
-  {id:'c172-pa28', a:'Cessna 172', b:'Piper PA-28 Cherokee/Warrior/Archer', label:'Cessna 172 vs Piper PA-28',
-   hook:'The two classic trainers: same mission, high wing vs low wing.'},
-  {id:'da40-c172', a:'Diamond DA40', b:'Cessna 172', label:'Diamond DA40 vs Cessna 172',
-   hook:'A newer composite four-seater against the most common trainer.'},
-  {id:'sr22-a36', a:'Cirrus SR22', b:'Beech Bonanza 36', label:'Cirrus SR22 vs Beech Bonanza 36',
-   hook:'High-performance singles: a composite design with a whole-airframe parachute vs a metal classic.'},
   {id:'seneca-baron', a:'Piper PA-34 Seneca', b:'Beech Baron 55/58', label:'Piper Seneca vs Beech Baron',
    hook:'Two popular light piston twins.'},
+  {id:'beech-cirrus', a:'Beech:singles', b:'Cirrus:*', label:'All Beech singles vs all Cirrus',
+   hook:'Two single-engine lineups: Beech’s metal singles vs Cirrus’s composite fleet (Cirrus builds only singles).'},
   {id:'sr22-sr22t', a:'Cirrus SR22', b:'Cirrus SR22T', label:'Cirrus SR22 vs SR22T',
    hook:'Same airframe, normally aspirated vs turbocharged.'},
+  {id:'c172-pa28', a:'Cessna 172', b:'Piper PA-28 Cherokee/Warrior/Archer', label:'Cessna 172 vs Piper PA-28',
+   hook:'The two classic trainers: same mission, high wing vs low wing.'},
+  {id:'default', a:'Diamond DA40', b:'Cirrus SR20', label:'Back to the default', reset:true,
+   hook:'Diamond DA40 vs Cirrus SR20, all settings back to their defaults, no highlights.'},
 ];
 const HL_Z = 2, HL_MIN = 8, HL_MAX = 6;   // |z| needed, min combined count, max bullets
 let HL = { sum:new Set(), cat:new Set(), ph:new Set(), items:[] };
@@ -957,7 +957,7 @@ function computeHL(){
     const ca=countBy(rA,keyFn), cb=countBy(rB,keyFn);
     const c=[...new Set([...Object.keys(ca),...Object.keys(cb)])].map(k=>{
       const xa=ca[k]||0, xb=cb[k]||0; return {sec,k,z:zProp(xa,rA.length,xb,rB.length),n:xa+xb,t:label(k),va:pc(xa,rA.length),vb:pc(xb,rB.length)}; })
-      .filter(x=>x.n>=HL_MIN && Math.abs(x.z)>=HL_Z && !['UNK','OTHR','Unknown','Other'].includes(x.k))
+      .filter(x=>x.n>=HL_MIN && Math.abs(x.z)>=HL_Z && !['UNK','OTHR','Unknown','Other'].includes(x.k) && !((CAT[x.k]||[])[1]||'').startsWith('pre-2008 code'))  // codes used only before 2008 differ by fleet age, not by airplane
       .sort((p,q)=>Math.abs(q.z)-Math.abs(p.z)).slice(0,limit);
     out.push(...c);
   };
@@ -980,6 +980,11 @@ function buildPresets(){
 }
 function applyPreset(id){
   const p=PRESETS.find(x=>x.id===id); if(!p) return;
+  if(p.reset){  // "Back to the default": the app's opening state, no highlights
+    Object.assign(st,{preset:null, coHidden:false, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all',
+      sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25});
+    syncControls(); update(); return;
+  }
   st.preset=id; st.coHidden=false; st.a=selFromName(p.a); st.b=selFromName(p.b);
   st.y0=2000; st.y1=lastYear(); st.pur='all'; st.sev='all'; st.sevPh='all'; st.cat=null; st.shown=25;
   if(st.recent==='b' && !st.b) st.recent='both';
