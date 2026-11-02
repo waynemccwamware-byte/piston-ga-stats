@@ -175,6 +175,34 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .fine p{ margin:0 0 6px; }
 .fine a{ color:var(--teal); }
 .loading{ font-size:13px; color:var(--text-muted); padding:20px 4px; text-align:center; }
+/* v0.12: "Try a comparison" presets + data-driven highlights */
+:root{ --hl:#f2d64b; --hl-bg:rgba(242,214,75,0.10); }
+.presets h2 .sub{ font-weight:400; }
+.pchips{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.pchip{ all:unset; box-sizing:border-box; display:flex; flex-direction:column; gap:3px; padding:8px 10px; border:1px solid var(--bezel-hi); border-radius:7px; cursor:pointer; background:rgba(255,255,255,0.015); transition:border-color .15s ease, background .15s ease; }
+.pchip:hover{ border-color:var(--amber-dim); }
+.pchip:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+.pchip b{ font-size:12.5px; font-weight:600; color:var(--text-primary); line-height:1.3; }
+.pchip small{ font-size:11px; color:var(--text-muted); line-height:1.35; }
+.pchip .pn{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--amber); margin-right:5px; }
+.pchip[aria-pressed="true"]{ border-color:var(--hl); background:var(--hl-bg); }
+.callout{ margin-top:10px; border:1px solid var(--hl); border-left-width:4px; border-radius:7px; background:var(--hl-bg); padding:10px 34px 10px 12px; position:relative; animation:coIn .25s ease; }
+@keyframes coIn{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce){ .callout{ animation:none; } }
+.callout h3{ font-size:12.5px; margin:0 0 3px; color:var(--hl); font-weight:600; }
+.callout .hook{ font-size:12px; color:var(--text-primary); margin:0 0 6px; }
+.callout ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:4px; }
+.callout li{ font-size:12px; line-height:1.4; }
+.callout li button{ all:unset; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--hl); border:1px solid rgba(242,214,75,0.45); border-radius:4px; padding:0 5px; margin-right:6px; }
+.callout li button:focus-visible{ outline:2px solid var(--hl); outline-offset:1px; }
+.callout .vs{ white-space:nowrap; font-family:'IBM Plex Mono',monospace; font-size:11px; }
+.callout .co-note{ font-size:10.5px; color:var(--text-muted); margin:7px 0 0; line-height:1.45; }
+.callout .co-x{ all:unset; position:absolute; top:6px; right:8px; cursor:pointer; color:var(--text-muted); font-size:16px; line-height:1; padding:2px 4px; }
+.callout .co-x:hover{ color:var(--hl); }
+.callout .co-clear{ all:unset; cursor:pointer; color:var(--teal); font-size:11px; border-bottom:1px solid currentColor; }
+table.sum tr.hl td{ background:var(--hl-bg); }
+table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--text-primary); }
+.brow.hl{ background:var(--hl-bg); box-shadow:inset 3px 0 0 var(--hl); }
 
 @media (max-width:560px){
   .ctl-grid{ grid-template-columns:minmax(0,1fr); }
@@ -182,6 +210,8 @@ svg.trend .dash{ stroke-dasharray:4 4; }
   .brow{ grid-template-columns:minmax(0,1fr); gap:3px; }
   .acc .body{ padding-left:2px; }
   table.sum{ font-size:12px; }
+  .pchips{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
+  .pchip{ flex:0 0 72%; scroll-snap-align:start; }
 }
 </style>
 <!-- GGP-FOOTER-CSS START v1.3 · 29-Oct-2026 · shared footer styles, App Conventions §5b · master: Control Panel repo tools/ggp-footer -->
@@ -230,13 +260,19 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 <div class="rig">
   <div class="title-row">
     <h1>Piston GA Stats</h1>
-    <span class="ver mono">v0.11</span>
+    <span class="ver mono">v0.12</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for two piston types by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
   <div class="panel" id="panel">
     <div class="loading" id="loading">Loading NTSB accident data…</div>
     <div id="app" hidden>
+
+      <section class="step presets" aria-labelledby="h0">
+        <h2 id="h0">Try a comparison <span class="sub">tap a pair, then look for the yellow highlights</span></h2>
+        <div class="pchips" id="pchips" role="group" aria-label="Sample comparisons"></div>
+        <div id="callout"></div>
+      </section>
 
       <section class="step has-share" aria-labelledby="h1">
         <h2 id="h1"><span class="num">1</span> Choose types and filters</h2>
@@ -438,7 +474,7 @@ const GROUP = { b:['all types','types',':*'], s:['all singles','singles',':singl
 const ALL='*', ALL_NAME='All';  // brand sentinel and its link-hash name (a=All:* / All:singles / All:twins)
 const inBrand = (f,b) => b===ALL || f[0]===b;
 const hasBoth = b => { const k=FAMS.map((f,i)=>inBrand(f,b)?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
-const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25 };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, coHidden:false };
 const causeCache = {};
 const famSetCache = {};
 
@@ -491,8 +527,8 @@ function buildControls(){
   for (const side of ['A','B']){
     const bs=$('brand'+side), key=side.toLowerCase();
     bs.innerHTML=(side==='B'?'<option value="">— none —</option>':'')+BRANDS.map(b=>`<option>${b}</option>`).join('')+`<option value="${ALL}">All pistons</option>`;
-    bs.addEventListener('change',()=>{ fillFam(side); const f=$('fam'+side); st[key]= f.value||null; st.cat=null; st.shown=25; update(); });
-    $('fam'+side).addEventListener('change',e=>{ st[key]= e.target.value||null; st.cat=null; st.shown=25; update(); });
+    bs.addEventListener('change',()=>{ fillFam(side); const f=$('fam'+side); st[key]= f.value||null; st.cat=null; st.shown=25; st.preset=null; update(); });
+    $('fam'+side).addEventListener('change',e=>{ st[key]= e.target.value||null; st.cat=null; st.shown=25; st.preset=null; update(); });
   }
   const last=lastYear();
   for (const id of ['y0','y1']){
@@ -509,6 +545,7 @@ function buildControls(){
   seg('recentWhich', v=>{ st.recent=v; st.shown=25; });
   $('moreBtn').addEventListener('click',()=>{ st.shown+=25; renderRecent(); });
   $('shareCmpBtn').addEventListener('click', shareComparison);
+  buildPresets();
 }
 function seg(id, fn){
   $(id).addEventListener('click', e=>{
@@ -553,8 +590,12 @@ function selFromName(s){
 function selToName(sel){ return !sel.startsWith('f:') ? (sel.slice(2)===ALL?ALL_NAME:sel.slice(2))+GROUP[sel[0]][2] : FAMS[+sel.slice(2)].join(' '); }
 function readHash(){
   const p=new URLSearchParams(location.hash.slice(1)), last=lastYear();
-  if (p.has('a')) st.a=selFromName(p.get('a')) || st.a;
-  if (p.has('b')) st.b=selFromName(p.get('b'));
+  const pr=PRESETS.find(x=>x.id===p.get('pair'));  // v0.12: a preset link sets A and B (years etc. still come from the link)
+  if (pr){ st.preset=pr.id; st.a=selFromName(pr.a); st.b=selFromName(pr.b); }
+  else {
+    if (p.has('a')) st.a=selFromName(p.get('a')) || st.a;
+    if (p.has('b')) st.b=selFromName(p.get('b'));
+  }
   if (p.has('y0')) st.y0=Math.min(Math.max(+p.get('y0')||2000,1982),last);
   if (p.has('y1')) st.y1=Math.min(Math.max(+p.get('y1')||last,1982),last);
   if (st.y0>st.y1) st.y0=st.y1;
@@ -572,6 +613,7 @@ function readHash(){
 }
 function writeHash(){
   const p=new URLSearchParams();
+  if (st.preset) p.set('pair',st.preset);
   if (st.a) p.set('a',selToName(st.a));
   if (st.b) p.set('b',selToName(st.b));
   p.set('y0',st.y0); p.set('y1',st.y1); if(st.pur!=='all') p.set('p',st.pur);
@@ -607,16 +649,16 @@ function renderSummary(){
   const pct=(a,b)=> b? Math.round(100*a/b)+'%' : '—';
   const rows=[
     ['Accidents', d=>d.n.toLocaleString()],
-    ['Fatal accidents', d=>`${d.f.toLocaleString()} <span class="ci">${pct(d.f,d.n)} of accidents</span>`],
+    ['Fatal accidents', d=>`${d.f.toLocaleString()} <span class="ci">${pct(d.f,d.n)} of accidents</span>`, '', 'fshare'],
     ['Fatalities', d=>d.deaths.toLocaleString()],
     ['Serious-injury accidents', d=>d.s.toLocaleString()],
     ['Avg. registered fleet', d=>Math.round(d.fleet).toLocaleString()],
-    ['Accidents per 1,000 registered aircraft-years', d=>rate(d.n,d.ay), 'key'],
-    ['Fatal accidents per 1,000 registered aircraft-years', d=>rate(d.f,d.ay), 'key'],
-    ['Instructional share of accidents', d=>pct(d.inst,d.purN)],
+    ['Accidents per 1,000 registered aircraft-years', d=>rate(d.n,d.ay), 'key', 'rate'],
+    ['Fatal accidents per 1,000 registered aircraft-years', d=>rate(d.f,d.ay), 'key', 'frate'],
+    ['Instructional share of accidents', d=>pct(d.inst,d.purN), '', 'inst'],
   ];
   $('sumTable').innerHTML=`<thead><tr><th></th>${th}</tr></thead><tbody>`+
-    rows.map(([l,fn,cls])=>`<tr class="${cls||''}"><td>${l}</td>${data.map(d=>`<td>${fn(d)}</td>`).join('')}</tr>`).join('')+'</tbody>';
+    rows.map(([l,fn,cls,k])=>`<tr class="${cls||''}${k&&HL.sum.has(k)?' hl':''}"><td>${l}</td>${data.map(d=>`<td>${fn(d)}</td>`).join('')}</tr>`).join('')+'</tbody>';
   const yrs=`${st.y0}–${st.y1}`, pur=st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()+' flights only';
   const fr=dataFrac(), e=ntsbEnd(), endTxt=`${String(e.getUTCDate()).padStart(2,'0')}-${MON[e.getUTCMonth()+1]}-${e.getUTCFullYear()}`;
   const partial = (st.y1===lastYear() && fr<0.999) ? ` ${st.y1} counts as ${Math.round(fr*100)}% of a year (data through ${endTxt}).` : '';
@@ -624,14 +666,14 @@ function renderSummary(){
   const allB = sides.some(s=>!s.startsWith('f:')) ? ' "All types", "all singles" and "all twins" cover the model families this app lists for that brand (ag aircraft and antiques/warbirds are not included); the Cessna 336/337 (centerline thrust) counts as a twin.'+(sides.some(s=>s.slice(2)===ALL)?` "All pistons" sums those lists across all ${BRANDS.length} brands in the app (${BRANDS.join(', ')}); it is not the whole US piston fleet.`:'') : '';
   $('sumNote').innerHTML=`${yrs}, ${pur}. Rates are per registered aircraft, not per flight hour: a type used heavily for training will look worse than an owner-flown type with the same per-hour risk. Grey figures are the 95% range.${partial}${derived}${allB}`;
 }
-function pairedBars(el, keys, getLabel, countsA, countsB, totA, totB, clickFn){
+function pairedBars(el, keys, getLabel, countsA, countsB, totA, totB, clickFn, hl){
   if(!keys.length){ el.innerHTML='<div class="empty">No accidents match these filters.</div>'; return; }
   const max=Math.max(1e-9,...keys.map(k=>Math.max(totA?(countsA[k]||0)/totA:0, totB?(countsB[k]||0)/totB:0)));
   el.innerHTML=keys.map(k=>{
     const [lab,sub]=getLabel(k);
     const line=(cnt,tot,cls,name)=>{ if(tot==null) return ''; const p=tot?cnt/tot:0;
       return `<div class="bline"><div class="bfill ${cls}" style="width:${(85*p/max).toFixed(1)}%" title="${esc(name)}: ${cnt} of ${tot}"></div><span class="bval">${Math.round(100*p)}% · ${cnt}</span></div>`; };
-    return `<div class="brow${clickFn?' clickable':''}${clickFn&&st.cat===k?' sel':''}" data-k="${esc(k)}" ${clickFn?'role="button" tabindex="0"':''}>
+    return `<div class="brow${clickFn?' clickable':''}${clickFn&&st.cat===k?' sel':''}${hl&&hl.has(k)?' hl':''}" data-k="${esc(k)}" ${clickFn?'role="button" tabindex="0"':''}>
       <div class="blabel">${esc(lab)}${sub?`<small>${esc(sub)}</small>`:''}</div>
       <div class="btrack">${line(countsA[k]||0,totA,'a',selLabel(st.a))}${line(countsB[k]||0,totB,'b',selLabel(st.b))}</div></div>`;
   }).join('');
@@ -650,11 +692,11 @@ function renderCats(){
   const ta=A?A.length:null, tb=B?B.length:null;
   const score=k=>(ta?(ca[k]||0)/ta:0)+(tb?(cb[k]||0)/tb:0);
   const keys=[...new Set([...Object.keys(ca),...Object.keys(cb)])].sort((p,q)=>score(q)-score(p));
-  const top=keys.slice(0,12), rest=keys.slice(12);
+  const top=keys.slice(0,12).concat(keys.slice(12).filter(k=>HL.cat.has(k))), rest=keys.slice(12).filter(k=>!HL.cat.has(k));
   if(rest.length){ ca['__rest']=rest.reduce((s,k)=>s+(ca[k]||0),0); cb['__rest']=rest.reduce((s,k)=>s+(cb[k]||0),0); top.push('__rest'); }
   legend('legCat');
   pairedBars($('catBars'), top, k=> k==='__rest'?[`All other categories (${rest.length})`,'']:(CAT[k]||[k,'']), ca, cb, ta, tb,
-    k=>{ if(k==='__rest') return; st.cat = st.cat===k?null:k; st.shown=25; writeHash(); renderCats(); renderRecent(); $('h8').scrollIntoView({behavior:'smooth',block:'start'}); });
+    k=>{ if(k==='__rest') return; st.cat = st.cat===k?null:k; st.shown=25; writeHash(); renderCats(); renderRecent(); $('h8').scrollIntoView({behavior:'smooth',block:'start'}); }, HL.cat);
   const der=[A,B].some(x=>x&&x.some(r=>r[C.der]===1));
   $('catNote').innerHTML=(st.sev==='fatal'?'Fatal accidents only (also applies to sections 7 and 8). ':'')+(der?'Includes pre-2008 accidents with derived categories. ':'')+'Each accident has one defining event; it groups accidents of a similar type and does not by itself mean cause.';
 }
@@ -665,7 +707,7 @@ function renderPhases(){
   const ca=A?countBy(A,r=>M.phases[r[C.ph]]):{}, cb=B?countBy(B,r=>M.phases[r[C.ph]]):{};
   const keys=PH_ORDER.filter(k=>ca[k]||cb[k]);
   legend('legPh');
-  pairedBars($('phBars'), keys, k=>[k,PH_SUB[k]||''], ca, cb, A?A.length:null, B?B.length:null, null);
+  pairedBars($('phBars'), keys, k=>[k,PH_SUB[k]||''], ca, cb, A?A.length:null, B?B.length:null, null, HL.ph);
   $('phNote').textContent=(st.sevPh==='fatal'?'Fatal accidents only. ':'')+'Phases are grouped from the NTSB sub-phases; open an accident in section 8 to see its exact sub-phase.';
 }
 function renderSeverity(){
@@ -861,6 +903,103 @@ function ntsbLinks(n){
   const base=ntsbBase(n);
   return `<div class="meta"><a href="https://web.ntsb.gov/investigations/?ntsbnumber=${encodeURIComponent(base)}" target="_blank" rel="noopener" style="color:var(--teal)">NTSB case page for ${esc(base)} &#8599;</a> <span class="t">&mdash; narrative, final report and docket</span></div>`;
 }
+// ---------- v0.12: "Try a comparison" presets and data-driven highlights ----------
+// Ordered big picture to small. Hooks pose the question; they never state an answer:
+// what gets highlighted is computed from the current data, so it stays right after each monthly rebuild.
+const PRESETS = [
+  {id:'singles-twins', a:'All:singles', b:'All:twins', label:'All singles vs all twins',
+   hook:'The big picture: how does the piston-twin accident record differ from the singles’?'},
+  {id:'c172-pa28', a:'Cessna 172', b:'Piper PA-28 Cherokee/Warrior/Archer', label:'Cessna 172 vs Piper PA-28',
+   hook:'The two classic trainers: same mission, high wing vs low wing.'},
+  {id:'da40-c172', a:'Diamond DA40', b:'Cessna 172', label:'Diamond DA40 vs Cessna 172',
+   hook:'A newer composite four-seater against the most common trainer.'},
+  {id:'sr22-a36', a:'Cirrus SR22', b:'Beech Bonanza 36', label:'Cirrus SR22 vs Beech Bonanza 36',
+   hook:'High-performance singles: a composite design with a whole-airframe parachute vs a metal classic.'},
+  {id:'seneca-baron', a:'Piper PA-34 Seneca', b:'Beech Baron 55/58', label:'Piper Seneca vs Beech Baron',
+   hook:'Two popular light piston twins.'},
+  {id:'sr22-sr22t', a:'Cirrus SR22', b:'Cirrus SR22T', label:'Cirrus SR22 vs SR22T',
+   hook:'Same airframe, normally aspirated vs turbocharged.'},
+];
+const HL_Z = 2, HL_MIN = 8, HL_MAX = 6;   // |z| needed, min combined count, max bullets
+let HL = { sum:new Set(), cat:new Set(), ph:new Set(), items:[] };
+// two-proportion z (pooled)
+function zProp(x1,n1,x2,n2){ if(!n1||!n2) return 0; const p=(x1+x2)/(n1+n2); if(p<=0||p>=1) return 0;
+  return (x1/n1-x2/n2)/Math.sqrt(p*(1-p)*(1/n1+1/n2)); }
+// rate comparison: given k1+k2 events, k1 ~ Binomial(n, e1/(e1+e2)) if the rates are equal
+function zRate(k1,e1,k2,e2){ const n=k1+k2; if(n<1||e1<=0||e2<=0) return 0; const p=e1/(e1+e2);
+  return (k1-n*p)/Math.sqrt(n*p*(1-p)); }
+function computeHL(){
+  HL = { sum:new Set(), cat:new Set(), ph:new Set(), items:[] };
+  if(!st.preset || !st.a || !st.b) return;
+  const sum=[], cat=[], ph=[];
+  // summary (same rows and exposure as section 2)
+  const A=rowsFor(st.a), B=rowsFor(st.b), ayA=acYears(st.a), ayB=acYears(st.b);
+  const fA=A.filter(r=>r[C.inj]===3).length, fB=B.filter(r=>r[C.inj]===3).length;
+  const r2=(k,ay)=>(1000*k/ay).toFixed(2), pc=(a,b)=>Math.round(100*a/b)+'%';
+  if(ayA>=1 && ayB>=1){
+    let z=zRate(A.length,ayA,B.length,ayB);
+    if(Math.abs(z)>=HL_Z && A.length+B.length>=HL_MIN) sum.push({sec:2,k:'rate',z,t:'Accidents per 1,000 registered aircraft-years',va:r2(A.length,ayA),vb:r2(B.length,ayB)});
+    z=zRate(fA,ayA,fB,ayB);
+    if(Math.abs(z)>=HL_Z && fA+fB>=HL_MIN) sum.push({sec:2,k:'frate',z,t:'Fatal accidents per 1,000 registered aircraft-years',va:r2(fA,ayA),vb:r2(fB,ayB)});
+  }
+  if(A.length && B.length){
+    let z=zProp(fA,A.length,fB,B.length);
+    if(Math.abs(z)>=HL_Z && fA+fB>=HL_MIN) sum.push({sec:2,k:'fshare',z,t:'Share of accidents that were fatal',va:pc(fA,A.length),vb:pc(fB,B.length)});
+    // instructional share uses all purposes, like the summary row
+    const fsA=selFams(st.a), fsB=selFams(st.b), inR=(fs)=>R.filter(r=>fs.has(r[C.fam])&&r[C.y]>=st.y0&&r[C.y]<=st.y1);
+    const pA=inR(fsA), pB=inR(fsB), iA=pA.filter(r=>r[C.pur]===1).length, iB=pB.filter(r=>r[C.pur]===1).length;
+    z=zProp(iA,pA.length,iB,pB.length);
+    if(st.pur==='all' && Math.abs(z)>=HL_Z && iA+iB>=HL_MIN) sum.push({sec:2,k:'inst',z,t:'Instructional share of accidents',va:pc(iA,pA.length),vb:pc(iB,pB.length)});
+  }
+  // paired-bar sections: rank by |z|, keep the strongest few
+  const bars=(rA,rB,keyFn,label,sec,limit,out)=>{
+    if(!rA.length || !rB.length) return;
+    const ca=countBy(rA,keyFn), cb=countBy(rB,keyFn);
+    const c=[...new Set([...Object.keys(ca),...Object.keys(cb)])].map(k=>{
+      const xa=ca[k]||0, xb=cb[k]||0; return {sec,k,z:zProp(xa,rA.length,xb,rB.length),n:xa+xb,t:label(k),va:pc(xa,rA.length),vb:pc(xb,rB.length)}; })
+      .filter(x=>x.n>=HL_MIN && Math.abs(x.z)>=HL_Z && !['UNK','OTHR','Unknown','Other'].includes(x.k))
+      .sort((p,q)=>Math.abs(q.z)-Math.abs(p.z)).slice(0,limit);
+    out.push(...c);
+  };
+  bars(rowsFor(st.a,'sev'), rowsFor(st.b,'sev'), r=>M.cats[r[C.cat]], k=>(CAT[k]||[k])[0], 3, 3, cat);
+  bars(rowsFor(st.a,'sevPh'), rowsFor(st.b,'sevPh'), r=>M.phases[r[C.ph]], k=>k+' phase', 4, 2, ph);
+  // summary first, then categories, then phases; cap the total
+  const items=[...sum, ...cat, ...ph].slice(0,HL_MAX);
+  for(const x of items) (x.sec===2?HL.sum:x.sec===3?HL.cat:HL.ph).add(x.k);
+  HL.items=items;
+}
+function buildPresets(){
+  $('pchips').innerHTML=PRESETS.map((p,i)=>`<button type="button" class="pchip" data-id="${p.id}" aria-pressed="false" title="${esc(p.hook)}"><b><span class="pn">${i+1}</span>${esc(p.label)}</b><small>${esc(p.hook)}</small></button>`).join('');
+  $('pchips').addEventListener('click',e=>{ const b=e.target.closest('.pchip'); if(b) applyPreset(b.dataset.id); });
+  $('callout').addEventListener('click',e=>{
+    const t=e.target.closest('button'); if(!t) return;
+    if(t.classList.contains('co-x')){ st.coHidden=true; renderPresets(); return; }
+    if(t.classList.contains('co-clear')){ st.preset=null; update(); return; }
+    if(t.dataset.sec) $('h'+t.dataset.sec).scrollIntoView({behavior:'smooth',block:'start'});
+  });
+}
+function applyPreset(id){
+  const p=PRESETS.find(x=>x.id===id); if(!p) return;
+  st.preset=id; st.coHidden=false; st.a=selFromName(p.a); st.b=selFromName(p.b);
+  st.y0=2000; st.y1=lastYear(); st.pur='all'; st.sev='all'; st.sevPh='all'; st.cat=null; st.shown=25;
+  if(st.recent==='b' && !st.b) st.recent='both';
+  syncControls(); update();
+}
+const SEC_NAME={2:'Summary',3:'Category',4:'Phase'};
+function renderPresets(){
+  $('pchips').querySelectorAll('.pchip').forEach(b=>{ const on=b.dataset.id===st.preset; b.setAttribute('aria-pressed',String(on));
+    if(on && b.parentNode.scrollWidth>b.parentNode.clientWidth) b.parentNode.scrollLeft=b.offsetLeft-b.parentNode.offsetLeft; });
+  const p=PRESETS.find(x=>x.id===st.preset);
+  if(!p || st.coHidden){ $('callout').innerHTML= p ? `<p class="note">Highlights on for ${esc(p.label)}. <button type="button" class="co-clear">Clear highlights</button></p>` : ''; return; }
+  const sa=`<span class="swatch sw-a"></span>${esc(selShort(st.a))}`, sb=`<span class="swatch sw-b"></span>${esc(selShort(st.b))}`;
+  const li=HL.items.map(x=>`<li><button type="button" data-sec="${x.sec}" aria-label="Go to section ${x.sec}">${SEC_NAME[x.sec]} ↓</button>${esc(x.t)}: <span class="vs">${sa} ${x.va} · ${sb} ${x.vb}</span></li>`).join('');
+  const yrs=`${st.y0}–${st.y1}${st.pur==='all'?'':', '+PUR[+st.pur].toLowerCase()+' only'}`;
+  $('callout').innerHTML=`<div class="callout" role="status"><button type="button" class="co-x" aria-label="Hide this box (highlights stay)">×</button>
+    <h3>What stands out · ${esc(p.label)}, ${yrs}</h3>
+    <p class="hook">${esc(p.hook)}</p>
+    ${li?`<ul>${li}</ul>`:'<p class="hook" style="color:var(--text-muted)">No gap in sections 2–4 passes the test for this pair and these filters. The two records look statistically alike here.</p>'}
+    <p class="co-note">Yellow marks the gaps that pass a simple significance test (|z| ≥ ${HL_Z}, roughly 95%), computed from the data shown, so they update with the filters and each monthly data update. They show where the records differ, not why. Rates are per registered aircraft, so heavy training use raises a type’s rate. Change Type A or B yourself to clear them. <button type="button" class="co-clear">Clear highlights</button></p></div>`;
+}
 // "Share this comparison" (v0.6): shares the canonical URL plus the current settings in the hash
 function shareComparison(){
   writeHash();
@@ -881,6 +1020,7 @@ function shareComparison(){
 }
 function update(){
   writeHash();
+  computeHL(); renderPresets();
   renderSummary(); renderCats(); renderPhases(); renderSeverity(); renderTrend(); renderReg(); renderFindings(); renderRecent();
 }
 
