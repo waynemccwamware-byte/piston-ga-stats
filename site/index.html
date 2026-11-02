@@ -195,6 +195,7 @@ table.co-t{ width:100%; border-collapse:collapse; font-size:12px; }
 table.co-t th{ font-weight:400; color:var(--text-muted); font-size:11.5px; text-align:right; padding:0 0 4px 10px; white-space:nowrap; }
 table.co-t th:first-child{ text-align:left; padding-left:0; }
 table.co-t td{ padding:5px 0 5px 10px; border-top:1px solid rgba(245,166,35,0.18); text-align:right; vertical-align:top; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-muted); white-space:nowrap; }
+table.co-t tr.ctx td{ color:var(--text-primary); }
 table.co-t td.lo{ color:var(--text-primary); font-weight:600; }
 table.co-t td:first-child{ text-align:left; padding-left:0; white-space:normal; font-family:'IBM Plex Sans',sans-serif; }
 table.co-t td:first-child button{ all:unset; cursor:pointer; color:var(--text-primary); line-height:1.35; }
@@ -268,7 +269,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>Piston GA Stats</h1>
-    <span class="ver mono">v0.15</span>
+    <span class="ver mono">v0.16</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for two piston types by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -942,6 +943,7 @@ function computeHL(){
   const sum=[], cat=[], ph=[];
   // summary (same rows and exposure as section 2)
   const A=rowsFor(st.a), B=rowsFor(st.b), ayA=acYears(st.a), ayB=acYears(st.b);
+  const yrsN=st.y1-st.y0+1; HL.fleet=[ayA/yrsN, ayB/yrsN];  // context row (same figure as section 2), never bolded or flagged
   const fA=A.filter(r=>r[C.inj]===3).length, fB=B.filter(r=>r[C.inj]===3).length;
   const r2=(k,ay)=>(1000*k/ay).toFixed(2), pc=(a,b)=>Math.round(100*a/b)+'%';
   if(ayA>=1 && ayB>=1){
@@ -953,11 +955,6 @@ function computeHL(){
   if(A.length && B.length){
     let z=zProp(fA,A.length,fB,B.length);
     if(Math.abs(z)>=HL_Z && fA+fB>=HL_MIN) sum.push({sec:2,k:'fshare',z,t:'Share of accidents that were fatal',va:pc(fA,A.length),vb:pc(fB,B.length)});
-    // instructional share uses all purposes, like the summary row
-    const fsA=selFams(st.a), fsB=selFams(st.b), inR=(fs)=>R.filter(r=>fs.has(r[C.fam])&&r[C.y]>=st.y0&&r[C.y]<=st.y1);
-    const pA=inR(fsA), pB=inR(fsB), iA=pA.filter(r=>r[C.pur]===1).length, iB=pB.filter(r=>r[C.pur]===1).length;
-    z=zProp(iA,pA.length,iB,pB.length);
-    if(st.pur==='all' && Math.abs(z)>=HL_Z && iA+iB>=HL_MIN) sum.push({sec:2,k:'inst',z,t:'Instructional share of accidents',va:pc(iA,pA.length),vb:pc(iB,pB.length)});
   }
   // paired-bar sections: rank by |z|, keep the strongest few
   const bars=(rA,rB,keyFn,label,sec,limit,out)=>{
@@ -1005,13 +1002,14 @@ function renderPresets(){
   if(!p || st.coHidden){ $('callout').innerHTML= p ? `<p class="note">Highlights on for ${esc(p.label)}. <button type="button" class="co-clear">Clear highlights</button></p>` : ''; return; }
   const SUB={3:'accident category',4:'phase of flight'};
   const num=v=>parseFloat(v);
-  const rows=HL.items.map(x=>{ const a=num(x.va), b=num(x.vb);
+  const rows=HL.items.map(x=>{ const a=num(x.va), b=num(x.vb);  // lower = bold (safety emphasis)
     return `<tr><td><button type="button" data-sec="${x.sec}" aria-label="${esc(x.t)}: go to section ${x.sec}">${esc(x.t)} ↓</button>${SUB[x.sec]?`<small>${SUB[x.sec]}</small>`:''}</td><td class="${a<b?'lo':''}">${x.va}</td><td class="${b<a?'lo':''}">${x.vb}</td></tr>`; }).join('');
+  const fleetRow=HL.fleet?`<tr class="ctx"><td><button type="button" data-sec="2" aria-label="Average registered fleet: go to section 2">Avg. registered fleet ↓</button><small>context for the rates below</small></td><td>${Math.round(HL.fleet[0]).toLocaleString()}</td><td>${Math.round(HL.fleet[1]).toLocaleString()}</td></tr>`:'';
   const yrs=`${st.y0}–${st.y1}${st.pur==='all'?'':', '+PUR[+st.pur].toLowerCase()+' only'}`;
   $('callout').innerHTML=`<div class="callout" role="status"><button type="button" class="co-x" aria-label="Hide this box (highlights stay)">×</button>
     <h3>What stands out · ${yrs}</h3>
     <p class="hook">${esc(p.hook)}</p>
-    ${rows?`<table class="co-t"><thead><tr><th></th><th><span class="swatch sw-a"></span>${esc(selShort(st.a))}</th><th><span class="swatch sw-b"></span>${esc(selShort(st.b))}</th></tr></thead><tbody>${rows}</tbody></table>`:'<p class="hook">No gap in sections 2–4 passes the test for this pair and these filters.</p>'}
+    ${rows?`<table class="co-t"><thead><tr><th></th><th><span class="swatch sw-a"></span>${esc(selShort(st.a))}</th><th><span class="swatch sw-b"></span>${esc(selShort(st.b))}</th></tr></thead><tbody>${fleetRow}${rows}</tbody></table>`:'<p class="hook">No gap in sections 2–4 passes the test for this pair and these filters.</p>'}
     <p class="co-note">Gaps that pass a significance test (|z| ≥ ${HL_Z}, about 95%), recomputed from the current data and filters. They show where the records differ, not why; rates are per registered aircraft, so training use raises a rate. Tap a row to jump to it. <button type="button" class="co-clear">Clear highlights</button></p></div>`;
 }
 // "Share this comparison" (v0.6): shares the canonical URL plus the current settings in the hash
