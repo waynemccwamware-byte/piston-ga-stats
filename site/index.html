@@ -176,7 +176,7 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .fine a{ color:var(--teal); }
 .loading{ font-size:13px; color:var(--text-muted); padding:20px 4px; text-align:center; }
 /* v0.12: "Try a comparison" presets + data-driven highlights */
-:root{ --hl:#f2d64b; --hl-bg:rgba(242,214,75,0.10); }
+:root{ --hl:var(--amber); --hl-bg:rgba(245,166,35,0.08); }
 .presets h2 .sub{ font-weight:400; }
 .pchips{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
 .pchip{ all:unset; box-sizing:border-box; display:flex; flex-direction:column; gap:3px; padding:8px 10px; border:1px solid var(--bezel-hi); border-radius:7px; cursor:pointer; background:rgba(255,255,255,0.015); transition:border-color .15s ease, background .15s ease; }
@@ -194,8 +194,8 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 table.co-t{ width:100%; border-collapse:collapse; font-size:12px; }
 table.co-t th{ font-weight:400; color:var(--text-muted); font-size:11.5px; text-align:right; padding:0 0 4px 10px; white-space:nowrap; }
 table.co-t th:first-child{ text-align:left; padding-left:0; }
-table.co-t td{ padding:5px 0 5px 10px; border-top:1px solid rgba(242,214,75,0.18); text-align:right; vertical-align:top; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-muted); white-space:nowrap; }
-table.co-t td.hi{ color:var(--text-primary); }
+table.co-t td{ padding:5px 0 5px 10px; border-top:1px solid rgba(245,166,35,0.18); text-align:right; vertical-align:top; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-muted); white-space:nowrap; }
+table.co-t td.lo{ color:var(--text-primary); font-weight:600; }
 table.co-t td:first-child{ text-align:left; padding-left:0; white-space:normal; font-family:'IBM Plex Sans',sans-serif; }
 table.co-t td:first-child button{ all:unset; cursor:pointer; color:var(--text-primary); line-height:1.35; }
 table.co-t td:first-child button:hover{ color:var(--hl); }
@@ -268,7 +268,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>Piston GA Stats</h1>
-    <span class="ver mono">v0.14</span>
+    <span class="ver mono">v0.15</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for two piston types by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -277,7 +277,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
     <div id="app" hidden>
 
       <section class="step presets" aria-labelledby="h0">
-        <h2 id="h0">Try a comparison <span class="sub">tap a pair, then look for the yellow highlights</span></h2>
+        <h2 id="h0">Try a comparison <span class="sub">tap a pair, then look for the amber highlights</span></h2>
         <div class="pchips" id="pchips" role="group" aria-label="Sample comparisons"></div>
         <div id="callout"></div>
       </section>
@@ -1006,7 +1006,7 @@ function renderPresets(){
   const SUB={3:'accident category',4:'phase of flight'};
   const num=v=>parseFloat(v);
   const rows=HL.items.map(x=>{ const a=num(x.va), b=num(x.vb);
-    return `<tr><td><button type="button" data-sec="${x.sec}" aria-label="${esc(x.t)}: go to section ${x.sec}">${esc(x.t)} ↓</button>${SUB[x.sec]?`<small>${SUB[x.sec]}</small>`:''}</td><td class="${a>b?'hi':''}">${x.va}</td><td class="${b>a?'hi':''}">${x.vb}</td></tr>`; }).join('');
+    return `<tr><td><button type="button" data-sec="${x.sec}" aria-label="${esc(x.t)}: go to section ${x.sec}">${esc(x.t)} ↓</button>${SUB[x.sec]?`<small>${SUB[x.sec]}</small>`:''}</td><td class="${a<b?'lo':''}">${x.va}</td><td class="${b<a?'lo':''}">${x.vb}</td></tr>`; }).join('');
   const yrs=`${st.y0}–${st.y1}${st.pur==='all'?'':', '+PUR[+st.pur].toLowerCase()+' only'}`;
   $('callout').innerHTML=`<div class="callout" role="status"><button type="button" class="co-x" aria-label="Hide this box (highlights stay)">×</button>
     <h3>What stands out · ${yrs}</h3>
