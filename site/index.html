@@ -189,14 +189,19 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .callout{ margin-top:10px; border:1px solid var(--hl); border-left-width:4px; border-radius:7px; background:var(--hl-bg); padding:10px 34px 10px 12px; position:relative; animation:coIn .25s ease; }
 @keyframes coIn{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
 @media (prefers-reduced-motion:reduce){ .callout{ animation:none; } }
-.callout h3{ font-size:12.5px; margin:0 0 3px; color:var(--hl); font-weight:600; }
-.callout .hook{ font-size:12px; color:var(--text-primary); margin:0 0 6px; }
-.callout ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:4px; }
-.callout li{ font-size:12px; line-height:1.4; }
-.callout li button{ all:unset; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--hl); border:1px solid rgba(242,214,75,0.45); border-radius:4px; padding:0 5px; margin-right:6px; }
-.callout li button:focus-visible{ outline:2px solid var(--hl); outline-offset:1px; }
-.callout .vs{ white-space:nowrap; font-family:'IBM Plex Mono',monospace; font-size:11px; }
-.callout .co-note{ font-size:10.5px; color:var(--text-muted); margin:7px 0 0; line-height:1.45; }
+.callout h3{ font-size:12.5px; margin:0 0 2px; color:var(--hl); font-weight:500; }
+.callout .hook{ font-size:12px; color:var(--text-muted); margin:0 0 8px; }
+table.co-t{ width:100%; border-collapse:collapse; font-size:12px; }
+table.co-t th{ font-weight:400; color:var(--text-muted); font-size:11.5px; text-align:right; padding:0 0 4px 10px; white-space:nowrap; }
+table.co-t th:first-child{ text-align:left; padding-left:0; }
+table.co-t td{ padding:5px 0 5px 10px; border-top:1px solid rgba(242,214,75,0.18); text-align:right; vertical-align:top; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-muted); white-space:nowrap; }
+table.co-t td.hi{ color:var(--text-primary); }
+table.co-t td:first-child{ text-align:left; padding-left:0; white-space:normal; font-family:'IBM Plex Sans',sans-serif; }
+table.co-t td:first-child button{ all:unset; cursor:pointer; color:var(--text-primary); line-height:1.35; }
+table.co-t td:first-child button:hover{ color:var(--hl); }
+table.co-t td:first-child button:focus-visible{ outline:2px solid var(--hl); outline-offset:1px; }
+table.co-t td:first-child small{ display:block; color:var(--text-muted); font-size:10.5px; }
+.callout .co-note{ font-size:10.5px; color:var(--text-muted); margin:8px 0 0; line-height:1.45; }
 .callout .co-x{ all:unset; position:absolute; top:6px; right:8px; cursor:pointer; color:var(--text-muted); font-size:16px; line-height:1; padding:2px 4px; }
 .callout .co-x:hover{ color:var(--hl); }
 .callout .co-clear{ all:unset; cursor:pointer; color:var(--teal); font-size:11px; border-bottom:1px solid currentColor; }
@@ -212,6 +217,9 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
   table.sum{ font-size:12px; }
   .pchips{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
   .pchip{ flex:0 0 72%; scroll-snap-align:start; }
+  table.co-t th{ white-space:normal; width:24%; vertical-align:bottom; line-height:1.3; }
+  table.co-t th:first-child{ width:auto; }
+  .callout{ padding-right:12px; } .callout h3{ padding-right:22px; }
 }
 </style>
 <!-- GGP-FOOTER-CSS START v1.3 · 29-Oct-2026 · shared footer styles, App Conventions §5b · master: Control Panel repo tools/ggp-footer -->
@@ -260,7 +268,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>Piston GA Stats</h1>
-    <span class="ver mono">v0.13</span>
+    <span class="ver mono">v0.14</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for two piston types by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -938,9 +946,9 @@ function computeHL(){
   const r2=(k,ay)=>(1000*k/ay).toFixed(2), pc=(a,b)=>Math.round(100*a/b)+'%';
   if(ayA>=1 && ayB>=1){
     let z=zRate(A.length,ayA,B.length,ayB);
-    if(Math.abs(z)>=HL_Z && A.length+B.length>=HL_MIN) sum.push({sec:2,k:'rate',z,t:'Accidents per 1,000 registered aircraft-years',va:r2(A.length,ayA),vb:r2(B.length,ayB)});
+    if(Math.abs(z)>=HL_Z && A.length+B.length>=HL_MIN) sum.push({sec:2,k:'rate',z,t:'Accidents per 1,000 aircraft-years',va:r2(A.length,ayA),vb:r2(B.length,ayB)});
     z=zRate(fA,ayA,fB,ayB);
-    if(Math.abs(z)>=HL_Z && fA+fB>=HL_MIN) sum.push({sec:2,k:'frate',z,t:'Fatal accidents per 1,000 registered aircraft-years',va:r2(fA,ayA),vb:r2(fB,ayB)});
+    if(Math.abs(z)>=HL_Z && fA+fB>=HL_MIN) sum.push({sec:2,k:'frate',z,t:'Fatal accidents per 1,000 aircraft-years',va:r2(fA,ayA),vb:r2(fB,ayB)});
   }
   if(A.length && B.length){
     let z=zProp(fA,A.length,fB,B.length);
@@ -962,7 +970,7 @@ function computeHL(){
     out.push(...c);
   };
   bars(rowsFor(st.a,'sev'), rowsFor(st.b,'sev'), r=>M.cats[r[C.cat]], k=>(CAT[k]||[k])[0], 3, 3, cat);
-  bars(rowsFor(st.a,'sevPh'), rowsFor(st.b,'sevPh'), r=>M.phases[r[C.ph]], k=>k+' phase', 4, 2, ph);
+  bars(rowsFor(st.a,'sevPh'), rowsFor(st.b,'sevPh'), r=>M.phases[r[C.ph]], k=>k, 4, 2, ph);
   // summary first, then categories, then phases; cap the total
   const items=[...sum, ...cat, ...ph].slice(0,HL_MAX);
   for(const x of items) (x.sec===2?HL.sum:x.sec===3?HL.cat:HL.ph).add(x.k);
@@ -990,20 +998,21 @@ function applyPreset(id){
   if(st.recent==='b' && !st.b) st.recent='both';
   syncControls(); update();
 }
-const SEC_NAME={2:'Summary',3:'Category',4:'Phase'};
 function renderPresets(){
   $('pchips').querySelectorAll('.pchip').forEach(b=>{ const on=b.dataset.id===st.preset; b.setAttribute('aria-pressed',String(on));
     if(on && b.parentNode.scrollWidth>b.parentNode.clientWidth) b.parentNode.scrollLeft=b.offsetLeft-b.parentNode.offsetLeft; });
   const p=PRESETS.find(x=>x.id===st.preset);
   if(!p || st.coHidden){ $('callout').innerHTML= p ? `<p class="note">Highlights on for ${esc(p.label)}. <button type="button" class="co-clear">Clear highlights</button></p>` : ''; return; }
-  const sa=`<span class="swatch sw-a"></span>${esc(selShort(st.a))}`, sb=`<span class="swatch sw-b"></span>${esc(selShort(st.b))}`;
-  const li=HL.items.map(x=>`<li><button type="button" data-sec="${x.sec}" aria-label="Go to section ${x.sec}">${SEC_NAME[x.sec]} ↓</button>${esc(x.t)}: <span class="vs">${sa} ${x.va} · ${sb} ${x.vb}</span></li>`).join('');
+  const SUB={3:'accident category',4:'phase of flight'};
+  const num=v=>parseFloat(v);
+  const rows=HL.items.map(x=>{ const a=num(x.va), b=num(x.vb);
+    return `<tr><td><button type="button" data-sec="${x.sec}" aria-label="${esc(x.t)}: go to section ${x.sec}">${esc(x.t)} ↓</button>${SUB[x.sec]?`<small>${SUB[x.sec]}</small>`:''}</td><td class="${a>b?'hi':''}">${x.va}</td><td class="${b>a?'hi':''}">${x.vb}</td></tr>`; }).join('');
   const yrs=`${st.y0}–${st.y1}${st.pur==='all'?'':', '+PUR[+st.pur].toLowerCase()+' only'}`;
   $('callout').innerHTML=`<div class="callout" role="status"><button type="button" class="co-x" aria-label="Hide this box (highlights stay)">×</button>
-    <h3>What stands out · ${esc(p.label)}, ${yrs}</h3>
+    <h3>What stands out · ${yrs}</h3>
     <p class="hook">${esc(p.hook)}</p>
-    ${li?`<ul>${li}</ul>`:'<p class="hook" style="color:var(--text-muted)">No gap in sections 2–4 passes the test for this pair and these filters. The two records look statistically alike here.</p>'}
-    <p class="co-note">Yellow marks the gaps that pass a simple significance test (|z| ≥ ${HL_Z}, roughly 95%), computed from the data shown, so they update with the filters and each monthly data update. They show where the records differ, not why. Rates are per registered aircraft, so heavy training use raises a type’s rate. Change Type A or B yourself to clear them. <button type="button" class="co-clear">Clear highlights</button></p></div>`;
+    ${rows?`<table class="co-t"><thead><tr><th></th><th><span class="swatch sw-a"></span>${esc(selShort(st.a))}</th><th><span class="swatch sw-b"></span>${esc(selShort(st.b))}</th></tr></thead><tbody>${rows}</tbody></table>`:'<p class="hook">No gap in sections 2–4 passes the test for this pair and these filters.</p>'}
+    <p class="co-note">Gaps that pass a significance test (|z| ≥ ${HL_Z}, about 95%), recomputed from the current data and filters. They show where the records differ, not why; rates are per registered aircraft, so training use raises a rate. Tap a row to jump to it. <button type="button" class="co-clear">Clear highlights</button></p></div>`;
 }
 // "Share this comparison" (v0.6): shares the canonical URL plus the current settings in the hash
 function shareComparison(){
