@@ -269,7 +269,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>Piston GA Stats</h1>
-    <span class="ver mono">v0.16</span>
+    <span class="ver mono">v0.17</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for two piston types by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -278,7 +278,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
     <div id="app" hidden>
 
       <section class="step presets" aria-labelledby="h0">
-        <h2 id="h0">Try a comparison <span class="sub">tap a pair, then look for the amber highlights</span></h2>
+        <h2 id="h0">Try a comparison <span class="sub">tap a pair, or pick your own below; look for the amber highlights</span></h2>
         <div class="pchips" id="pchips" role="group" aria-label="Sample comparisons"></div>
         <div id="callout"></div>
       </section>
@@ -483,7 +483,7 @@ const GROUP = { b:['all types','types',':*'], s:['all singles','singles',':singl
 const ALL='*', ALL_NAME='All';  // brand sentinel and its link-hash name (a=All:* / All:singles / All:twins)
 const inBrand = (f,b) => b===ALL || f[0]===b;
 const hasBoth = b => { const k=FAMS.map((f,i)=>inBrand(f,b)?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
-const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, coHidden:false };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, coHidden:false, hlOff:false };
 const causeCache = {};
 const famSetCache = {};
 
@@ -536,8 +536,8 @@ function buildControls(){
   for (const side of ['A','B']){
     const bs=$('brand'+side), key=side.toLowerCase();
     bs.innerHTML=(side==='B'?'<option value="">— none —</option>':'')+BRANDS.map(b=>`<option>${b}</option>`).join('')+`<option value="${ALL}">All pistons</option>`;
-    bs.addEventListener('change',()=>{ fillFam(side); const f=$('fam'+side); st[key]= f.value||null; st.cat=null; st.shown=25; st.preset=null; update(); });
-    $('fam'+side).addEventListener('change',e=>{ st[key]= e.target.value||null; st.cat=null; st.shown=25; st.preset=null; update(); });
+    bs.addEventListener('change',()=>{ fillFam(side); const f=$('fam'+side); st[key]= f.value||null; st.cat=null; st.shown=25; st.preset=matchPreset(); update(); });
+    $('fam'+side).addEventListener('change',e=>{ st[key]= e.target.value||null; st.cat=null; st.shown=25; st.preset=matchPreset(); update(); });
   }
   const last=lastYear();
   for (const id of ['y0','y1']){
@@ -600,6 +600,7 @@ function selToName(sel){ return !sel.startsWith('f:') ? (sel.slice(2)===ALL?ALL_
 function readHash(){
   const p=new URLSearchParams(location.hash.slice(1)), last=lastYear();
   const pr=PRESETS.find(x=>x.id===p.get('pair') && !x.reset);  // v0.12: a preset link sets A and B (years etc. still come from the link)
+  if (p.get('hl')==='0') st.hlOff=true;
   if (pr){ st.preset=pr.id; st.a=selFromName(pr.a); st.b=selFromName(pr.b); }
   else {
     if (p.has('a')) st.a=selFromName(p.get('a')) || st.a;
@@ -619,10 +620,12 @@ function readHash(){
   if (['a','b'].includes(p.get('r'))) st.recent=p.get('r');
   if (p.has('c') && M.cats.includes(p.get('c'))) st.cat=p.get('c');
   if (st.recent==='b' && !st.b) st.recent='both';
+  if (!st.preset) st.preset=matchPreset();  // a plain a/b link that matches a preset lights its chip
 }
 function writeHash(){
   const p=new URLSearchParams();
   if (st.preset) p.set('pair',st.preset);
+  if (st.hlOff) p.set('hl','0');
   if (st.a) p.set('a',selToName(st.a));
   if (st.b) p.set('b',selToName(st.b));
   p.set('y0',st.y0); p.set('y1',st.y1); if(st.pur!=='all') p.set('p',st.pur);
@@ -927,7 +930,7 @@ const PRESETS = [
   {id:'c172-pa28', a:'Cessna 172', b:'Piper PA-28 Cherokee/Warrior/Archer', label:'Cessna 172 vs Piper PA-28',
    hook:'The two classic trainers: same mission, high wing vs low wing.'},
   {id:'default', a:'Diamond DA40', b:'Cirrus SR20', label:'Back to the default', reset:true,
-   hook:'Diamond DA40 vs Cirrus SR20, all settings back to their defaults, no highlights.'},
+   hook:'Diamond DA40 vs Cirrus SR20, with all settings back to their defaults.'},
 ];
 const HL_Z = 2, HL_MIN = 8, HL_MAX = 6;   // |z| needed, min combined count, max bullets
 let HL = { sum:new Set(), cat:new Set(), ph:new Set(), items:[] };
@@ -939,7 +942,7 @@ function zRate(k1,e1,k2,e2){ const n=k1+k2; if(n<1||e1<=0||e2<=0) return 0; cons
   return (k1-n*p)/Math.sqrt(n*p*(1-p)); }
 function computeHL(){
   HL = { sum:new Set(), cat:new Set(), ph:new Set(), items:[] };
-  if(!st.preset || !st.a || !st.b) return;
+  if(st.hlOff || !st.a || !st.b || st.a===st.b) return;  // v0.17: any A/B pair, not just presets
   const sum=[], cat=[], ph=[];
   // summary (same rows and exposure as section 2)
   const A=rowsFor(st.a), B=rowsFor(st.b), ayA=acYears(st.a), ayB=acYears(st.b);
@@ -979,18 +982,20 @@ function buildPresets(){
   $('callout').addEventListener('click',e=>{
     const t=e.target.closest('button'); if(!t) return;
     if(t.classList.contains('co-x')){ st.coHidden=true; renderPresets(); return; }
-    if(t.classList.contains('co-clear')){ st.preset=null; update(); return; }
+    if(t.classList.contains('co-show')){ st.hlOff=false; st.coHidden=false; update(); return; }
+    if(t.classList.contains('co-clear')){ st.hlOff=true; update(); return; }
     if(t.dataset.sec) $('h'+t.dataset.sec).scrollIntoView({behavior:'smooth',block:'start'});
   });
 }
+function matchPreset(){ const m=PRESETS.find(x=>!x.reset && selFromName(x.a)===st.a && selFromName(x.b)===st.b); return m?m.id:null; }
 function applyPreset(id){
   const p=PRESETS.find(x=>x.id===id); if(!p) return;
   if(p.reset){  // "Back to the default": the app's opening state, no highlights
-    Object.assign(st,{preset:null, coHidden:false, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all',
+    Object.assign(st,{preset:null, coHidden:false, hlOff:false, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all',
       sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25});
     syncControls(); update(); return;
   }
-  st.preset=id; st.coHidden=false; st.a=selFromName(p.a); st.b=selFromName(p.b);
+  st.preset=id; st.coHidden=false; st.hlOff=false; st.a=selFromName(p.a); st.b=selFromName(p.b);
   st.y0=2000; st.y1=lastYear(); st.pur='all'; st.sev='all'; st.sevPh='all'; st.cat=null; st.shown=25;
   if(st.recent==='b' && !st.b) st.recent='both';
   syncControls(); update();
@@ -998,8 +1003,10 @@ function applyPreset(id){
 function renderPresets(){
   $('pchips').querySelectorAll('.pchip').forEach(b=>{ const on=b.dataset.id===st.preset; b.setAttribute('aria-pressed',String(on));
     if(on && b.parentNode.scrollWidth>b.parentNode.clientWidth) b.parentNode.scrollLeft=b.offsetLeft-b.parentNode.offsetLeft; });
-  const p=PRESETS.find(x=>x.id===st.preset);
-  if(!p || st.coHidden){ $('callout').innerHTML= p ? `<p class="note">Highlights on for ${esc(p.label)}. <button type="button" class="co-clear">Clear highlights</button></p>` : ''; return; }
+  const p=PRESETS.find(x=>x.id===st.preset && !x.reset);
+  if(!st.a || !st.b || st.a===st.b){ $('callout').innerHTML=''; return; }
+  if(st.hlOff){ $('callout').innerHTML=`<p class="note"><button type="button" class="co-show co-clear">Show what stands out</button></p>`; return; }
+  if(st.coHidden){ $('callout').innerHTML=`<p class="note">Highlights on. <button type="button" class="co-show co-clear">Show the box</button> \u00b7 <button type="button" class="co-clear">Clear highlights</button></p>`; return; }
   const SUB={3:'accident category',4:'phase of flight'};
   const num=v=>parseFloat(v);
   const rows=HL.items.map(x=>{ const a=num(x.va), b=num(x.vb);  // lower = bold (safety emphasis)
@@ -1008,7 +1015,7 @@ function renderPresets(){
   const yrs=`${st.y0}–${st.y1}${st.pur==='all'?'':', '+PUR[+st.pur].toLowerCase()+' only'}`;
   $('callout').innerHTML=`<div class="callout" role="status"><button type="button" class="co-x" aria-label="Hide this box (highlights stay)">×</button>
     <h3>What stands out · ${yrs}</h3>
-    <p class="hook">${esc(p.hook)}</p>
+    ${p?`<p class="hook">${esc(p.hook)}</p>`:''}
     ${rows?`<table class="co-t"><thead><tr><th></th><th><span class="swatch sw-a"></span>${esc(selShort(st.a))}</th><th><span class="swatch sw-b"></span>${esc(selShort(st.b))}</th></tr></thead><tbody>${fleetRow}${rows}</tbody></table>`:'<p class="hook">No gap in sections 2–4 passes the test for this pair and these filters.</p>'}
     <p class="co-note">Gaps that pass a significance test (|z| ≥ ${HL_Z}, about 95%), recomputed from the current data and filters. They show where the records differ, not why; rates are per registered aircraft, so training use raises a rate. Tap a row to jump to it. <button type="button" class="co-clear">Clear highlights</button></p></div>`;
 }
