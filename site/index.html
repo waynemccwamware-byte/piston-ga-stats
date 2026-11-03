@@ -260,6 +260,28 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
   table.co-t th:first-child{ width:auto; }
   .callout{ padding-right:12px; } .callout h3{ padding-right:22px; }
 }
+
+/* v0.25: section 7, Safety within category (funnel plot) */
+svg.sf .sf-lim{ fill:none; stroke:var(--text-muted); stroke-width:1; opacity:.7; }
+svg.sf .sf-lim2{ stroke-dasharray:4 4; opacity:.45; }
+svg.sf .sf-band{ fill:rgba(139,147,161,0.10); stroke:none; }
+svg.sf .sf-avg{ stroke:var(--text-primary); stroke-width:1; stroke-dasharray:6 4; opacity:.6; }
+svg.sf .sf-avgt{ fill:var(--text-primary); opacity:.75; }
+svg.sf .sf-hit{ fill:transparent; cursor:pointer; }
+svg.sf .sf-lbl{ font:600 12px 'IBM Plex Sans',sans-serif; paint-order:stroke; stroke:var(--bg-panel); stroke-width:4px; stroke-linejoin:round; }
+svg.sf .sf-lbl-a{ fill:var(--series-a); } svg.sf .sf-lbl-b{ fill:var(--series-b); }
+.sf-sw{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--text-muted); opacity:.8; margin-right:6px; vertical-align:-1px; }
+.sf-sw-o{ background:transparent; border:1.5px solid var(--text-muted); }
+.sf-pop{ position:absolute; z-index:6; background:#0d1117; border:1px solid var(--bezel-hi); border-radius:8px; padding:10px 12px; font-size:12.5px; line-height:1.5; color:var(--text-primary); box-shadow:0 6px 24px rgba(0,0,0,.5); }
+.sf-pop b{ font-family:'IBM Plex Mono',monospace; font-weight:500; }
+.sf-pop .sf-pt{ font-weight:600; font-size:13.5px; margin:0 18px 4px 0; }
+.sf-pop .sf-ci{ color:var(--text-muted); font-size:11.5px; }
+.sf-pop .sf-v{ color:var(--text-muted); margin-top:4px; }
+.sf-pop .sf-btns{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.sf-pop .sf-btns .btn{ padding:5px 9px; font-size:12px; }
+.sf-pop .sf-x{ position:absolute; top:4px; right:6px; background:none; border:0; color:var(--text-muted); font-size:18px; cursor:pointer; }
+.sf-n-a{ color:var(--series-a); font-weight:600; } .sf-n-b{ color:var(--series-b); font-weight:600; }
+.sf-warn{ color:var(--amber); }
 </style>
 <!-- GGP-FOOTER-CSS START v1.4 · 02-Nov-2026 · shared footer styles, App Conventions §5b · master: Control Panel repo tools/ggp-footer -->
 <style>
@@ -309,7 +331,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.24</span>
+    <span class="ver mono">v0.25</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -447,14 +469,33 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
         <p class="note" id="rgNote"></p>
       </section>
 
+      <section class="step" aria-labelledby="hSafe">
+        <h2 id="hSafe"><span class="num">7</span> Safety within category <span class="sub">every type in the category · rate vs fleet size</span></h2>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <div class="seg" id="sfMeas" role="group" aria-label="Measure">
+            <button type="button" data-v="all" aria-pressed="true">All accidents</button>
+            <button type="button" data-v="fatal" aria-pressed="false">Fatal accidents</button>
+          </div>
+          <div class="seg" id="sfCat" role="group" aria-label="Category">
+            <button type="button" data-v="ps" aria-pressed="true">Piston singles</button>
+            <button type="button" data-v="pm" aria-pressed="false">Piston twins</button>
+            <button type="button" data-v="t" aria-pressed="false">Turboprops</button>
+          </div>
+        </div>
+        <div class="legend" id="legSf"></div>
+        <div class="chart-wrap" id="sfWrap"><svg class="trend sf" id="sfChart" viewBox="0 0 700 340" role="img" aria-label="Accident rate against registered fleet, every type in the category"></svg><div class="sf-pop" id="sfPop" hidden></div></div>
+        <div id="sfSum"></div>
+        <p class="note" id="sfNote"></p>
+      </section>
+
       <section class="step" aria-labelledby="h7">
-        <h2 id="h7"><span class="num">7</span> Top NTSB findings <span class="sub">% of accidents citing each finding (cause or factor) · 2008 on</span></h2>
+        <h2 id="h7"><span class="num">8</span> Top NTSB findings <span class="sub">% of accidents citing each finding (cause or factor) · 2008 on</span></h2>
         <div class="fcols" id="findCols"></div>
         <p class="note" id="findNote"></p>
       </section>
 
       <section class="step" aria-labelledby="h8">
-        <h2 id="h8"><span class="num">8</span> Latest accidents <span class="sub" id="recentSub"></span></h2>
+        <h2 id="h8"><span class="num">9</span> Latest accidents <span class="sub" id="recentSub"></span></h2>
         <div class="seg" id="recentWhich" role="group" aria-label="Which type" style="margin-bottom:8px">
           <button type="button" data-v="both" aria-pressed="true">Both types</button>
           <button type="button" data-v="a" aria-pressed="false">Type A</button>
@@ -551,7 +592,7 @@ const GG = {
 };
 const GG_ORDER=['all','p','t','ps','pm'];
 const hasBoth = b => { const k=FAMS.map((f,i)=>f[0]===b?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
-const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, coHidden:false, hlOff:false };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, sfM:'all', sfC:null, coHidden:false, hlOff:false };
 const causeCache = {};
 const famSetCache = {};
 
@@ -646,6 +687,9 @@ function buildControls(){
   seg('rgMeasure', v=>{ st.rgM=v; });
   seg('rgSmooth', v=>{ st.rgS=+v; });
   seg('recentWhich', v=>{ st.recent=v; st.shown=25; });
+  seg('sfMeas', v=>{ st.sfM=v; });
+  seg('sfCat', v=>{ st.sfC=v; });
+  $('sfWrap').addEventListener('click', sfClick);
   $('moreBtn').addEventListener('click',()=>{ st.shown+=25; renderRecent(); });
   $('shareCmpBtn').addEventListener('click', shareComparison);
   // picker panel: one panel, shown under the two type buttons for whichever side is open
@@ -682,7 +726,7 @@ function setSide(S){
   const key=st.pick; if(!key) return;
   if(key==='a' && !S.size){ $('pickMsg').textContent='Type A needs at least one type.'; return; }
   const nsel=setToSel(S); if(nsel!==st[key]){ st['h'+key]=null; $('hrs'+key.toUpperCase()).value=''; }  // an hours guess belongs to the type it was typed for
-  st[key]=nsel; st.pickClear=false; st.cat=null; st.shown=25; st.preset=matchPreset();
+  st[key]=nsel; st.pickClear=false; st.cat=null; st.shown=25; st.preset=matchPreset(); st.sfC=null;
   if(key==='b' && !st.b && st.recent==='b') st.recent='both';
   update();
 }
@@ -724,7 +768,7 @@ function syncControls(){
   if(st.pick) renderPick();
   $('hrsA').value=st.ha||''; $('hrsB').value=st.hb||'';
   $('y0').value=String(st.y0); $('y1').value=String(st.y1);
-  setSeg('purSeg',st.pur); setSeg('opSeg',st.op); setSeg('sevSeg',st.sev); setSeg('phSevSeg',st.sevPh); setSeg('trMeasure',st.trM); setSeg('trSmooth',st.trS); setSeg('rgMeasure',st.rgM); setSeg('rgSmooth',st.rgS); setSeg('recentWhich',st.recent);
+  setSeg('purSeg',st.pur); setSeg('opSeg',st.op); setSeg('sevSeg',st.sev); setSeg('phSevSeg',st.sevPh); setSeg('trMeasure',st.trM); setSeg('trSmooth',st.trS); setSeg('rgMeasure',st.rgM); setSeg('rgSmooth',st.rgS); setSeg('recentWhich',st.recent); setSeg('sfMeas',st.sfM);
 }
 
 // ---------- URL hash (shareable state) ----------
@@ -762,6 +806,8 @@ function readHash(){
   for (const k of ['ha','hb']) if (p.has(k)) { const v=hrsVal(p.get(k)); if (v) st[k]=v; }
   // section toggles (v0.6): only written when not the default
   if (p.get('s')==='fatal') st.sev='fatal';
+  if (p.get('sm')==='fatal') st.sfM='fatal';
+  if (['ps','pm','t'].includes(p.get('sc'))) st.sfC=p.get('sc');
   if (p.get('ps')==='fatal') st.sevPh='fatal';
   if (p.get('tm')==='fatal') st.trM='fatal';
   if (p.get('ts')==='1') st.trS=1;
@@ -787,6 +833,8 @@ function writeHash(){
   if (st.rgS!==3) p.set('rs',st.rgS);
   if (st.recent!=='both') p.set('r',st.recent);
   if (st.cat) p.set('c',st.cat);
+  if (st.sfM!=='all') p.set('sm',st.sfM);
+  if (st.sfC) p.set('sc',st.sfC);
   history.replaceState(null,'','#'+p.toString());
 }
 
@@ -1167,11 +1215,11 @@ function applyPreset(id){
   const p=PRESETS.find(x=>x.id===id); if(!p) return;
   if(p.reset){  // "Back to the default": the app's opening state, no highlights
     Object.assign(st,{preset:null, coHidden:false, hlOff:false, ha:null, hb:null, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all', op:'91',
-      sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25});
+      sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, sfM:'all', sfC:null});
     syncControls(); update(); return;
   }
   st.preset=id; st.coHidden=false; st.hlOff=false; st.a=selFromName(p.a); st.b=selFromName(p.b); st.ha=st.hb=null;
-  st.y0=2000; st.y1=lastYear(); st.pur='all'; st.op='91'; st.sev='all'; st.sevPh='all'; st.cat=null; st.shown=25;
+  st.y0=2000; st.y1=lastYear(); st.pur='all'; st.op='91'; st.sev='all'; st.sevPh='all'; st.cat=null; st.shown=25; st.sfC=null;
   if(st.recent==='b' && !st.b) st.recent='both';
   syncControls(); update();
 }
@@ -1212,10 +1260,126 @@ function shareComparison(){
     catch(err){ window.location.href='mailto:?subject='+encodeURIComponent(title)+'&body='+encodeURIComponent(text+' '+url); }
   })();
 }
+// ---- Section 7 (v0.25): Safety within category, a funnel plot ----
+// Every type in one category (piston singles, piston twins or turboprops): its rate per 1,000 registered
+// aircraft-years against its average registered fleet. The band is where a type with the category's own
+// rate would land 95% of the time given its exposure (fleet x years); dashed lines are 99.8%. A type outside
+// the band differs from the category by more than chance; the band narrows as fleets grow.
+const SF_CATS = {ps:['Piston singles','piston single'], pm:['Piston twins','piston twin'], t:['Turboprops','turboprop']};
+const SF_SMALL = 10;   // fewer events than this: hollow dot (same cut as the summary's "small sample" flag)
+const sfCatOf = i => isTP(i) ? 't' : isTwin(i) ? 'pm' : 'ps';
+// Poisson quantile, Cornish-Fisher approximation: smooth limit curves for drawing
+const sfQ = (lam, z) => Math.max(0, lam + z*Math.sqrt(lam) + (z*z-1)/6);
+function sfCdf(k, lam){ if(lam<=0) return 1; let s=0, lp=-lam; for(let j=0;j<=k;j++){ if(j) lp+=Math.log(lam/j); s+=Math.exp(lp); } return Math.min(1,s); }
+// exact two-sided Poisson test of k events against the category's expected count: 'hi', 'lo' or ''
+function sfVerdict(k, lam){ if(lam<=0) return ''; if(k>0 && 1-sfCdf(k-1,lam)<0.025) return 'hi'; if(sfCdf(k,lam)<0.025) return 'lo'; return ''; }
+function sfCat(){
+  if(st.sfC) return st.sfC;
+  for(const sel of [st.a, st.b]){ const cs=new Set([...selFams(sel)].map(sfCatOf)); if(cs.size===1) return [...cs][0]; }
+  return 'ps';
+}
+function sfData(cat){
+  const years=st.y1-st.y0+1, last=lastYear(), fr=dataFrac(), ev=new Map();
+  for(const r of R){
+    if(r[C.y]<st.y0 || r[C.y]>st.y1 || !opOK(r) || (st.pur!=='all' && r[C.pur]!==+st.pur)) continue;
+    if(st.sfM==='fatal' && r[C.inj]!==3) continue;
+    ev.set(r[C.fam], (ev.get(r[C.fam])||0)+1);
+  }
+  const pts=[];
+  FAMS.forEach((f,i)=>{
+    if(i===JETPROP_I || sfCatOf(i)!==cat) return;   // JetPROP: fleet count unreliable, no rate (as in section 2)
+    let ay=0; for(let y=st.y0;y<=st.y1;y++){ const v=M.fleet[i][y-M.fleetY0]||0; ay+= y===last ? v*fr : v; }
+    if(ay<1) return;
+    const k=ev.get(i)||0; pts.push({i, k, ay, fleet:ay/years, rate:1000*k/ay});
+  });
+  const K=pts.reduce((s,d)=>s+d.k,0), AY=pts.reduce((s,d)=>s+d.ay,0), p=AY?K/AY:0;
+  pts.forEach(d=>d.v=sfVerdict(d.k, p*d.ay));
+  return {pts, p, years};
+}
+let SF = {pts:[], meas:''};
+function renderSafety(){
+  const cat=sfCat(), {pts, p, years}=sfData(cat), svg=$('sfChart'), A=selFams(st.a), B=selFams(st.b);
+  setSeg('sfCat', cat); $('sfPop').hidden=true;
+  const meas = st.sfM==='fatal' ? 'Fatal accidents' : 'Accidents', ml=meas.toLowerCase();
+  SF={pts, meas};
+  const role = i => A.has(i) ? 'a' : B.has(i) ? 'b' : '';
+  legend('legSf');
+  $('legSf').insertAdjacentHTML('beforeend', `<span><span class="sf-sw"></span>other ${SF_CATS[cat][1]}s</span><span><span class="sf-sw sf-sw-o"></span>under ${SF_SMALL} ${ml}</span>`);
+  if(!pts.length){ svg.innerHTML=''; $('sfSum').innerHTML=''; $('sfNote').textContent='No data for this range.'; return; }
+
+  const W=700, H=340, L=50, Rm=14, T=14, Bm=44, pw=W-L-Rm, ph=H-T-Bm;
+  const TICKS=[10,30,100,300,1000,3000,10000,30000], fl=pts.map(d=>d.fleet);
+  const xlo=TICKS.filter(t=>t<=Math.min(...fl)).pop()||10, xhi=TICKS.find(t=>t>=Math.max(...fl))||30000;
+  const lx0=Math.log10(xlo), lx1=Math.log10(xhi), X=f=>L+pw*(Math.log10(f)-lx0)/(lx1-lx0);
+  // y range fits the dots with at least 3 events; a tiny fleet's extreme rate is clipped to a marker at the top
+  const solid=pts.filter(d=>d.k>=3).map(d=>d.rate);
+  const ymax=niceMax(Math.max(1000*p*2.2, ...solid)*1.05), Y=v=>T+ph*(1-Math.min(v,ymax)/ymax);
+  let g='';
+  for(let j=0;j<=5;j++){ const v=ymax*j/5, y=Y(v); g+=`<line class="grid" x1="${L}" x2="${W-Rm}" y1="${y}" y2="${y}"/><text class="axis" x="${L-6}" y="${y+4}" text-anchor="end">${v.toFixed(ymax<5?2:1)}</text>`; }
+  for(const t of TICKS) if(t>=xlo && t<=xhi) g+=`<line class="grid" x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${T+ph}" stroke-dasharray="2 4"/><text class="axis" x="${X(t)}" y="${T+ph+16}" text-anchor="${t===xhi?'end':t===xlo?'start':'middle'}">${t.toLocaleString()}</text>`;
+  g+=`<text class="axis" x="${L+pw/2}" y="${H-6}" text-anchor="middle">average registered fleet (log scale)</text>`;
+  g+=`<text class="axis" transform="translate(12 ${T+ph/2}) rotate(-90)" text-anchor="middle">per 1,000 aircraft-years</text>`;
+  const N=90, curve=z=>{ let d=''; for(let j=0;j<=N;j++){ const f=Math.pow(10,lx0+(lx1-lx0)*j/N), E=f*years;
+    d+=(j?'L':'M')+X(f).toFixed(1)+','+Y(1000*sfQ(p*E,z)/E).toFixed(1); } return d; };
+  const up=curve(1.96), lo=curve(-1.96);
+  g+=`<path class="sf-band" d="${up}L${lo.slice(1).split('L').reverse().join('L')}Z"/>`;
+  g+=`<path class="sf-lim" d="${up}"/><path class="sf-lim" d="${lo}"/><path class="sf-lim sf-lim2" d="${curve(3.09)}"/><path class="sf-lim sf-lim2" d="${curve(-3.09)}"/>`;
+  g+=`<line class="sf-avg" x1="${L}" x2="${W-Rm}" y1="${Y(1000*p)}" y2="${Y(1000*p)}"/><text class="axis sf-avgt" x="${L+6}" y="${Y(1000*p)+15}">${SF_CATS[cat][1]} average ${(1000*p).toFixed(2)}</text>`;
+  const rk=i=>({a:2,b:1}[role(i)]||0), inCat=S=>[...S].filter(i=>pts.some(d=>d.i===i)).length;
+  for(const d of [...pts].sort((u,v)=>rk(u.i)-rk(v.i))){
+    const r=role(d.i), cx=X(d.fleet), clip=d.rate>ymax, cy=Y(d.rate);
+    const col = r ? `var(--series-${r})` : 'var(--text-muted)', rad=r?7:5, fill=d.k<SF_SMALL?'none':col, op=r?1:0.7;
+    const tt=esc(`${FAMS[d.i].join(' ')}: ${d.rate.toFixed(2)} (${d.k} ${ml}, fleet ${Math.round(d.fleet).toLocaleString()})${clip?', off scale':''}`);
+    g+= clip ? `<path d="M${cx-rad},${T+rad*1.6}L${cx},${T}L${cx+rad},${T+rad*1.6}Z" fill="${fill}" stroke="${col}" stroke-width="1.5" opacity="${op}"><title>${tt}</title></path>`
+             : `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="${fill}" stroke="${col}" stroke-width="1.5" opacity="${op}"><title>${tt}</title></circle>`;
+    if(r && inCat(r==='a'?A:B)<=3){ const right=cx>W-Rm-150;
+      g+=`<text class="sf-lbl sf-lbl-${r}" x="${cx+(right?-11:11)}" y="${(clip?T+12:cy)+4}" text-anchor="${right?'end':'start'}">${esc(FAMS[d.i][1])}</text>`; }
+  }
+  for(const d of pts) g+=`<circle class="sf-hit" data-i="${d.i}" cx="${X(d.fleet)}" cy="${d.rate>ymax?T+6:Y(d.rate)}" r="12"/>`;
+  svg.innerHTML=g;
+
+  const nm=d=>`<span class="sf-n${role(d.i)?' sf-n-'+role(d.i):''}">${esc(FAMS[d.i].join(' '))}</span>`;
+  const below=pts.filter(d=>d.v==='lo').sort((u,v)=>u.rate-v.rate), above=pts.filter(d=>d.v==='hi').sort((u,v)=>v.rate-u.rate);
+  const miss=[['A',st.a],['B',st.b]].filter(([,sel])=>sel && !inCat(selFams(sel)))
+    .map(([t,sel])=>`Type ${t} (${esc(selShort(sel))}) has no ${SF_CATS[cat][1]}s; switch the category to see it.`).join(' ');
+  $('sfSum').innerHTML=(miss?`<p class="note sf-warn">${miss}</p>`:'')+
+    `<p class="note"><b>Below the funnel</b> (lower than the ${SF_CATS[cat][1]} average by more than chance, 95%): ${below.length?below.map(nm).join(', '):'none'}.</p>`+
+    `<p class="note"><b>Above the funnel</b> (higher than the average by more than chance, 95%): ${above.length?above.map(nm).join(', '):'none'}.</p>`;
+  const filt=`${st.y0}–${st.y1}, ${st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()+' only'}, ${OPTXT[st.op]}`;
+  const p91 = st.op==='91' && cat==='t' ? ' Part 91 only: airplanes that also fly charter stay in the fleet count but their Part 135 accidents drop out, so charter-heavy types (many PC-12s) read low.' : '';
+  const reg = st.y0<2014 ? ' Registered counts before about 2011 include aircraft no longer flying, so early rates read low.' : '';
+  $('sfNote').innerHTML=`${filt}; ${pts.length} ${SF_CATS[cat][1]} types. Each dot is one type. The shaded band is where a type with the category’s average rate would land 95% of the time, given its fleet size; dashed lines are 99.8%. The band narrows to the right because bigger fleets give steadier rates: a dot outside it differs from the average by more than chance, while a small-fleet dot far from the line may still be inside. With fleets this large, even modest real differences pass the test. <b>Outside the funnel means different, not safer or less safe:</b> rates are per registered aircraft, not per flight hour, so types that fly many hours (training, charter) sit higher and lightly flown types (many antiques) sit lower, for reasons that are not about the airplane. The PA-46 JetPROP is left out (its fleet count is unreliable).${p91}${reg} Tap a dot for its numbers and to make it Type A or B.`;
+}
+function sfClick(e){
+  const pop=$('sfPop');
+  const set=e.target.closest('[data-set]');
+  if(set){ const k=set.dataset.set, i=+pop.dataset.i;
+    st[k]=setToSel(new Set([i])); st['h'+k]=null; $('hrs'+k.toUpperCase()).value='';
+    st.cat=null; st.shown=25; st.preset=matchPreset(); update(); return; }   // category stays: the dot is in it
+  if(e.target.closest('.sf-x')){ pop.hidden=true; return; }
+  const hit=e.target.closest('.sf-hit');
+  if(!hit){ if(!e.target.closest('#sfPop')) pop.hidden=true; return; }
+  const i=+hit.dataset.i, d=SF.pts.find(x=>x.i===i); if(!d) return;
+  const [lo,hi]=pci(d.k).map(x=>1000*x/d.ay);
+  const v = d.v==='lo' ? 'Below the funnel: lower than the category average by more than chance (95%).'
+          : d.v==='hi' ? 'Above the funnel: higher than the category average by more than chance (95%).'
+          : 'Inside the funnel: not distinguishable from the category average.';
+  pop.innerHTML=`<button type="button" class="sf-x" aria-label="Close">×</button>
+    <div class="sf-pt">${esc(FAMS[i].join(' '))}</div>
+    <div>Avg. registered fleet <b>${Math.round(d.fleet).toLocaleString()}</b></div>
+    <div>${SF.meas} <b>${d.k}</b> · <b>${d.rate.toFixed(2)}</b> per 1,000 <span class="sf-ci">(${lo.toFixed(2)}–${hi.toFixed(2)})</span>${d.k<SF_SMALL?' <span class="flag">small sample</span>':''}</div>
+    <div class="sf-v">${v}</div>
+    <div class="sf-btns"><button type="button" class="btn" data-set="a">Set as Type A</button><button type="button" class="btn" data-set="b">Set as Type B</button></div>`;
+  pop.dataset.i=i; pop.hidden=false;
+  const wrap=$('sfWrap'), s=$('sfChart').getBoundingClientRect().width/700, cx=+hit.getAttribute('cx')*s, cy=+hit.getAttribute('cy')*s;
+  const w=Math.min(260, wrap.clientWidth-8);
+  pop.style.width=w+'px'; pop.style.left=Math.max(4, Math.min(cx-w/2, wrap.clientWidth-w-4))+'px';
+  pop.style.top=(cy>170*s ? cy-pop.offsetHeight-14 : cy+14)+'px';
+}
 function update(){
   writeHash(); pickBtnText('A'); pickBtnText('B'); if(st.pick) renderPick();
   computeHL(); renderPresets();
-  renderSummary(); renderCats(); renderPhases(); renderSeverity(); renderTrend(); renderReg(); renderFindings(); renderRecent();
+  renderSummary(); renderCats(); renderPhases(); renderSeverity(); renderTrend(); renderReg(); renderSafety(); renderFindings(); renderRecent();
 }
 
 fetch('data/accidents.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).then(d=>{
