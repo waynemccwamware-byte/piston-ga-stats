@@ -335,7 +335,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.28</span>
+    <span class="ver mono">v0.29</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -437,8 +437,8 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
         <h2 id="h3"><span class="num">4</span> Accident category <span class="sub">share of each type's accidents · tap a row to list those accidents</span></h2>
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <div class="seg" id="sevSeg" role="group" aria-label="Accidents to include">
-            <button type="button" data-v="all" aria-pressed="true">All accidents</button>
-            <button type="button" data-v="fatal" aria-pressed="false">Fatal only</button>
+            <button type="button" data-v="all" aria-pressed="false">All accidents</button>
+            <button type="button" data-v="fatal" aria-pressed="true">Fatal only</button>
           </div>
         </div>
         <div class="legend" id="legCat"></div>
@@ -450,8 +450,8 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
         <h2 id="h4"><span class="num">5</span> Phase of flight <span class="sub">phase of the defining event</span></h2>
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <div class="seg" id="phSevSeg" role="group" aria-label="Accidents to include">
-            <button type="button" data-v="all" aria-pressed="true">All accidents</button>
-            <button type="button" data-v="fatal" aria-pressed="false">Fatal only</button>
+            <button type="button" data-v="all" aria-pressed="false">All accidents</button>
+            <button type="button" data-v="fatal" aria-pressed="true">Fatal only</button>
           </div>
         </div>
         <div class="legend" id="legPh"></div>
@@ -471,8 +471,8 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
         <h2 id="h6"><span class="num">7</span> Trend <span class="sub">accidents per 1,000 registered aircraft per year</span></h2>
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <div class="seg" id="trMeasure" role="group" aria-label="Measure">
-            <button type="button" data-v="all" aria-pressed="true">All accidents</button>
-            <button type="button" data-v="fatal" aria-pressed="false">Fatal accidents</button>
+            <button type="button" data-v="all" aria-pressed="false">All accidents</button>
+            <button type="button" data-v="fatal" aria-pressed="true">Fatal accidents</button>
           </div>
           <div class="seg" id="trSmooth" role="group" aria-label="Smoothing">
             <button type="button" data-v="3" aria-pressed="true">3-yr average</button>
@@ -602,7 +602,7 @@ const GG = {
 };
 const GG_ORDER=['all','p','t','ps','pm'];
 const hasBoth = b => { const k=FAMS.map((f,i)=>f[0]===b?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
-const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, sfM:'fatal', sfC:null, coHidden:false, hlOff:false };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'fatal', sevPh:'fatal', trM:'fatal', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, sfM:'fatal', sfC:null, coHidden:false, hlOff:false };
 const causeCache = {};
 const famSetCache = {};
 
@@ -816,11 +816,9 @@ function readHash(){
   if (['135','all'].includes(p.get('op'))) st.op=p.get('op');
   for (const k of ['ha','hb']) if (p.has(k)) { const v=hrsVal(p.get(k)); if (v) st[k]=v; }
   // section toggles (v0.6): only written when not the default
-  if (p.get('s')==='fatal') st.sev='fatal';
+  // v0.29: every All/Fatal toggle (sections 3, 4, 5, 7) opens on Fatal and is not kept in the link
   // v0.28: section 3's measure always opens on Fatal accidents; it is not kept in the link
   if (['ps','pm','t'].includes(p.get('sc'))) st.sfC=p.get('sc');
-  if (p.get('ps')==='fatal') st.sevPh='fatal';
-  if (p.get('tm')==='fatal') st.trM='fatal';
   if (p.get('ts')==='1') st.trS=1;
   if (p.get('rm')==='new') st.rgM='new';
   if (p.get('rs')==='1') st.rgS=1;
@@ -836,9 +834,6 @@ function writeHash(){
   if (st.a) p.set('a',selToName(st.a));
   if (st.b) p.set('b',selToName(st.b));
   p.set('y0',st.y0); p.set('y1',st.y1); if(st.pur!=='all') p.set('p',st.pur); if(st.op!=='91') p.set('op',st.op); if(st.ha) p.set('ha',st.ha); if(st.hb) p.set('hb',st.hb);
-  if (st.sev!=='all') p.set('s',st.sev);
-  if (st.sevPh!=='all') p.set('ps',st.sevPh);
-  if (st.trM!=='all') p.set('tm',st.trM);
   if (st.trS!==3) p.set('ts',st.trS);
   if (st.rgM!=='active') p.set('rm',st.rgM);
   if (st.rgS!==3) p.set('rs',st.rgS);
@@ -1225,11 +1220,11 @@ function applyPreset(id){
   const p=PRESETS.find(x=>x.id===id); if(!p) return;
   if(p.reset){  // "Back to the default": the app's opening state, no highlights
     Object.assign(st,{preset:null, coHidden:false, hlOff:false, ha:null, hb:null, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all', op:'91',
-      sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, sfM:'fatal', sfC:null});
+      sev:'fatal', sevPh:'fatal', trM:'fatal', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, sfM:'fatal', sfC:null});
     syncControls(); update(); return;
   }
   st.preset=id; st.coHidden=false; st.hlOff=false; st.a=selFromName(p.a); st.b=selFromName(p.b); st.ha=st.hb=null;
-  st.y0=2000; st.y1=lastYear(); st.pur='all'; st.op='91'; st.sev='all'; st.sevPh='all'; st.cat=null; st.shown=25; st.sfC=null;
+  st.y0=2000; st.y1=lastYear(); st.pur='all'; st.op='91'; st.sev='fatal'; st.sevPh='fatal'; st.trM='fatal'; st.cat=null; st.shown=25; st.sfC=null;
   if(st.recent==='b' && !st.b) st.recent='both';
   syncControls(); update();
 }
