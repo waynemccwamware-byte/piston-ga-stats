@@ -1,6 +1,6 @@
 import csv,collections,os,sys,json,re
 sys.path.insert(0,os.path.expanduser('~/scripts'))
-from families import family, JETPROP
+from families import family, JETPROP, TURBOPROP
 H=os.path.expanduser('~/data/')
 byN=json.load(open(H+'byN.json'))
 codes=json.load(open(H+'codes.json'))
@@ -99,7 +99,10 @@ for db in ('pre','ntsb'):
         if not fam: continue
         if not (hit or N[:1].isdigit()): stat[db+' foreign']+=1; continue
         if a['acft_category'] not in ('AIR','') or a['homebuilt']=='Y': continue
-        if et and not (et & {'REC','TP'}): continue
+        # engines: piston families keep piston (REC) engines only; turboprop families keep turboprops (or unreported)
+        if (br,fam) in TURBOPROP:
+            if et and 'TP' not in et: continue
+        elif et and 'REC' not in et: stat[db+' turbine conversion']+=1; continue
         # Part 91 (incl. 091K fractional, 091F) and, from 03-Nov-2026, Part 135 (tagged; the app filters by part)
         fp=a['far_part'].strip()
         if fp not in ('091','091K','091F','','135') : stat[db+' other part']+=1; continue

@@ -1,6 +1,6 @@
 import csv,collections,os,sys,json,re
 sys.path.insert(0,os.path.expanduser('~/scripts'))
-from families import family
+from families import family, TURBOPROP, JETPROP
 R=os.path.expanduser('~/data/reg/')
 def rd(f):
     with open(R+f,encoding='utf-8-sig',errors='replace') as fh:
@@ -11,11 +11,15 @@ ref={}
 for r in rd('ACFTREF.txt'):
     if r['TYPE-ACFT'] in ('4','5') and r['TYPE-ENG'] in ('1','2','7','8','11') and r['BUILD-CERT-IND']=='0':
         b,f=family(r['MFR'],r['MODEL'])
+        # a turboprop code counts only for a turboprop family or the PA-46 (JetPROP / miscoded Mirages);
+        # otherwise it is a turbine conversion of a piston type (Cheyenne PA-31T, Soloy 206, turbine 210...)
+        if r['TYPE-ENG']=='2' and f and (b,f) not in TURBOPROP and f!='TBM' and f!='PA-46 Malibu/Mirage': continue
         if b: ref[r['CODE']]=(b,f,r['MFR'],r['MODEL'],r['TYPE-ACFT'])
 # Engine models (ENGINE.txt): a PT6 on a PA-46-310P/350P registration is a JetPROP conversion. The registration's own
 # TYPE ENGINE code is not used: ~100 piston Mirages carry the turboprop code (probe, 03-Nov-2026).
 ENG={r['CODE']:(r.get('MFR','')+' '+r.get('MODEL','')).upper() for r in rd('ENGINE.txt')}
-def is_turbine(engcode): return bool(re.search(r'PT6|TPE331|PW1\d\d',ENG.get(engcode,'')))
+def is_turbine(engcode): return bool(re.search(r'PT6|TPE331|PW1\d\d|ALLISON|250-B|RR250|M601|WALTER|H80',ENG.get(engcode,'')))
+skipped_turb=collections.Counter()
 tbmx=collections.Counter()
 def sn(s): return re.sub(r'[^0-9A-Z]','',s.upper()).lstrip('0')
 def d8(s): return s if re.fullmatch(r'\d{8}',s or '') else ''
@@ -31,7 +35,9 @@ for f,k in (('MASTER.txt','m'),('DEREG.txt','d')):
         if not fam: unf[(b,model)]+=1; continue
         ser=sn(r['SERIAL NUMBER'] if k=='m' else r['SERIAL-NUMBER'])
         yr0=r['YEAR MFR'] if k=='m' else r['YEAR-MFR']
-        fam=family(mfr,model,ser,yr0,is_turbine(r['ENG MFR MDL'] if k=='m' else r['ENG-MFR-MDL']))[1]
+        turb=is_turbine(r['ENG MFR MDL'] if k=='m' else r['ENG-MFR-MDL'])
+        fam=family(mfr,model,ser,yr0,turb)[1]
+        if turb and (b,fam) not in TURBOPROP: skipped_turb[(b,fam)]+=1; continue   # turbine conversion of a piston type
         if b=='Daher': tbmx[(fam,'s>=1000' if ser.isdigit() and int(ser)>=1000 else 's<1000',yr0[:3]+'x' if yr0.isdigit() else '?')]+=1
         aw=d8(r['AIR WORTH DATE'] if k=='m' else r['AIR-WORTH-DATE'])
         ci=d8(r['CERT ISSUE DATE'] if k=='m' else r['CERT-ISSUE-DATE'])
@@ -48,6 +54,7 @@ for f,k in (('MASTER.txt','m'),('DEREG.txt','d')):
         byN[r['N-NUMBER'].upper()].append((ser,fam,b,model,ci,cancel,k,yr if yr.isdigit() else ''))  # yr added for v0.2 columns
 print('airframes',len(air))
 print('unmapped models (top):',unf.most_common(40))
+print('turbine conversions left out of piston families:',skipped_turb.most_common())
 print('TBM family x serial x decade built:',sorted(tbmx.items()))
 c=collections.Counter(x['fam'] for x in air.values()); print(c.most_common())
 json.dump({f'{k[0]}|{k[1]}':v for k,v in air.items()},open(os.path.expanduser('~/data/airframes.json'),'w'))
