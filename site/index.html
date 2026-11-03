@@ -175,6 +175,15 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .fine p{ margin:0 0 6px; }
 .fine a{ color:var(--teal); }
 .loading{ font-size:13px; color:var(--text-muted); padding:20px 4px; text-align:center; }
+/* v0.21: hours guesses */
+.hrs-row{ gap:10px; }
+.hin{ display:flex; align-items:center; gap:6px; flex:1; min-width:0; }
+.hin input{ font:500 13.5px 'IBM Plex Mono',monospace; color:var(--text-primary); background:var(--bg-deep); border:1px solid var(--bezel-hi); border-radius:6px; padding:8px; width:100%; min-width:0; }
+.hin input:focus-visible{ outline:2px solid var(--amber); outline-offset:1px; }
+.hin input::placeholder{ color:var(--text-muted); font-family:'IBM Plex Sans',sans-serif; font-weight:400; }
+.hrs-note{ margin-top:4px; }
+table.sum tr.est td{ font-style:italic; }
+table.sum tr.est td:first-child{ font-style:normal; }
 /* v0.18: multi-type picker */
 .pick-btn{ all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;
   font:500 13.5px 'IBM Plex Sans',sans-serif; color:var(--text-primary); background:var(--bg-deep); border:1px solid var(--bezel-hi);
@@ -207,14 +216,15 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 :root{ --hl:var(--amber); --hl-bg:rgba(245,166,35,0.08); }
 .presets h2 .sub{ font-weight:400; }
 .pchips{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
-.pchip{ all:unset; box-sizing:border-box; display:flex; flex-direction:column; gap:3px; padding:8px 10px; border:1px solid var(--bezel-hi); border-radius:7px; cursor:pointer; background:rgba(255,255,255,0.015); transition:border-color .15s ease, background .15s ease; }
+.pchip{ all:unset; box-sizing:border-box; display:flex; flex-direction:column; gap:3px; padding:6px 10px; border:1px solid var(--bezel-hi); border-radius:7px; cursor:pointer; background:rgba(255,255,255,0.015); transition:border-color .15s ease, background .15s ease; }
 .pchip:hover{ border-color:var(--amber-dim); }
 .pchip:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
 .pchip b{ font-size:12.5px; font-weight:600; color:var(--text-primary); line-height:1.3; }
 .pchip small{ font-size:11px; color:var(--text-muted); line-height:1.35; }
 .pchip .pn{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--amber); margin-right:5px; }
 .pchip[aria-pressed="true"]{ border-color:var(--hl); background:var(--hl-bg); }
-.callout{ margin-top:10px; border:1px solid var(--hl); border-left-width:4px; border-radius:7px; background:var(--hl-bg); padding:10px 34px 10px 12px; position:relative; animation:coIn .25s ease; }
+.co-wrap{ margin:0 0 12px; } .co-wrap:empty{ display:none; } .co-wrap > .note{ margin:0 4px; }
+.callout{ margin-top:0; border:1px solid var(--hl); border-left-width:4px; border-radius:7px; background:var(--hl-bg); padding:10px 34px 10px 12px; position:relative; animation:coIn .25s ease; }
 @keyframes coIn{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
 @media (prefers-reduced-motion:reduce){ .callout{ animation:none; } }
 .callout h3{ font-size:12.5px; margin:0 0 2px; color:var(--hl); font-weight:500; }
@@ -245,7 +255,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
   .acc .body{ padding-left:2px; }
   table.sum{ font-size:12px; }
   .pchips{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
-  .pchip{ flex:0 0 72%; scroll-snap-align:start; }
+  .pchip{ flex:0 0 auto; max-width:78%; scroll-snap-align:start; }
   table.co-t th{ white-space:normal; width:24%; vertical-align:bottom; line-height:1.3; }
   table.co-t th:first-child{ width:auto; }
   .callout{ padding-right:12px; } .callout h3{ padding-right:22px; }
@@ -299,7 +309,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.20</span>
+    <span class="ver mono">v0.21</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -310,7 +320,6 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
       <section class="step presets" aria-labelledby="h0">
         <h2 id="h0">Try a comparison <span class="sub">tap a pair, or pick your own below; look for the amber highlights</span></h2>
         <div class="pchips" id="pchips" role="group" aria-label="Sample comparisons"></div>
-        <div id="callout"></div>
       </section>
 
       <section class="step has-share" aria-labelledby="h1">
@@ -346,6 +355,14 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
               <button type="button" data-v="all" aria-pressed="false">Both</button>
             </div>
           </div>
+          <div class="ctl ctl-wide">
+            <span class="lbl">Optional: your guess of hours flown per aircraft per year</span>
+            <div class="row hrs-row">
+              <label class="hin"><span class="swatch sw-a"></span><span class="sr-only">Type A hours per aircraft per year</span><input id="hrsA" type="number" inputmode="numeric" min="1" max="3000" step="1" placeholder="Type A, e.g. 100"></label>
+              <label class="hin"><span class="swatch sw-b"></span><span class="sr-only">Type B hours per aircraft per year</span><input id="hrsB" type="number" inputmode="numeric" min="1" max="3000" step="1" placeholder="Type B, e.g. 100"></label>
+            </div>
+            <p class="note hrs-note">Enter both to add accidents per 100,000 flight hours to section 2. <b>These are your guesses, not data:</b> no FAA or NTSB source gives flight hours by model, and the result is only as good as the guess. It is applied to every registered aircraft, flying or not, so use an average over the whole registered fleet (parked airplanes included), not a typical active airplane.</p>
+          </div>
         </div>
         <p class="note" id="dataNote"></p>
         <div class="share-cmp">
@@ -356,6 +373,8 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
           <span class="sr-only" id="shareCmpMsg" aria-live="polite"></span>
         </div>
       </section>
+
+      <div id="callout" class="co-wrap"></div>
 
       <section class="step" aria-labelledby="h2">
         <h2 id="h2"><span class="num">2</span> Summary <span class="sub" id="sumSub">Part 91 accidents, US-registered aircraft</span></h2>
@@ -532,7 +551,7 @@ const GG = {
 };
 const GG_ORDER=['all','p','t','ps','pm'];
 const hasBoth = b => { const k=FAMS.map((f,i)=>f[0]===b?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
-const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, coHidden:false, hlOff:false };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, coHidden:false, hlOff:false };
 const causeCache = {};
 const famSetCache = {};
 
@@ -616,6 +635,10 @@ function buildControls(){
   }
   seg('purSeg', v=>{ st.pur=v; st.shown=25; });
   seg('opSeg', v=>{ st.op=v; st.shown=25; });
+  for (const side of ['A','B']){
+    const el=$('hrs'+side), key='h'+side.toLowerCase(); let t;
+    el.addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(()=>{ st[key]=hrsVal(el.value); writeHash(); renderSummary(); },350); });
+  }
   seg('sevSeg', v=>{ st.sev=v; st.cat=null; st.shown=25; });
   seg('phSevSeg', v=>{ st.sevPh=v; });
   seg('trMeasure', v=>{ st.trM=v; });
@@ -644,6 +667,7 @@ function buildControls(){
   document.addEventListener('pointerdown',e=>{ if(st.pick && !e.target.closest('#pickPanel,.pick-btn')) togglePick(null); });
   buildPresets();
 }
+const hrsVal = v => { const n=Math.round(+v); return n>=1 && n<=3000 ? n : null; };
 function togglePick(side){
   const key = side ? side.toLowerCase() : null;
   st.pick = (key && st.pick!==key) ? key : null;
@@ -654,7 +678,8 @@ function togglePick(side){
 function setSide(S){
   const key=st.pick; if(!key) return;
   if(key==='a' && !S.size){ $('pickMsg').textContent='Type A needs at least one type.'; return; }
-  st[key]=setToSel(S); st.cat=null; st.shown=25; st.preset=matchPreset();
+  const nsel=setToSel(S); if(nsel!==st[key]){ st['h'+key]=null; $('hrs'+key.toUpperCase()).value=''; }  // an hours guess belongs to the type it was typed for
+  st[key]=nsel; st.cat=null; st.shown=25; st.preset=matchPreset();
   if(key==='b' && !st.b && st.recent==='b') st.recent='both';
   update();
 }
@@ -694,6 +719,7 @@ function setSeg(id, v){ $(id).querySelectorAll('button').forEach(x=>x.setAttribu
 function syncControls(){
   pickBtnText('A'); pickBtnText('B');
   if(st.pick) renderPick();
+  $('hrsA').value=st.ha||''; $('hrsB').value=st.hb||'';
   $('y0').value=String(st.y0); $('y1').value=String(st.y1);
   setSeg('purSeg',st.pur); setSeg('opSeg',st.op); setSeg('sevSeg',st.sev); setSeg('phSevSeg',st.sevPh); setSeg('trMeasure',st.trM); setSeg('trSmooth',st.trS); setSeg('rgMeasure',st.rgM); setSeg('rgSmooth',st.rgS); setSeg('recentWhich',st.recent);
 }
@@ -730,6 +756,7 @@ function readHash(){
   if (st.y0>st.y1) st.y0=st.y1;
   if (p.has('p') && ['all','0','1','2'].includes(p.get('p'))) st.pur=p.get('p');
   if (['135','all'].includes(p.get('op'))) st.op=p.get('op');
+  for (const k of ['ha','hb']) if (p.has(k)) { const v=hrsVal(p.get(k)); if (v) st[k]=v; }
   // section toggles (v0.6): only written when not the default
   if (p.get('s')==='fatal') st.sev='fatal';
   if (p.get('ps')==='fatal') st.sevPh='fatal';
@@ -748,7 +775,7 @@ function writeHash(){
   if (st.hlOff) p.set('hl','0');
   if (st.a) p.set('a',selToName(st.a));
   if (st.b) p.set('b',selToName(st.b));
-  p.set('y0',st.y0); p.set('y1',st.y1); if(st.pur!=='all') p.set('p',st.pur); if(st.op!=='91') p.set('op',st.op);
+  p.set('y0',st.y0); p.set('y1',st.y1); if(st.pur!=='all') p.set('p',st.pur); if(st.op!=='91') p.set('op',st.op); if(st.ha) p.set('ha',st.ha); if(st.hb) p.set('hb',st.hb);
   if (st.sev!=='all') p.set('s',st.sev);
   if (st.sevPh!=='all') p.set('ps',st.sevPh);
   if (st.trM!=='all') p.set('tm',st.trM);
@@ -789,6 +816,18 @@ function renderSummary(){
     ['Fatal accidents per 1,000 registered aircraft-years', d=>rate(d.f,d.ay,d), 'key', 'frate'],
     ['Instructional share of accidents', d=>pct(d.inst,d.purN), '', 'inst'],
   ];
+  // v0.21: per 100,000 flight hours, only when the user has guessed hours for both sides (and both are shown)
+  const hrs=[st.ha,st.hb].slice(0,sides.length), useH = sides.length===2 && hrs.every(Boolean);
+  if(useH){
+    data.forEach((d,i)=>d.hrs=d.ay*hrs[i]);
+    const hr=(k,d)=>{ if(d.noRate||d.ay<1) return '—'; const v=1e5*k/d.hrs, [lo,hi]=pci(k).map(x=>1e5*x/d.hrs);
+      return `≈ ${v.toFixed(2)}<span class="ci">${lo.toFixed(2)}–${hi.toFixed(2)}</span>`; };
+    rows.splice(7,0,
+      ['Your hours guess (per aircraft per year)', d=>'', 'est', null],
+      ['≈ Accidents per 100,000 flight hours', d=>hr(d.n,d), 'est', null],
+      ['≈ Fatal accidents per 100,000 flight hours', d=>hr(d.f,d), 'est', null]);
+    rows[7][1]=(d)=>Math.round(d.hrs/d.ay).toLocaleString();
+  }
   $('sumTable').innerHTML=`<thead><tr><th></th>${th}</tr></thead><tbody>`+
     rows.map(([l,fn,cls,k])=>`<tr class="${cls||''}${k&&HL.sum.has(k)?' hl':''}"><td>${l}</td>${data.map(d=>`<td>${fn(d)}</td>`).join('')}</tr>`).join('')+'</tbody>';
   const yrs=`${st.y0}–${st.y1}`, pur=st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()+' flights only';
@@ -799,7 +838,8 @@ function renderSummary(){
   const tp = sides.some(selHasTP) ? ' Turboprops usually fly far more hours a year than piston singles, so a per-registered-aircraft rate overstates their risk per hour flown.' : '';
   const jp = sides.some(x=>selFams(x).has(JETPROP_I)) ? ' JetPROP: most conversions still show their original piston engine on the FAA registry, so its fleet count is far too low and no rate is shown; in a group it inflates the rate slightly (and the Malibu/Mirage fleet includes those airframes).' : '';
   const op = st.op==='91' ? '' : ' Part 135 accidents are counted against the whole registered fleet (the registry doesn’t say which airplanes fly for hire), so Part 135 rates read low.';
-  $('sumNote').innerHTML=`${yrs}, ${pur}, ${OPTXT[st.op]}. Rates are per registered aircraft, not per flight hour: a type used heavily for training will look worse than an owner-flown type with the same per-hour risk. Grey figures are the 95% range.${partial}${derived}${tp}${jp}${op}${grp}`;
+  const hn = useH ? ` <b>Per-flight-hour rates use your guesses</b> (${st.ha.toLocaleString()} and ${st.hb.toLocaleString()} hours per aircraft per year), not data, applied to every registered aircraft; the grey range covers chance only, not an error in the guess. Change a guess and the rate changes in proportion.` : '';
+  $('sumNote').innerHTML=`${yrs}, ${pur}, ${OPTXT[st.op]}.${hn} Rates are per registered aircraft, not per flight hour: a type used heavily for training will look worse than an owner-flown type with the same per-hour risk. Grey figures are the 95% range.${partial}${derived}${tp}${jp}${op}${grp}`;
   $('sumSub').textContent=`${OPTXT[st.op].replace(/^./,c=>c.toUpperCase())} accidents, US-registered aircraft`;
 }
 const OPTXT={'91':'Part 91','135':'Part 135','all':'Part 91 and 135'};
@@ -1111,7 +1151,7 @@ function computeHL(){
   HL.items=items;
 }
 function buildPresets(){
-  $('pchips').innerHTML=PRESETS.map((p,i)=>`<button type="button" class="pchip" data-id="${p.id}" aria-pressed="false" title="${esc(p.hook)}"><b><span class="pn">${i+1}</span>${esc(p.label)}</b><small>${esc(p.hook)}</small></button>`).join('');
+  $('pchips').innerHTML=PRESETS.map((p,i)=>`<button type="button" class="pchip" data-id="${p.id}" aria-pressed="false" title="${esc(p.hook)}"><b><span class="pn">${i+1}</span>${esc(p.label)}</b></button>`).join('');
   $('pchips').addEventListener('click',e=>{ const b=e.target.closest('.pchip'); if(b) applyPreset(b.dataset.id); });
   $('callout').addEventListener('click',e=>{
     const t=e.target.closest('button'); if(!t) return;
@@ -1125,11 +1165,11 @@ function matchPreset(){ const m=PRESETS.find(x=>!x.reset && selFromName(x.a)===s
 function applyPreset(id){
   const p=PRESETS.find(x=>x.id===id); if(!p) return;
   if(p.reset){  // "Back to the default": the app's opening state, no highlights
-    Object.assign(st,{preset:null, coHidden:false, hlOff:false, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all', op:'91',
+    Object.assign(st,{preset:null, coHidden:false, hlOff:false, ha:null, hb:null, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all', op:'91',
       sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25});
     syncControls(); update(); return;
   }
-  st.preset=id; st.coHidden=false; st.hlOff=false; st.a=selFromName(p.a); st.b=selFromName(p.b);
+  st.preset=id; st.coHidden=false; st.hlOff=false; st.a=selFromName(p.a); st.b=selFromName(p.b); st.ha=st.hb=null;
   st.y0=2000; st.y1=lastYear(); st.pur='all'; st.op='91'; st.sev='all'; st.sevPh='all'; st.cat=null; st.shown=25;
   if(st.recent==='b' && !st.b) st.recent='both';
   syncControls(); update();
