@@ -335,7 +335,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.27</span>
+    <span class="ver mono">v0.28</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -412,8 +412,8 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
         <h2 id="hSafe"><span class="num">3</span> Safety within category <span class="sub">every type in the category · rate vs fleet size</span></h2>
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <div class="seg" id="sfMeas" role="group" aria-label="Measure">
-            <button type="button" data-v="all" aria-pressed="true">All accidents</button>
-            <button type="button" data-v="fatal" aria-pressed="false">Fatal accidents</button>
+            <button type="button" data-v="all" aria-pressed="false">All accidents</button>
+            <button type="button" data-v="fatal" aria-pressed="true">Fatal accidents</button>
           </div>
           <div class="seg" id="sfCat" role="group" aria-label="Category">
             <button type="button" data-v="ps" aria-pressed="true">Piston singles</button>
@@ -602,7 +602,7 @@ const GG = {
 };
 const GG_ORDER=['all','p','t','ps','pm'];
 const hasBoth = b => { const k=FAMS.map((f,i)=>f[0]===b?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
-const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, sfM:'all', sfC:null, coHidden:false, hlOff:false };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, sfM:'fatal', sfC:null, coHidden:false, hlOff:false };
 const causeCache = {};
 const famSetCache = {};
 
@@ -817,7 +817,7 @@ function readHash(){
   for (const k of ['ha','hb']) if (p.has(k)) { const v=hrsVal(p.get(k)); if (v) st[k]=v; }
   // section toggles (v0.6): only written when not the default
   if (p.get('s')==='fatal') st.sev='fatal';
-  if (p.get('sm')==='fatal') st.sfM='fatal';
+  // v0.28: section 3's measure always opens on Fatal accidents; it is not kept in the link
   if (['ps','pm','t'].includes(p.get('sc'))) st.sfC=p.get('sc');
   if (p.get('ps')==='fatal') st.sevPh='fatal';
   if (p.get('tm')==='fatal') st.trM='fatal';
@@ -844,7 +844,6 @@ function writeHash(){
   if (st.rgS!==3) p.set('rs',st.rgS);
   if (st.recent!=='both') p.set('r',st.recent);
   if (st.cat) p.set('c',st.cat);
-  if (st.sfM!=='all') p.set('sm',st.sfM);
   if (st.sfC) p.set('sc',st.sfC);
   history.replaceState(null,'','#'+p.toString());
 }
@@ -1226,7 +1225,7 @@ function applyPreset(id){
   const p=PRESETS.find(x=>x.id===id); if(!p) return;
   if(p.reset){  // "Back to the default": the app's opening state, no highlights
     Object.assign(st,{preset:null, coHidden:false, hlOff:false, ha:null, hb:null, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all', op:'91',
-      sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, sfM:'all', sfC:null});
+      sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, sfM:'fatal', sfC:null});
     syncControls(); update(); return;
   }
   st.preset=id; st.coHidden=false; st.hlOff=false; st.a=selFromName(p.a); st.b=selFromName(p.b); st.ha=st.hb=null;

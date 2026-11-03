@@ -51,8 +51,8 @@ Section 3 (moved up from 7 in v0.27, right after the Summary) is a funnel plot: 
 average registered fleet (log scale) against accidents or fatal accidents per 1,000 registered aircraft-years.
 The band is the 95% Poisson limit around the category's pooled rate for that exposure (fleet x years); dashed
 lines are 99.8%. "Below/above the funnel" uses an exact two-sided Poisson test (p < 0.05). Same filters as the
-rest of the page (years, purpose, Part 91/135). The category follows Type A unless picked; link keys `sm=fatal`
-and `sc=ps|pm|t`. The JetPROP is left out (unreliable fleet). Chosen instead of a numeric "safest" rank (Wayne,
+rest of the page (years, purpose, Part 91/135). The category follows Type A unless picked; link key
+`sc=ps|pm|t`. The measure opens on Fatal accidents every time (v0.28; not kept in the link). The JetPROP is left out (unreliable fleet). Chosen instead of a numeric "safest" rank (Wayne,
 03-Nov-2026), because ranks overstate tiny differences and the rates are per registered aircraft, not per hour.
 Pan/zoom (v0.26): the view is kept in data space and the chart redrawn (no CSS scaling). Pinch (two pointers;
 Safari Mac trackpad via gesture events), Ctrl/Cmd + wheel, or the − + Reset buttons; drag pans once zoomed. Up to
