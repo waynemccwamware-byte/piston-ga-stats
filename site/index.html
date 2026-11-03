@@ -196,6 +196,7 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .pick{ border:1px solid var(--amber-dim); border-radius:8px; background:#141a22; padding:10px; }
 .pick-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
 .pick-head b{ font-size:12.5px; font-weight:600; }
+.pick-acts{ display:flex; gap:6px; flex-shrink:0; }
 .pick-head small{ color:var(--text-muted); font-size:11px; font-weight:400; }
 .pick-quick{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
 .qbtn{ font:500 11.5px 'IBM Plex Sans',sans-serif; color:var(--text-muted); background:transparent; border:1px solid var(--bezel-hi); border-radius:14px; padding:4px 10px; cursor:pointer; }
@@ -308,7 +309,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.23</span>
+    <span class="ver mono">v0.24</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -651,15 +652,18 @@ function buildControls(){
   const pp=$('pickPanel');
   pp.addEventListener('change',e=>{
     const t=e.target; if(t.type!=='checkbox') return;
-    const S=new Set(selFams(st[st.pick]));
+    const S=new Set(st.pickClear ? [] : selFams(st[st.pick]));
     const ids = t.dataset.brand ? tokFams('b:'+t.dataset.brand) : [+t.dataset.f];
     ids.forEach(i=> t.checked ? S.add(i) : S.delete(i));
     setSide(S);
   });
   pp.addEventListener('click',e=>{
     const b=e.target.closest('button'); if(!b) return;
-    if(b.dataset.q==='none'){ setSide(new Set()); return; }
-    if(b.dataset.q){ setSide(new Set(tokFams('g:'+b.dataset.q))); return; }
+    if(b.dataset.q==='clear'){
+      if(st.pick==='b'){ setSide(new Set()); return; }
+      st.pickClear=true; renderPick(); return;   // Type A can't be empty: untick all, the next tick starts the new pick
+    }
+    if(b.dataset.q){ st.pickClear=false; setSide(new Set(tokFams('g:'+b.dataset.q))); return; }
     if(b.dataset.done!==undefined){ const k=st.pick; togglePick(null); $('pick'+k.toUpperCase()).scrollIntoView({block:'nearest'}); }
   });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape' && st.pick){ const s=st.pick; togglePick(null); $('pick'+s.toUpperCase()).focus(); } });
@@ -669,7 +673,7 @@ function buildControls(){
 const hrsVal = v => { const n=Math.round(+v); return n>=1 && n<=3000 ? n : null; };
 function togglePick(side){
   const key = side ? side.toLowerCase() : null;
-  st.pick = (key && st.pick!==key) ? key : null;
+  st.pick = (key && st.pick!==key) ? key : null; st.pickClear=false;
   for (const s of ['A','B']) $('pick'+s).setAttribute('aria-expanded', String(st.pick===s.toLowerCase()));
   $('pickPanel').hidden = !st.pick;
   if(st.pick) renderPick();
@@ -678,16 +682,16 @@ function setSide(S){
   const key=st.pick; if(!key) return;
   if(key==='a' && !S.size){ $('pickMsg').textContent='Type A needs at least one type.'; return; }
   const nsel=setToSel(S); if(nsel!==st[key]){ st['h'+key]=null; $('hrs'+key.toUpperCase()).value=''; }  // an hours guess belongs to the type it was typed for
-  st[key]=nsel; st.cat=null; st.shown=25; st.preset=matchPreset();
+  st[key]=nsel; st.pickClear=false; st.cat=null; st.shown=25; st.preset=matchPreset();
   if(key==='b' && !st.b && st.recent==='b') st.recent='both';
   update();
 }
 function renderPick(){
-  const key=st.pick, S=selFams(st[key]), pp=$('pickPanel');
+  const key=st.pick, S=st.pickClear ? new Set() : selFams(st[key]), pp=$('pickPanel');
   const ae=document.activeElement, keep = ae && pp.contains(ae) ? (ae.dataset.f!==undefined?`[data-f="${ae.dataset.f}"]`:ae.dataset.brand?`[data-brand="${ae.dataset.brand}"]`:ae.dataset.q?`[data-q="${ae.dataset.q}"]`:null) : null;
   const curTok=st[key];
   const q=GG_ORDER.map(g=>`<button type="button" class="qbtn" data-q="${g}" aria-pressed="${curTok==='g:'+g}">${GG[g][0]}</button>`).join('')
-    + (key==='b'?`<button type="button" class="qbtn" data-q="none" aria-pressed="${!curTok}">None</button>`:'');
+
   const brands=BRANDS.map(b=>{
     const fams=FAMS.map((f,i)=>[f,i]).filter(([f])=>f[0]===b).sort((p,q)=>p[0][1].localeCompare(q[0][1],undefined,{numeric:true}));
     const on=fams.filter(([,i])=>S.has(i)).length;
@@ -695,10 +699,10 @@ function renderPick(){
     return `<fieldset class="pbrand">${all}${fams.map(([f,i])=>`<label><input type="checkbox" data-f="${i}" ${S.has(i)?'checked':''}><span>${esc(f[1])}${isTP(i)?'<span class="tp" title="turboprop">TP</span>':''}</span></label>`).join('')}</fieldset>`;
   }).join('');
   pp.innerHTML=`<div class="pick">
-    <div class="pick-head"><b><span class="swatch ${key==='a'?'sw-a':'sw-b'}"></span>Type ${key.toUpperCase()} <small>· tick one or more; they are added together</small></b><button type="button" class="btn primary" data-done style="padding:5px 12px">Done</button></div>
+    <div class="pick-head"><b><span class="swatch ${key==='a'?'sw-a':'sw-b'}"></span>Type ${key.toUpperCase()} <small>· tick one or more; they are added together</small></b><span class="pick-acts"><button type="button" class="btn" data-q="clear" style="padding:5px 12px">Clear selections</button><button type="button" class="btn primary" data-done style="padding:5px 12px">Done</button></span></div>
     <div class="pick-quick" role="group" aria-label="Groups">${q}</div>
     <div class="pick-brands">${brands}</div>
-    <div class="pick-foot"><span id="pickMsg" aria-live="polite">${S.size} type${S.size===1?'':'s'} selected: ${esc(selLabel(st[key]))}</span><button type="button" class="btn primary" data-done style="padding:5px 12px">Done</button></div></div>`;
+    <div class="pick-foot"><span id="pickMsg" aria-live="polite">${S.size ? `${S.size} type${S.size===1?'':'s'} selected: ${esc(selLabel(st[key]))}` : key==='a' ? 'Tick at least one type for Type A (Done keeps the previous pick).' : 'No Type B: Type A shown alone.'}</span><button type="button" class="btn primary" data-done style="padding:5px 12px">Done</button></div></div>`;
   pp.querySelectorAll('input[data-mixed]').forEach(x=>x.indeterminate=true);
   if(keep){ const el=pp.querySelector(keep); if(el) el.focus({preventScroll:true}); }
 }
