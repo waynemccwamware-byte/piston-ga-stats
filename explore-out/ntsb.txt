@@ -1,0 +1,286 @@
+
+== ntsb: all eng_type values [('REC', 22143), ('TF', 2469), ('TP', 1916), ('TS', 1481), ('TJ', 299), ('', 263), ('ELEC', 131), ('NONE', 41), ('GTFN', 39), ('UNK', 37), ('LR', 5), ('HR', 1)]
+== ntsb: far_part values [('091', 22540), ('NUSN', 2524), ('NUSC', 1657), ('137', 1227), ('121', 986), ('135', 932), ('', 710), ('UNK', 531), ('129', 413), ('PUBU', 304), ('133', 128), ('ARMF', 21), ('091K', 17), ('107', 10), ('125', 5), ('103', 4), ('437', 1)]
+== ntsb: make | model | eng_type | far_part | category (count)
+1 | 2007 SAVAGE AIR LLC | EPIC LT | TP | 091 | AIR
+1 | COMPAGNIE DAHER | TB 30 EPSILON | REC | 091 | AIR
+1 | COMPAGNIE DAHER | TBM 700 | TP | 091 | AIR
+1 | DAHER | KODIAK |  | NUSN | AIR
+1 | DAHER | TB10 |  | NUSN | AIR
+1 | DAHER | TBM700 |  | 091 | AIR
+1 | DAHER | TBM700 | TP | 091 | AIR
+2 | EADS SOCATA | TBM 700 | TP | 091 | AIR
+1 | ELLUMAX LEASING LLC | EPIC LT | TP | 091 | AIR
+1 | EPIC | E1000 |  | 091 | AIR
+1 | EPIC AIRCRAFT LLC | E1000 | TP | 091 | AIR
+1 | FAIRCHILD HELI-PORTER | PILATUS PC-6 | TP | 091 | AIR
+1 | FAIRCHILD HELI-PORTER | PILATUS PC6/B1A-H2 | TP | 091 | AIR
+1 | GRUMMAN | TBM-3 |  | 091 | AIR
+2 | GRUMMAN | TBM-3 | REC | 091 | AIR
+1 | INDEPENDENT TECHNOLOGIES INC | EPIC LT | TP | 091 | AIR
+1 | PILATUS | B4-PC11 |  | 091 | GLI
+1 | PILATUS | BN2A-20 | REC | NUSC | AIR
+1 | PILATUS | BN2A-21 |  | NUSN | AIR
+1 | PILATUS | P3-05 | REC | 091 | AIR
+2 | PILATUS | PC-12 |  | NUSC | 
+1 | PILATUS | PC-12 | TP | 091 | AIR
+1 | PILATUS | PC-12/45 |  | 135 | AIR
+1 | PILATUS | PC-12/45 |  | NUSN | AIR
+5 | PILATUS | PC-12/45 | TP | 091 | AIR
+1 | PILATUS | PC-12/45 | TP | 135 | AIR
+1 | PILATUS | PC-12/47E | TP | 091 | AIR
+1 | PILATUS | PC12 |  | 091 | 
+1 | PILATUS | PC12 |  | 135 | AIR
+1 | PILATUS | PC12 |  | NUSC | AIR
+6 | PILATUS | PC12 |  | NUSN | AIR
+7 | PILATUS | PC12 | TP | 091 | AIR
+1 | PILATUS | PC12 | TS | UNK | AIR
+1 | PILATUS | PC12 - 45 | TP | 091 | AIR
+1 | PILATUS | PC24 |  | NUSN | AIR
+2 | PILATUS | PC6 |  | NUSC | AIR
+2 | PILATUS | PC6 |  | NUSN | AIR
+1 | PILATUS | PC6 |  | UNK | AIR
+1 | PILATUS | PC6 - B2H4 |  |  | AIR
+1 | PILATUS AIRCRAFT | PC-12/47E | TP | 091 | AIR
+1 | PILATUS AIRCRAFT LTD | PC 12 | TP | 135 | AIR
+1 | PILATUS AIRCRAFT LTD | PC-12 | TP | 091 | AIR
+1 | PILATUS AIRCRAFT LTD | PC-12/45 | TP | 091 | AIR
+2 | PILATUS AIRCRAFT LTD | PC-12/47 | TP | 091 | AIR
+1 | PILATUS AIRCRAFT LTD | PC-12/47 | TP | 091K | AIR
+3 | PILATUS AIRCRAFT LTD | PC-12/47E | TP | 091 | AIR
+1 | PILATUS AIRCRAFT LTD | PC-12/47E | TP | 135 | AIR
+1 | PILATUS BRITTEN NORMAN | BN-2B-26 ISLANDER | TP | NUSN | AIR
+1 | PILATUS BRITTEN-NORMAN | BN-2B-26 | REC | 091 | AIR
+1 | PILATUS BRITTEN-NORMAN LIMITED | BN-2B-27 |  | 135 | AIR
+1 | PIPER | 46 |  | NUSN | AIR
+5 | PIPER | PA 46 | REC | 091 | AIR
+2 | PIPER | PA 46 350P |  | NUSN | AIR
+5 | PIPER | PA 46 350P | REC | 091 | AIR
+2 | PIPER | PA 46 350P | TP | 091 | AIR
+1 | PIPER | PA 46 350P | UNK | 091 | AIR
+3 | PIPER | PA 46-310P | REC | 091 | AIR
+1 | PIPER | PA 46-310P | TP | 091 | AIR
+1 | PIPER | PA 46-350P |  | 091 | AIR
+3 | PIPER | PA 46-350P |  | NUSN | AIR
+25 | PIPER | PA 46-350P | REC | 091 | AIR
+4 | PIPER | PA 46-350P | TP | 091 | AIR
+1 | PIPER | PA-46 |  | 091 | AIR
+1 | PIPER | PA-46 |  | NUSN | AIR
+1 | PIPER | PA-46 | REC | 091 | AIR
+1 | PIPER | PA-46 | TP | 091 | AIR
+1 | PIPER | PA-46-310P |  | 091 | AIR
+1 | PIPER | PA-46-310P |  | NUSN | AIR
+17 | PIPER | PA-46-310P | REC | 091 | AIR
+3 | PIPER | PA-46-310P | TP | 091 | AIR
+1 | PIPER | PA-46-31P |  | NUSN | AIR
+1 | PIPER | PA-46-350P |  | 091 | AIR
+2 | PIPER | PA-46-350P |  | NUSN | AIR
+1 | PIPER | PA-46-350P |  | UNK | AIR
+12 | PIPER | PA-46-350P | REC | 091 | AIR
+3 | PIPER | PA-46-350P | TP | 091 | AIR
+5 | PIPER | PA-46-500TP | TP | 091 | AIR
+1 | PIPER | PA-46-600TP |  | 091 | AIR
+1 | PIPER | PA-46-600TP |  | NUSN | AIR
+1 | PIPER | PA46 |  | 091 | AIR
+1 | PIPER | PA46 |  | 135 | AIR
+1 | PIPER | PA46 |  | NUSC | AIR
+17 | PIPER | PA46 |  | NUSN | AIR
+1 | PIPER | PA46 |  | UNK | 
+1 | PIPER | PA46 |  | UNK | AIR
+34 | PIPER | PA46 | REC | 091 | AIR
+1 | PIPER | PA46 | REC | NUSN | AIR
+24 | PIPER | PA46 | TP | 091 | AIR
+1 | PIPER | PA46 | TP | NUSC | AIR
+1 | PIPER | PA46 - 350P | REC |  | AIR
+1 | PIPER | PA46 - 350P | REC | 091 | AIR
+1 | PIPER | PA46 500TP |  | NUSN | AIR
+4 | PIPER | PA46 500TP | TP | 091 | AIR
+1 | PIPER | PA46-310P | REC | 091 | AIR
+1 | PIPER | PA46-350P | REC | 091 | AIR
+2 | PIPER | PA46-500TP |  | 091 | AIR
+1 | PIPER | PA46-500TP |  | NUSN | AIR
+13 | PIPER | PA46-500TP | TP | 091 | AIR
+1 | PIPER | PA46-500TP | TP | NUSC | AIR
+1 | PIPER | PA46R |  | NUSN | AIR
+1 | PIPER | PA46R | REC | 091 | AIR
+1 | PIPER  | PA46 |  | NUSN | AIR
+1 | PIPER  | PA46R-350T | TS | 091 | AIR
+1 | PIPER AIRCRAFT CORPORATION | PA-46-350P |  |  | AIR
+1 | PIPER AIRCRAFT INC | PA 46-350P |  | 091 | 
+1 | PIPER AIRCRAFT INC | PA 46-350P |  | 091 | AIR
+2 | PIPER AIRCRAFT INC | PA 46-350P |  | NUSN | AIR
+5 | PIPER AIRCRAFT INC | PA 46-350P | REC | 091 | AIR
+2 | PIPER AIRCRAFT INC | PA 46-350P | TP | 091 | AIR
+1 | PIPER AIRCRAFT INC | PA-46 | TP | 091 | AIR
+1 | PIPER AIRCRAFT INC | PA-46-350P |  | 091 | AIR
+1 | PIPER AIRCRAFT INC | PA-46-500TP | TP | 091 | AIR
+1 | PIPER AIRCRAFT INC | PA-46-600TP |  | 091 | AIR
+1 | PIPER AIRCRAFT INC | PA-46-600TP | TP | 091 | AIR
+1 | PIPER AIRCRAFT INC | PA-46-701TP |  | 091 | AIR
+1 | PIPER AIRCRAFT INC | PA46 500TP | TP | 091 | AIR
+1 | PIPER AIRCRAFT INC | PA46-500TP | TP | 091 | AIR
+2 | PIPER AIRCRAFT INC | PA46R | REC | 091 | AIR
+1 | PIPER AIRCRAFT INC | PA46R-350T |  | 091 | AIR
+6 | PIPER AIRCRAFT INC | PA46R-350T | REC | 091 | AIR
+1 | SAVAGE AIR LLC | EPIC LT | TP | 091 | AIR
+2 | SOCATA | MS894A | REC | 091 | AIR
+1 | SOCATA | RALLYE 100S |  | NUSN | AIR
+1 | SOCATA | RALLYE 180 |  | NUSN | AIR
+1 | SOCATA | RALLYE 235E | REC | 091 | AIR
+1 | SOCATA | TAMPICO TB 9 | REC | 091 | AIR
+3 | SOCATA | TB 10 | REC | 091 | AIR
+1 | SOCATA | TB 20 |  | NUSN | AIR
+2 | SOCATA | TB 20 TRINIDAD | REC | 091 | AIR
+1 | SOCATA | TB 30 EPSILON | REC | 091 | AIR
+1 | SOCATA | TB 9 TAMPI | REC | 091 | AIR
+1 | SOCATA | TB 9 TAMPICO |  | 091 | AIR
+1 | SOCATA | TB-20 | REC | 091 | AIR
+1 | SOCATA | TB-20 TRINIDAD | REC | 091 | AIR
+2 | SOCATA | TB10 |  | NUSN | AIR
+1 | SOCATA | TB10 | REC |  | AIR
+2 | SOCATA | TB10 | REC | 091 | AIR
+1 | SOCATA | TB10 | REC | NUSN | AIR
+1 | SOCATA | TB10 - NO SERIES |  |  | AIR
+1 | SOCATA | TB20 |  | NUSN | AIR
+1 | SOCATA | TB20 | REC |  | AIR
+2 | SOCATA | TB20 | REC | 091 | AIR
+1 | SOCATA | TB200 |  | UNK | AIR
+3 | SOCATA | TB200 | REC | 091 | AIR
+1 | SOCATA | TB21 |  | 091 | AIR
+1 | SOCATA | TB21 |  | NUSN | AIR
+4 | SOCATA | TB21 | REC | 091 | AIR
+1 | SOCATA | TB9 |  | NUSN | AIR
+1 | SOCATA | TB9 |  | UNK | AIR
+1 | SOCATA | TB9 | REC | 091 | AIR
+2 | SOCATA | TB9 | REC | NUSN | AIR
+1 | SOCATA | TBM | TP | 091 | AIR
+2 | SOCATA | TBM 700 |  | 091 | AIR
+3 | SOCATA | TBM 700 |  | NUSN | AIR
+26 | SOCATA | TBM 700 | TP | 091 | AIR
+2 | SOCATA | TBM 700 | TP | NUSN | AIR
+1 | SOCATA | TBM 700 (850) | TP | 091 | AIR
+2 | SOCATA | TBM 850 | TP | 091 | AIR
+1 | SOCATA | TBM-700 |  | NUSN | AIR
+1 | SOCATA | TBM-700 C2 | TP | 091 | AIR
+1 | SOCATA | TBM-850 | TP | 091 | AIR
+1 | SOCATA | TBM700 |  |  | AIR
+1 | SOCATA | TBM700 |  | UNK | AIR
+6 | SOCATA | TBM700 | TP | 091 | AIR
+1 | SOCATA | TBM700 | TP | UNK | AIR
+1 | SOCATA | TBM700A |  | 091 | AIR
+1 | SOCATA-GROUPE AEROSPATIALE | TB 20 | REC |  | AIR
+
+== pre: all eng_type values [('REC', 53615), ('TS', 2616), ('TP', 2413), ('TF', 1897), ('UNK', 1268), ('TJ', 637), ('', 281)]
+== pre: far_part values [('091', 52693), ('137', 3747), ('135', 3103), ('121', 1856), ('NUSN', 654), ('NUSC', 500), ('129', 371), ('133', 343), ('PUBU', 309), ('103', 191), ('UNK', 68), ('091F', 37), ('125', 23), ('ARMF', 18), ('091K', 1)]
+== pre: make | model | eng_type | far_part | category (count)
+1 | AEROSPATIALE/SOCATA            | TB-10                | REC | 091 | AIR
+1 | EADS PZL WARSZA | PZL-104M WILGA | REC | 091 | AIR
+1 | EADS SOCATA | A320 |  | 121 | AIR
+1 | EADS SOCATA | TB-20 TRINIDAD |  | NUSN | AIR
+1 | FAIRCHILD-HELIPORTER | PILATUS PC6/B2-H2 | TP | 091 | AIR
+1 | GRUMMAN | TBM-3 | REC | 091 | AIR
+2 | GRUMMAN                        | TBM-3E               | REC | 091 | AIR
+1 | PILATUS | B4-PC11AF |  | 091 | GLI
+1 | PILATUS | P3-05 | REC | 091 | AIR
+2 | PILATUS | PC-12 | TP | 091 | AIR
+1 | PILATUS | PC-12-45 | TP | 091 | AIR
+1 | PILATUS | PC-12/45 |  | 091 | AIR
+6 | PILATUS | PC-12/45 | TP | 091 | AIR
+1 | PILATUS | PC-12/47 | TP | 091 | AIR
+1 | PILATUS | PC-6 |  | NUSN | AIR
+1 | PILATUS | PC-6 | TP | 091 | AIR
+1 | PILATUS | PC-6/B2-H2 | TP | 091 | AIR
+1 | PILATUS | PC-6/B2-H4 | TP | 091 | AIR
+1 | PILATUS | PC-6/C-H2 | TP | 091 | AIR
+1 | PILATUS | UV-20A | TP | ARMF | AIR
+1 | PILATUS                        | B-4                  | UNK | 091 | GLI
+1 | PILATUS                        | B-4 PC 11A           | UNK | 091 | GLI
+1 | PILATUS                        | B4-PC11AF            | UNK | 091 | GLI
+1 | PILATUS                        | B4PC11               | UNK | 091 | GLI
+1 | PILATUS                        | BN-2 ISLANDER        | REC | 091 | AIR
+1 | PILATUS                        | BN-2 ISLANDER        | REC | 135 | AIR
+1 | PILATUS                        | P-2/05               | REC | 091 | AIR
+1 | PILATUS                        | PC-6                 | TP | 091 | AIR
+1 | PILATUS                        | PC-6-350             | REC | 091 | AIR
+1 | PILATUS                        | PC-6/B1-H2           | TP | 091 | AIR
+1 | PILATUS                        | PC-6/C-H2            | TP | 091 | AIR
+1 | PILATUS                        | PC-7                 | TP | 091 | AIR
+1 | PILATUS                        | PORTER PC-6/350      | REC | 091 | AIR
+1 | PILATUS BRITTEN-NORMAN         | BN-2A-26 ISLANDER    | REC | 135 | AIR
+1 | PIPER | P46T | TP | 091 | AIR
+4 | PIPER | PA 46-350P | REC | 091 | AIR
+1 | PIPER | PA-46 |  | 091 | AIR
+1 | PIPER | PA-46 |  | NUSN | AIR
+3 | PIPER | PA-46-310P |  | NUSN | AIR
+19 | PIPER | PA-46-310P | REC | 091 | AIR
+4 | PIPER | PA-46-310P | TP | 091 | AIR
+1 | PIPER | PA-46-310P  | REC | 091 | AIR
+2 | PIPER | PA-46-350 |  | NUSN | AIR
+1 | PIPER | PA-46-350 | REC | 091 | AIR
+2 | PIPER | PA-46-350P |  | 091 | AIR
+1 | PIPER | PA-46-350P |  | NUSN | AIR
+22 | PIPER | PA-46-350P | REC | 091 | AIR
+1 | PIPER | PA-46-350P | REC | UNK | AIR
+3 | PIPER | PA-46-350P | TP | 091 | AIR
+1 | PIPER | PA-46-500TP |  | NUSN | AIR
+1 | PIPER | PA-46-500TP |  | UNK | AIR
+13 | PIPER | PA-46-500TP | TP | 091 | AIR
+1 | PIPER | PA-46/JETPROP | TP | 091 | AIR
+1 | PIPER | PA-46T |  | NUSN | AIR
+2 | PIPER | PA-46T | TP | 091 | AIR
+1 | PIPER | PA-46T-350P | TP | 091 | AIR
+3 | PIPER | PA46-500TP | TP | 091 | AIR
+1 | PIPER                          | 46-310P              | REC | 091 | AIR
+1 | PIPER                          | PA 46                | REC | 091 | AIR
+1 | PIPER                          | PA-46                |  | 091 | AIR
+10 | PIPER                          | PA-46                | REC | 091 | AIR
+1 | PIPER                          | PA-46                | REC | 135 | AIR
+1 | PIPER                          | PA-46-301P           | REC | 091 | AIR
+2 | PIPER                          | PA-46-310            | REC | 091 | AIR
+1 | PIPER                          | PA-46-310-P          | REC | 091 | AIR
+1 | PIPER                          | PA-46-310P           |  | 091 | AIR
+37 | PIPER                          | PA-46-310P           | REC | 091 | AIR
+1 | PIPER                          | PA-46-310P           | TP | 091 | AIR
+1 | PIPER                          | PA-46-350            | REC | 091 | AIR
+2 | PIPER                          | PA-46-350P           |  | NUSN | AIR
+23 | PIPER                          | PA-46-350P           | REC | 091 | AIR
+1 | PIPER                          | PA-46P-350           | REC | 091 | AIR
+1 | PIPER                          | PA46                 |  | 091 | AIR
+1 | PIPER                          | PA46                 | REC | 091 | AIR
+2 | PIPER                          | PA46-310P            | REC | 091 | AIR
+1 | PIPER                          | PA46-350P            | REC | 091 | AIR
+1 | PIPER                          | PT-46                | TP | 091 | AIR
+1 | SOCATA | MS RALLYE 235C       | REC | 091 | AIR
+1 | SOCATA | MS894A               | REC | 091 | AIR
+1 | SOCATA | RALLYE 150 ST        | REC | 091 | AIR
+1 | SOCATA | RALLYE TB-10 |  | UNK | AIR
+1 | SOCATA | TB 20 | REC | 091 | AIR
+1 | SOCATA | TB 21-TC | REC | 091 | AIR
+1 | SOCATA | TB 9 | REC | 091 | AIR
+1 | SOCATA | TB-10 |  | NUSN | AIR
+7 | SOCATA | TB-20 | REC | 091 | AIR
+2 | SOCATA | TB-20 TRINIDAD | REC | 091 | AIR
+1 | SOCATA | TB-200 |  | NUSN | AIR
+1 | SOCATA | TB-21 | REC | 091 | AIR
+1 | SOCATA | TB-9 | REC | 091 | AIR
+1 | SOCATA | TB20 | REC | 091 | AIR
+1 | SOCATA | TB21 | REC | 091 | AIR
+1 | SOCATA | TBM 700 |  | 091 | AIR
+7 | SOCATA | TBM 700 | TP | 091 | AIR
+1 | SOCATA | TBM 700B | TP | 091 | AIR
+1 | SOCATA | TBM-700 |  | 091 | AIR
+1 | SOCATA                         | RALLYE 235E          | REC | 091 | AIR
+1 | SOCATA                         | TAMPICO TB-9C        | REC | 091 | AIR
+1 | SOCATA                         | TB 10                | REC | 091 | AIR
+2 | SOCATA                         | TB 9 TAMPICO         | REC | 091 | AIR
+4 | SOCATA                         | TB-10                | REC | 091 | AIR
+1 | SOCATA                         | TB-20                |  | 091 | AIR
+2 | SOCATA                         | TB-20                | REC | 091 | AIR
+1 | SOCATA                         | TB-20 TRINIDAD       | REC | 091 | AIR
+1 | SOCATA                         | TB-21C               | REC | 091 | AIR
+4 | SOCATA                         | TB-9                 | REC | 091 | AIR
+1 | SOCATA                         | TB-9C                | REC | 091 | AIR
+1 | SOCATA                         | TB10                 | REC | 091 | AIR
+3 | SOCATA                         | TBM 700              | TP | 091 | AIR
+2 | SOCATA                         | TBM-700              | TP | 091 | AIR
+1 | TBM, SA | TBM 700              | TP | 091 | AIR
