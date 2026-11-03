@@ -107,6 +107,7 @@ select:focus-visible{ outline:2px solid var(--amber); outline-offset:1px; }
 .seg button[aria-pressed="true"]{ color:var(--amber); background:rgba(245,166,35,0.10); }
 .seg button:focus-visible{ outline:2px solid var(--amber); outline-offset:-2px; }
 .ctl-wide{ grid-column:1 / -1; }
+.ctl > .seg{ align-self:flex-start; }   /* v0.23: button groups fit their buttons, not the column */
 
 /* summary table */
 table.sum{ width:100%; border-collapse:collapse; font-size:13px; }
@@ -307,7 +308,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.22</span>
+    <span class="ver mono">v0.23</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
