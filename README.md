@@ -54,3 +54,7 @@ lines are 99.8%. "Below/above the funnel" uses an exact two-sided Poisson test (
 rest of the page (years, purpose, Part 91/135). The category follows Type A unless picked; link keys `sm=fatal`
 and `sc=ps|pm|t`. The JetPROP is left out (unreliable fleet). Chosen instead of a numeric "safest" rank (Wayne,
 03-Nov-2026), because ranks overstate tiny differences and the rates are per registered aircraft, not per hour.
+Pan/zoom (v0.26): the view is kept in data space and the chart redrawn (no CSS scaling). Pinch (two pointers;
+Safari Mac trackpad via gesture events), Ctrl/Cmd + wheel, or the − + Reset buttons; drag pans once zoomed. Up to
+25×, clamped to the full view. One finger scrolls the page until zoomed (touch-action pan-y, then none). A change
+of category, measure or filters returns to the full view; picking types keeps it. Zoom is not saved in the link.

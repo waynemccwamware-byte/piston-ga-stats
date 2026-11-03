@@ -282,6 +282,10 @@ svg.sf .sf-lbl-a{ fill:var(--series-a); } svg.sf .sf-lbl-b{ fill:var(--series-b)
 .sf-pop .sf-x{ position:absolute; top:4px; right:6px; background:none; border:0; color:var(--text-muted); font-size:18px; cursor:pointer; }
 .sf-n-a{ color:var(--series-a); font-weight:600; } .sf-n-b{ color:var(--series-b); font-weight:600; }
 .sf-warn{ color:var(--amber); }
+#sfZoom button{ min-width:34px; font-size:14px; line-height:1; } #sfZoom button[data-z=reset]{ font-size:12px; }
+#sfZoom button:disabled{ opacity:.35; cursor:default; }
+.sf-zl{ align-self:center; font-size:11.5px; color:var(--amber); }
+svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 </style>
 <!-- GGP-FOOTER-CSS START v1.4 · 02-Nov-2026 · shared footer styles, App Conventions §5b · master: Control Panel repo tools/ggp-footer -->
 <style>
@@ -331,7 +335,7 @@ svg.sf .sf-lbl-a{ fill:var(--series-a); } svg.sf .sf-lbl-b{ fill:var(--series-b)
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.25</span>
+    <span class="ver mono">v0.26</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -481,6 +485,12 @@ svg.sf .sf-lbl-a{ fill:var(--series-a); } svg.sf .sf-lbl-b{ fill:var(--series-b)
             <button type="button" data-v="pm" aria-pressed="false">Piston twins</button>
             <button type="button" data-v="t" aria-pressed="false">Turboprops</button>
           </div>
+          <div class="seg" id="sfZoom" role="group" aria-label="Zoom">
+            <button type="button" data-z="out" aria-label="Zoom out" disabled>−</button>
+            <button type="button" data-z="in" aria-label="Zoom in">+</button>
+            <button type="button" data-z="reset" disabled>Reset</button>
+          </div>
+          <span class="sf-zl mono" id="sfZoomLvl" aria-live="polite"></span>
         </div>
         <div class="legend" id="legSf"></div>
         <div class="chart-wrap" id="sfWrap"><svg class="trend sf" id="sfChart" viewBox="0 0 700 340" role="img" aria-label="Accident rate against registered fleet, every type in the category"></svg><div class="sf-pop" id="sfPop" hidden></div></div>
@@ -690,6 +700,7 @@ function buildControls(){
   seg('sfMeas', v=>{ st.sfM=v; });
   seg('sfCat', v=>{ st.sfC=v; });
   $('sfWrap').addEventListener('click', sfClick);
+  sfBindGestures();
   $('moreBtn').addEventListener('click',()=>{ st.shown+=25; renderRecent(); });
   $('shareCmpBtn').addEventListener('click', shareComparison);
   // picker panel: one panel, shown under the two type buttons for whichever side is open
@@ -1296,47 +1307,27 @@ function sfData(cat){
   pts.forEach(d=>d.v=sfVerdict(d.k, p*d.ay));
   return {pts, p, years};
 }
-let SF = {pts:[], meas:''};
+// v0.26: pan/zoom. The view is kept in data space (log10 fleet × rate) and the chart is redrawn, so text and
+// dots stay sharp and the axes relabel. SF.dom is the full view; SF.view is null until you zoom. A change of
+// category, measure or filters goes back to the full view; picking types keeps the zoom.
+let SF = {pts:[], meas:'', key:'', dom:null, view:null, p:0, years:1, cat:'ps', A:new Set(), B:new Set()};
+const SF_W=700, SF_H=340, SF_L=50, SF_R=14, SF_T=14, SF_B=44, SF_PW=SF_W-SF_L-SF_R, SF_PH=SF_H-SF_T-SF_B, SF_MAXZ=25;
 function renderSafety(){
-  const cat=sfCat(), {pts, p, years}=sfData(cat), svg=$('sfChart'), A=selFams(st.a), B=selFams(st.b);
+  const cat=sfCat(), {pts, p, years}=sfData(cat), A=selFams(st.a), B=selFams(st.b);
   setSeg('sfCat', cat); $('sfPop').hidden=true;
   const meas = st.sfM==='fatal' ? 'Fatal accidents' : 'Accidents', ml=meas.toLowerCase();
-  SF={pts, meas};
-  const role = i => A.has(i) ? 'a' : B.has(i) ? 'b' : '';
+  const key=[cat,st.sfM,st.y0,st.y1,st.pur,st.op].join('|');
+  const role = i => A.has(i) ? 'a' : B.has(i) ? 'b' : '', inCat=S=>[...S].filter(i=>pts.some(d=>d.i===i)).length;
   legend('legSf');
   $('legSf').insertAdjacentHTML('beforeend', `<span><span class="sf-sw"></span>other ${SF_CATS[cat][1]}s</span><span><span class="sf-sw sf-sw-o"></span>under ${SF_SMALL} ${ml}</span>`);
-  if(!pts.length){ svg.innerHTML=''; $('sfSum').innerHTML=''; $('sfNote').textContent='No data for this range.'; return; }
-
-  const W=700, H=340, L=50, Rm=14, T=14, Bm=44, pw=W-L-Rm, ph=H-T-Bm;
+  if(!pts.length){ SF={...SF, pts, key, view:null}; $('sfChart').innerHTML=''; $('sfSum').innerHTML=''; $('sfNote').textContent='No data for this range.'; sfZoomBtns(); return; }
   const TICKS=[10,30,100,300,1000,3000,10000,30000], fl=pts.map(d=>d.fleet);
   const xlo=TICKS.filter(t=>t<=Math.min(...fl)).pop()||10, xhi=TICKS.find(t=>t>=Math.max(...fl))||30000;
-  const lx0=Math.log10(xlo), lx1=Math.log10(xhi), X=f=>L+pw*(Math.log10(f)-lx0)/(lx1-lx0);
-  // y range fits the dots with at least 3 events; a tiny fleet's extreme rate is clipped to a marker at the top
+  // y range fits the dots with at least 3 events; in the full view a tiny fleet's extreme rate is a marker at the top
   const solid=pts.filter(d=>d.k>=3).map(d=>d.rate);
-  const ymax=niceMax(Math.max(1000*p*2.2, ...solid)*1.05), Y=v=>T+ph*(1-Math.min(v,ymax)/ymax);
-  let g='';
-  for(let j=0;j<=5;j++){ const v=ymax*j/5, y=Y(v); g+=`<line class="grid" x1="${L}" x2="${W-Rm}" y1="${y}" y2="${y}"/><text class="axis" x="${L-6}" y="${y+4}" text-anchor="end">${v.toFixed(ymax<5?2:1)}</text>`; }
-  for(const t of TICKS) if(t>=xlo && t<=xhi) g+=`<line class="grid" x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${T+ph}" stroke-dasharray="2 4"/><text class="axis" x="${X(t)}" y="${T+ph+16}" text-anchor="${t===xhi?'end':t===xlo?'start':'middle'}">${t.toLocaleString()}</text>`;
-  g+=`<text class="axis" x="${L+pw/2}" y="${H-6}" text-anchor="middle">average registered fleet (log scale)</text>`;
-  g+=`<text class="axis" transform="translate(12 ${T+ph/2}) rotate(-90)" text-anchor="middle">per 1,000 aircraft-years</text>`;
-  const N=90, curve=z=>{ let d=''; for(let j=0;j<=N;j++){ const f=Math.pow(10,lx0+(lx1-lx0)*j/N), E=f*years;
-    d+=(j?'L':'M')+X(f).toFixed(1)+','+Y(1000*sfQ(p*E,z)/E).toFixed(1); } return d; };
-  const up=curve(1.96), lo=curve(-1.96);
-  g+=`<path class="sf-band" d="${up}L${lo.slice(1).split('L').reverse().join('L')}Z"/>`;
-  g+=`<path class="sf-lim" d="${up}"/><path class="sf-lim" d="${lo}"/><path class="sf-lim sf-lim2" d="${curve(3.09)}"/><path class="sf-lim sf-lim2" d="${curve(-3.09)}"/>`;
-  g+=`<line class="sf-avg" x1="${L}" x2="${W-Rm}" y1="${Y(1000*p)}" y2="${Y(1000*p)}"/><text class="axis sf-avgt" x="${L+6}" y="${Y(1000*p)+15}">${SF_CATS[cat][1]} average ${(1000*p).toFixed(2)}</text>`;
-  const rk=i=>({a:2,b:1}[role(i)]||0), inCat=S=>[...S].filter(i=>pts.some(d=>d.i===i)).length;
-  for(const d of [...pts].sort((u,v)=>rk(u.i)-rk(v.i))){
-    const r=role(d.i), cx=X(d.fleet), clip=d.rate>ymax, cy=Y(d.rate);
-    const col = r ? `var(--series-${r})` : 'var(--text-muted)', rad=r?7:5, fill=d.k<SF_SMALL?'none':col, op=r?1:0.7;
-    const tt=esc(`${FAMS[d.i].join(' ')}: ${d.rate.toFixed(2)} (${d.k} ${ml}, fleet ${Math.round(d.fleet).toLocaleString()})${clip?', off scale':''}`);
-    g+= clip ? `<path d="M${cx-rad},${T+rad*1.6}L${cx},${T}L${cx+rad},${T+rad*1.6}Z" fill="${fill}" stroke="${col}" stroke-width="1.5" opacity="${op}"><title>${tt}</title></path>`
-             : `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="${fill}" stroke="${col}" stroke-width="1.5" opacity="${op}"><title>${tt}</title></circle>`;
-    if(r && inCat(r==='a'?A:B)<=3){ const right=cx>W-Rm-150;
-      g+=`<text class="sf-lbl sf-lbl-${r}" x="${cx+(right?-11:11)}" y="${(clip?T+12:cy)+4}" text-anchor="${right?'end':'start'}">${esc(FAMS[d.i][1])}</text>`; }
-  }
-  for(const d of pts) g+=`<circle class="sf-hit" data-i="${d.i}" cx="${X(d.fleet)}" cy="${d.rate>ymax?T+6:Y(d.rate)}" r="12"/>`;
-  svg.innerHTML=g;
+  const dom={x0:Math.log10(xlo), x1:Math.log10(xhi), y0:0, y1:niceMax(Math.max(1000*p*2.2, ...solid)*1.05)};
+  SF={pts, meas, key, dom, view: key===SF.key ? SF.view : null, p, years, cat, A, B};
+  sfDraw();
 
   const nm=d=>`<span class="sf-n${role(d.i)?' sf-n-'+role(d.i):''}">${esc(FAMS[d.i].join(' '))}</span>`;
   const below=pts.filter(d=>d.v==='lo').sort((u,v)=>u.rate-v.rate), above=pts.filter(d=>d.v==='hi').sort((u,v)=>v.rate-u.rate);
@@ -1348,9 +1339,10 @@ function renderSafety(){
   const filt=`${st.y0}–${st.y1}, ${st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()+' only'}, ${OPTXT[st.op]}`;
   const p91 = st.op==='91' && cat==='t' ? ' Part 91 only: airplanes that also fly charter stay in the fleet count but their Part 135 accidents drop out, so charter-heavy types (many PC-12s) read low.' : '';
   const reg = st.y0<2014 ? ' Registered counts before about 2011 include aircraft no longer flying, so early rates read low.' : '';
-  $('sfNote').innerHTML=`${filt}; ${pts.length} ${SF_CATS[cat][1]} types. Each dot is one type. The shaded band is where a type with the category’s average rate would land 95% of the time, given its fleet size; dashed lines are 99.8%. The band narrows to the right because bigger fleets give steadier rates: a dot outside it differs from the average by more than chance, while a small-fleet dot far from the line may still be inside. With fleets this large, even modest real differences pass the test. <b>Outside the funnel means different, not safer or less safe:</b> rates are per registered aircraft, not per flight hour, so types that fly many hours (training, charter) sit higher and lightly flown types (many antiques) sit lower, for reasons that are not about the airplane. The PA-46 JetPROP is left out (its fleet count is unreliable).${p91}${reg} Tap a dot for its numbers and to make it Type A or B.`;
+  $('sfNote').innerHTML=`${filt}; ${pts.length} ${SF_CATS[cat][1]} types. Each dot is one type. The shaded band is where a type with the category’s average rate would land 95% of the time, given its fleet size; dashed lines are 99.8%. The band narrows to the right because bigger fleets give steadier rates: a dot outside it differs from the average by more than chance, while a small-fleet dot far from the line may still be inside. With fleets this large, even modest real differences pass the test. <b>Outside the funnel means different, not safer or less safe:</b> rates are per registered aircraft, not per flight hour, so types that fly many hours (training, charter) sit higher and lightly flown types (many antiques) sit lower, for reasons that are not about the airplane. The PA-46 JetPROP is left out (its fleet count is unreliable).${p91}${reg} Tap a dot for its numbers and to make it Type A or B. Zoom with a pinch, ⌘ or Ctrl + scroll, or the + and − buttons; once zoomed, drag to pan.`;
 }
 function sfClick(e){
+  if(sfMoved){ sfMoved=false; return; }
   const pop=$('sfPop');
   const set=e.target.closest('[data-set]');
   if(set){ const k=set.dataset.set, i=+pop.dataset.i;
@@ -1375,6 +1367,150 @@ function sfClick(e){
   const w=Math.min(260, wrap.clientWidth-8);
   pop.style.width=w+'px'; pop.style.left=Math.max(4, Math.min(cx-w/2, wrap.clientWidth-w-4))+'px';
   pop.style.top=(cy>170*s ? cy-pop.offsetHeight-14 : cy+14)+'px';
+}
+// Ticks for the current view. x (log10 fleet): 1-3, then 1-2-5, then every integer multiple, then plain linear steps
+function sfXTicks(a, b){
+  const lin=()=>{ const lo=10**a, hi=10**b, st=sfStep((hi-lo)/5), t=[]; for(let v=Math.ceil(lo/st)*st; v<=hi; v+=st) t.push(v); return t; };
+  for(const m of [[1,3],[1,2,5],[1,2,3,5],[1,2,3,4,5,6,7,8,9]]){
+    const t=[]; for(let e=Math.floor(a)-1; e<=Math.ceil(b); e++) for(const k of m){ const v=k*10**e, l=Math.log10(v); if(l>=a-1e-9 && l<=b+1e-9) t.push(v); }
+    if(t.length>=4 && t.length<=9) return t;
+    if(t.length>9) return t.filter((_,j)=>j%2===0);
+  }
+  return lin();
+}
+function sfStep(raw){ const m=10**Math.floor(Math.log10(raw)); return [1,2,2.5,5,10].map(x=>x*m).find(x=>x>=raw*0.999); }
+const sfFmt=(v,st)=>{ const d=st>=1?0:Math.min(4,(String(+st.toPrecision(3)).split('.')[1]||'').length); return v.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); };
+
+function sfDraw(){
+  const svg=$('sfChart'), {pts, p, years, cat, A, B, dom}=SF; if(!dom){ sfZoomBtns(); return; }
+  const v=SF.view||dom, zoomed=!!SF.view, ml=SF.meas.toLowerCase();
+  const W=SF_W, H=SF_H, L=SF_L, Rm=SF_R, T=SF_T, pw=SF_PW, ph=SF_PH;
+  const X=f=>L+pw*(Math.log10(f)-v.x0)/(v.x1-v.x0), Y=r=>T+ph*(1-(r-v.y0)/(v.y1-v.y0));
+  const inX=f=>{ const l=Math.log10(f); return l>=v.x0-1e-9 && l<=v.x1+1e-9; };
+  const role=i=>A.has(i)?'a':B.has(i)?'b':'';
+  let g=`<defs><clipPath id="sfClip"><rect x="${L}" y="${T}" width="${pw}" height="${ph}"/></clipPath></defs>`;
+  // y grid: the full view keeps the even fifths it always had; a zoomed view gets nice steps
+  const ys=[]; let yst;
+  if(!zoomed){ yst=v.y1/5; for(let j=0;j<=5;j++) ys.push(v.y1*j/5); }
+  else { yst=sfStep((v.y1-v.y0)/5); for(let r=Math.ceil(v.y0/yst-1e-9)*yst; r<=v.y1+1e-9; r+=yst) ys.push(r); }
+  for(const r of ys){ const y=Y(r); g+=`<line class="grid" x1="${L}" x2="${W-Rm}" y1="${y}" y2="${y}"/><text class="axis" x="${L-6}" y="${y+4}" text-anchor="end">${zoomed?sfFmt(r,yst):r.toFixed(v.y1<5?2:1)}</text>`; }
+  const xt=zoomed ? sfXTicks(v.x0,v.x1) : [10,30,100,300,1000,3000,10000,30000].filter(inX);
+  const xst=xt.length>1 ? xt[1]-xt[0] : 1;
+  for(const t of xt){ const x=X(t), anc = x>W-Rm-18 ? 'end' : x<L+18 ? 'start' : 'middle';
+    g+=`<line class="grid" x1="${x}" x2="${x}" y1="${T}" y2="${T+ph}" stroke-dasharray="2 4"/><text class="axis" x="${x}" y="${T+ph+16}" text-anchor="${anc}">${t>=1000||xst>=1?Math.round(t).toLocaleString():sfFmt(t,xst)}</text>`; }
+  g+=`<text class="axis" x="${L+pw/2}" y="${H-6}" text-anchor="middle">average registered fleet (log scale)</text>`;
+  g+=`<text class="axis" transform="translate(12 ${T+ph/2}) rotate(-90)" text-anchor="middle">per 1,000 aircraft-years</text>`;
+  // everything inside the plot is clipped to it
+  g+='<g clip-path="url(#sfClip)">';
+  const N=90, curve=z=>{ let d=''; for(let j=0;j<=N;j++){ const f=10**(v.x0+(v.x1-v.x0)*j/N), E=f*years;
+    d+=(j?'L':'M')+X(f).toFixed(1)+','+Y(1000*sfQ(p*E,z)/E).toFixed(1); } return d; };
+  const up=curve(1.96), lo=curve(-1.96);
+  g+=`<path class="sf-band" d="${up}L${lo.slice(1).split('L').reverse().join('L')}Z"/>`;
+  g+=`<path class="sf-lim" d="${up}"/><path class="sf-lim" d="${lo}"/><path class="sf-lim sf-lim2" d="${curve(3.09)}"/><path class="sf-lim sf-lim2" d="${curve(-3.09)}"/>`;
+  const avg=1000*p, avgIn = avg>=v.y0 && avg<=v.y1;
+  if(avgIn) g+=`<line class="sf-avg" x1="${L}" x2="${W-Rm}" y1="${Y(avg)}" y2="${Y(avg)}"/><text class="axis sf-avgt" x="${L+6}" y="${Math.min(T+ph-4, Y(avg)+15)}">${SF_CATS[cat][1]} average ${avg.toFixed(2)}</text>`;
+  const rk=i=>({a:2,b:1}[role(i)]||0), inCat=S=>[...S].filter(i=>pts.some(d=>d.i===i)).length;
+  const lblA=inCat(A)<=3, lblB=inCat(B)<=3, hits=[];
+  for(const d of [...pts].sort((u,w)=>rk(u.i)-rk(w.i))){
+    if(!inX(d.fleet)) continue;
+    const r=role(d.i), cx=X(d.fleet), top=!zoomed && d.rate>v.y1;    // full view only: off-scale marker at the top
+    if(zoomed && (d.rate<v.y0 || d.rate>v.y1)) continue;
+    const cy = top ? T+6 : Y(d.rate);
+    const col = r ? `var(--series-${r})` : 'var(--text-muted)', rad=r?7:5, fill=d.k<SF_SMALL?'none':col, op=r?1:0.7;
+    const tt=esc(`${FAMS[d.i].join(' ')}: ${d.rate.toFixed(2)} (${d.k} ${ml}, fleet ${Math.round(d.fleet).toLocaleString()})${top?', off scale':''}`);
+    g+= top ? `<path d="M${cx-rad},${T+rad*1.6}L${cx},${T}L${cx+rad},${T+rad*1.6}Z" fill="${fill}" stroke="${col}" stroke-width="1.5" opacity="${op}"><title>${tt}</title></path>`
+            : `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="${fill}" stroke="${col}" stroke-width="1.5" opacity="${op}"><title>${tt}</title></circle>`;
+    if(r && (r==='a'?lblA:lblB)){ const right=cx>W-Rm-150;
+      g+=`<text class="sf-lbl sf-lbl-${r}" x="${cx+(right?-11:11)}" y="${(top?T+12:cy)+4}" text-anchor="${right?'end':'start'}">${esc(FAMS[d.i][1])}</text>`; }
+    hits.push(`<circle class="sf-hit" data-i="${d.i}" cx="${cx}" cy="${cy}" r="12"/>`);
+  }
+  g+=hits.join('')+'</g>';
+  svg.innerHTML=g;
+  svg.style.touchAction = zoomed ? 'none' : 'pan-y';   // zoomed: one finger pans the chart; otherwise it scrolls the page
+  svg.classList.toggle('sf-zoomed', zoomed);
+  sfZoomBtns();
+}
+function sfZoomBtns(){
+  const z=!!SF.view, v=SF.view, d=SF.dom;
+  $('sfZoom').querySelector('[data-z=out]').disabled=!z; $('sfZoom').querySelector('[data-z=reset]').disabled=!z;
+  const atMax = z && d && (v.x1-v.x0)<=(d.x1-d.x0)/SF_MAXZ*1.001 && (v.y1-v.y0)<=(d.y1-d.y0)/SF_MAXZ*1.001;
+  $('sfZoom').querySelector('[data-z=in]').disabled=!d || atMax;
+  const lvl=$('sfZoomLvl'); if(lvl) lvl.textContent = z ? `${(Math.sqrt(((d.x1-d.x0)/(v.x1-v.x0))*((d.y1-d.y0)/(v.y1-v.y0)))).toFixed(1)}×` : '';
+}
+// New view zoomed by k about a focus point (fx, fy = 0..1 across the plot from the left / top), from view v0
+function sfZoomed(v0, k, fx, fy){
+  const d=SF.dom, cx=v0.x0+fx*(v0.x1-v0.x0), cy=v0.y1-fy*(v0.y1-v0.y0);
+  const w=Math.min(d.x1-d.x0, Math.max((d.x1-d.x0)/SF_MAXZ, (v0.x1-v0.x0)/k));
+  const h=Math.min(d.y1-d.y0, Math.max((d.y1-d.y0)/SF_MAXZ, (v0.y1-v0.y0)/k));
+  return {x0:cx-fx*w, x1:cx-fx*w+w, y0:cy+fy*h-h, y1:cy+fy*h};
+}
+// Keep the view inside the full view; the full view itself means "not zoomed"
+function sfSetView(nv){
+  const d=SF.dom; if(!d) return;
+  const w=nv.x1-nv.x0, h=nv.y1-nv.y0;
+  if(w>=(d.x1-d.x0)*0.999 && h>=(d.y1-d.y0)*0.999) SF.view=null;
+  else { const x0=Math.min(Math.max(nv.x0,d.x0),d.x1-w), y0=Math.min(Math.max(nv.y0,d.y0),d.y1-h); SF.view={x0, x1:x0+w, y0, y1:y0+h}; }
+  $('sfPop').hidden=true; sfZoomBtns(); sfSched();
+}
+let sfRaf=0; const sfSched=()=>{ if(!sfRaf) sfRaf=requestAnimationFrame(()=>{ sfRaf=0; sfDraw(); }); };
+// client point -> 0..1 across the plot area
+function sfFrac(x, y){
+  const rc=$('sfChart').getBoundingClientRect(), sx=(x-rc.left)*SF_W/rc.width, sy=(y-rc.top)*SF_H/rc.height;
+  return [Math.min(1,Math.max(0,(sx-SF_L)/SF_PW)), Math.min(1,Math.max(0,(sy-SF_T)/SF_PH))];
+}
+// gestures: one pointer drags (pans) when zoomed; two pointers pinch (zoom about the midpoint, pan with it)
+const sfPtr=new Map(); let sfG=null, sfMoved=false;
+function sfGestureStart(){
+  const P=[...sfPtr.values()], v0={...(SF.view||SF.dom)};
+  if(P.length===1) sfG={type:'pan', x:P[0].x, y:P[0].y, v0};
+  else if(P.length>=2){ const [a,b]=P; sfG={type:'pinch', d0:Math.hypot(a.x-b.x,a.y-b.y)||1, f0:sfFrac((a.x+b.x)/2,(a.y+b.y)/2), v0}; }
+  else sfG=null;
+}
+function sfBindGestures(){
+  const svg=$('sfChart'), wrap=$('sfWrap');
+  wrap.addEventListener('pointerdown', e=>{
+    sfMoved=false;
+    if(!e.target.closest('#sfChart') || (e.pointerType==='mouse' && e.button!==0)) return;
+    if(e.pointerType==='mouse' && SF.view) e.preventDefault();     // no text selection while dragging
+    sfPtr.set(e.pointerId,{x:e.clientX,y:e.clientY}); sfGestureStart();
+  });
+  addEventListener('pointermove', e=>{
+    if(!sfPtr.has(e.pointerId) || !sfG) return;
+    sfPtr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    const P=[...sfPtr.values()], d=SF.dom; if(!d) return;
+    if(sfG.type==='pan'){
+      if(!SF.view) return;                                           // full view: let the page scroll
+      const dx=P[0].x-sfG.x, dy=P[0].y-sfG.y; if(Math.hypot(dx,dy)>5) sfMoved=true; if(!sfMoved) return;
+      const rc=svg.getBoundingClientRect(), s=SF_W/rc.width, v0=sfG.v0;
+      const ddx=-dx*s/SF_PW*(v0.x1-v0.x0), ddy=dy*s/SF_PH*(v0.y1-v0.y0);
+      sfSetView({x0:v0.x0+ddx, x1:v0.x1+ddx, y0:v0.y0+ddy, y1:v0.y1+ddy});
+    } else if(P.length>=2){
+      const [a,b]=P, k=Math.hypot(a.x-b.x,a.y-b.y)/sfG.d0, f=sfFrac((a.x+b.x)/2,(a.y+b.y)/2);
+      sfMoved=true;
+      const z=sfZoomed(sfG.v0, k, sfG.f0[0], sfG.f0[1]), w=z.x1-z.x0, h=z.y1-z.y0;
+      const ddx=-(f[0]-sfG.f0[0])*w, ddy=(f[1]-sfG.f0[1])*h;         // the midpoint's movement pans
+      sfSetView({x0:z.x0+ddx, x1:z.x1+ddx, y0:z.y0+ddy, y1:z.y1+ddy});
+    }
+  });
+  const end=e=>{ if(!sfPtr.delete(e.pointerId)) return; sfGestureStart(); };
+  addEventListener('pointerup', end); addEventListener('pointercancel', end);
+  // Ctrl/Cmd + wheel, which is also what a Chrome or Firefox trackpad pinch sends; a plain wheel scrolls the page
+  svg.addEventListener('wheel', e=>{
+    if(!(e.ctrlKey||e.metaKey) || !SF.dom) return;
+    e.preventDefault(); const [fx,fy]=sfFrac(e.clientX,e.clientY);
+    const k=Math.min(1.5, Math.max(1/1.5, Math.exp(-e.deltaY*(e.deltaMode===1?0.05:0.0025))));   // one mouse notch ≈ 1.3×; trackpads send small steps
+    sfSetView(sfZoomed(SF.view||SF.dom, k, fx, fy));
+  }, {passive:false});
+  // Safari on a Mac trackpad pinches with gesture events (no pointers); iOS pinches come as two pointers instead
+  let gv=null, gf=null;
+  svg.addEventListener('gesturestart', e=>{ if(sfPtr.size>=2 || !SF.dom) return; e.preventDefault(); gv={...(SF.view||SF.dom)}; gf=sfFrac(e.clientX,e.clientY); });
+  svg.addEventListener('gesturechange', e=>{ if(!gv || sfPtr.size>=2) return; e.preventDefault(); sfMoved=true; sfSetView(sfZoomed(gv, e.scale, gf[0], gf[1])); });
+  svg.addEventListener('gestureend', ()=>{ gv=null; });
+  $('sfZoom').addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b || b.disabled || !SF.dom) return;
+    if(b.dataset.z==='reset') sfSetView(SF.dom);
+    else sfSetView(sfZoomed(SF.view||SF.dom, b.dataset.z==='in'?1.6:1/1.6, 0.5, 0.5));
+  });
 }
 function update(){
   writeHash(); pickBtnText('A'); pickBtnText('B'); if(st.pick) renderPick();
