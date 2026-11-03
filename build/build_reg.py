@@ -7,10 +7,16 @@ def rd(f):
         rdr=csv.reader(fh); h=[x.strip() for x in next(rdr)]
         for row in rdr: yield {h[i]:row[i].strip() for i in range(min(len(h),len(row)))}
 ref={}
+# TYPE-ENG 1/7/8/11 = piston (reciprocating, 2- and 4-cycle), 2 = turboprop (03-Nov-2026; codes per the probe of ACFTREF).
 for r in rd('ACFTREF.txt'):
-    if r['TYPE-ACFT'] in ('4','5') and r['TYPE-ENG'] in ('1','7','8','11') and r['BUILD-CERT-IND']=='0':
+    if r['TYPE-ACFT'] in ('4','5') and r['TYPE-ENG'] in ('1','2','7','8','11') and r['BUILD-CERT-IND']=='0':
         b,f=family(r['MFR'],r['MODEL'])
         if b: ref[r['CODE']]=(b,f,r['MFR'],r['MODEL'],r['TYPE-ACFT'])
+# Engine models (ENGINE.txt): a PT6 on a PA-46-310P/350P registration is a JetPROP conversion. The registration's own
+# TYPE ENGINE code is not used: ~100 piston Mirages carry the turboprop code (probe, 03-Nov-2026).
+ENG={r['CODE']:(r.get('MFR','')+' '+r.get('MODEL','')).upper() for r in rd('ENGINE.txt')}
+def is_turbine(engcode): return bool(re.search(r'PT6|TPE331|PW1\d\d',ENG.get(engcode,'')))
+tbmx=collections.Counter()
 def sn(s): return re.sub(r'[^0-9A-Z]','',s.upper()).lstrip('0')
 def d8(s): return s if re.fullmatch(r'\d{8}',s or '') else ''
 air={}  # (code-family, serial) -> dict
@@ -24,6 +30,9 @@ for f,k in (('MASTER.txt','m'),('DEREG.txt','d')):
         b,fam,mfr,model,ta=a
         if not fam: unf[(b,model)]+=1; continue
         ser=sn(r['SERIAL NUMBER'] if k=='m' else r['SERIAL-NUMBER'])
+        yr0=r['YEAR MFR'] if k=='m' else r['YEAR-MFR']
+        fam=family(mfr,model,ser,yr0,is_turbine(r['ENG MFR MDL'] if k=='m' else r['ENG-MFR-MDL']))[1]
+        if b=='Daher': tbmx[(fam,'s>=1000' if ser.isdigit() and int(ser)>=1000 else 's<1000',yr0[:3]+'x' if yr0.isdigit() else '?')]+=1
         aw=d8(r['AIR WORTH DATE'] if k=='m' else r['AIR-WORTH-DATE'])
         ci=d8(r['CERT ISSUE DATE'] if k=='m' else r['CERT-ISSUE-DATE'])
         yr=r['YEAR MFR'] if k=='m' else r['YEAR-MFR']
@@ -39,6 +48,7 @@ for f,k in (('MASTER.txt','m'),('DEREG.txt','d')):
         byN[r['N-NUMBER'].upper()].append((ser,fam,b,model,ci,cancel,k,yr if yr.isdigit() else ''))  # yr added for v0.2 columns
 print('airframes',len(air))
 print('unmapped models (top):',unf.most_common(40))
+print('TBM family x serial x decade built:',sorted(tbmx.items()))
 c=collections.Counter(x['fam'] for x in air.values()); print(c.most_common())
 json.dump({f'{k[0]}|{k[1]}':v for k,v in air.items()},open(os.path.expanduser('~/data/airframes.json'),'w'))
 json.dump(byN,open(os.path.expanduser('~/data/byN.json'),'w'))

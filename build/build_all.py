@@ -1,6 +1,6 @@
 import csv,collections,os,sys,json,re
 sys.path.insert(0,os.path.expanduser('~/scripts'))
-from families import family
+from families import family, JETPROP
 H=os.path.expanduser('~/data/')
 byN=json.load(open(H+'byN.json'))
 codes=json.load(open(H+'codes.json'))
@@ -87,19 +87,23 @@ for db in ('pre','ntsb'):
         e=ev.get(a['ev_id'])
         if not e: continue
         if db=='pre' and e['ev_year']>='2008': continue
-        b0,f0=family(a['acft_make'],a['acft_model'])
+        et=en.get((a['ev_id'],a['Aircraft_Key']),set())
+        b0,f0=family(a['acft_make'],mdlser(a['acft_model'],a.get('acft_series') or ''),a['acft_serial_no'],(a.get('acft_year') or '').strip(),'TP' in et)
         N=re.sub(r'^N','',a['regis_no'].upper().strip())
         cand=byN.get(N,[]); s=sn(a['acft_serial_no'])
         hit=[c for c in cand if c[0]==s] if s else []
         if not hit and s: hit=[c for c in cand if c[0] and (c[0].endswith(s) or s.endswith(c[0]))]
         b1,f1=(hit[0][2],hit[0][1]) if hit else (None,None)
         fam=f1 or f0; br=b1 or b0
+        if fam=='PA-46 Malibu/Mirage' and 'TP' in et: fam=JETPROP   # NTSB says turboprop: a JetPROP the registry missed
         if not fam: continue
         if not (hit or N[:1].isdigit()): stat[db+' foreign']+=1; continue
         if a['acft_category'] not in ('AIR','') or a['homebuilt']=='Y': continue
-        et=en.get((a['ev_id'],a['Aircraft_Key']),set())
-        if et and 'REC' not in et: continue
-        if a['far_part'].strip() not in ('091','091K','') : stat[db+' non-91']+=1; continue
+        if et and not (et & {'REC','TP'}): continue
+        # Part 91 (incl. 091K fractional, 091F) and, from 03-Nov-2026, Part 135 (tagged; the app filters by part)
+        fp=a['far_part'].strip()
+        if fp not in ('091','091K','091F','','135') : stat[db+' other part']+=1; continue
+        part=135 if fp=='135' else 91
         cat,ph,phd,cs=de.get((a['ev_id'],a['Aircraft_Key']),('UNK','Unknown','','none'))
         stat[db+' kept']+=1; stat[db+(' reg' if hit else ' name')]+=1
         out.append(dict(id=a['ev_id'],k=a['Aircraft_Key'],n=a['ntsb_no'].strip(),reg='N'+N,d=e['ev_date'][:8],y=int(e['ev_year']),t=e['ev_type'],
@@ -110,7 +114,7 @@ for db in ('pre','ntsb'):
             # year built: registry year of manufacture when matched, else the NTSB's own year
             yb=((hit[0][7] if hit and len(hit[0])>7 else '') or (a.get('acft_year') or '').strip()),
             wx=(e.get('wx_cond_basic') or '').strip(), lt=(e.get('light_cond') or '').strip(),
-            city=fixenc((e.get('ev_city') or '').strip()).title()))
+            city=fixenc((e.get('ev_city') or '').strip()).title(), part=part))
 print(stat)
 json.dump(out,open(H+'all_rows.json','w'))
 c=collections.Counter((r['y']//5*5) for r in out); print(sorted(c.items()))

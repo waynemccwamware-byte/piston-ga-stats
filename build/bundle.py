@@ -31,7 +31,7 @@ out=[]
 for r in rows:
     m=dkey(r['d']); mo=int(m[1]) if m else 0; dy=int(m[2]) if m else 0
     f=fnd.get((r['id'],r['k']),[])
-    out.append([r['y'],mo,dy,fam_i[(r['b'],r['f'])],g(CATS,r['c']),1 if r['cs']=='derived' else 0,g(PH,r['ph']),g(PHD,r['phd'] or ''),HI.get(r['hi'],-1),DM.get(r['dm'],-1),pur(r['pu']),r['fat'],r['ser'],r['n'],r['reg'],r['st'].strip(),[a*2+c for a,c in f],r.get('mdl',''),r.get('yb',''),r.get('wx',''),r.get('lt',''),r.get('city','')])
+    out.append([r['y'],mo,dy,fam_i[(r['b'],r['f'])],g(CATS,r['c']),1 if r['cs']=='derived' else 0,g(PH,r['ph']),g(PHD,r['phd'] or ''),HI.get(r['hi'],-1),DM.get(r['dm'],-1),pur(r['pu']),r['fat'],r['ser'],r['n'],r['reg'],r['st'].strip(),[a*2+c for a,c in f],r.get('mdl',''),r.get('yb',''),r.get('wx',''),r.get('lt',''),r.get('city',''),1 if r.get('part')==135 else 0])
 out.sort(key=lambda x:(x[0],x[1],x[2]))
 # fleet per family per year
 # Data dates come from the source files (set by the monthly GitHub job); defaults = last manual build.
@@ -41,10 +41,12 @@ NTSB_AS_OF=os.environ.get('NTSB_AS_OF','2026-10-01'); REG_AS_OF=os.environ.get('
 Y0,Y1=1982,(_dt.date.fromisoformat(NTSB_AS_OF)-_dt.timedelta(days=1)).year
 import sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 from regstats import fleet_and_new   # v0.7: fleet + new registrations per family per year
+from families import TURBOPROP
 flist,nwlist=fleet_and_new(air,fam_i,Y0,Y1)
 meta=dict(fams=[[b,f] for b,f in FAMS],cats=list(CATS),phases=list(PH),phd=list(PHD),findings=list(FIND),fleetY0=Y0,
   fleet=flist,newreg=nwlist,ntsbAsOf=NTSB_AS_OF,regAsOf=REG_AS_OF,
-  cols=['y','m','d','fam','cat','catDerived','phase','phaseDetail','inj','dmg','purpose','fatal','serious','ntsb','reg','state','findings','model','yearBuilt','wx','light','city'])
+  cols=['y','m','d','fam','cat','catDerived','phase','phaseDetail','inj','dmg','purpose','fatal','serious','ntsb','reg','state','findings','model','yearBuilt','wx','light','city','part'],
+  eng=['T' if (b,f) in TURBOPROP else 'P' for b,f in FAMS])
 json.dump(dict(meta=meta,rows=out),open(O+'accidents.json','w'),separators=(',',':'))
 # causes by brand (probable cause text)
 key2={(r['id'],r['k']):(r['b'],r['n']) for r in rows}

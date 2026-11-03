@@ -26,7 +26,7 @@ Data dates (`ntsbAsOf`, `regAsOf`) come from the dates of `avall.mdb` and `MASTE
 replaced before then.
 
 ## Rebuilding by hand (Linux/macOS with mdbtools)
-The scripts read `~/data/{ntsb,pre}/csv/*.csv` and `~/data/reg/{MASTER,DEREG,ACFTREF}.txt`, import from
+The scripts read `~/data/{ntsb,pre}/csv/*.csv` and `~/data/reg/{MASTER,DEREG,ACFTREF,ENGINE}.txt`, import from
 `~/scripts` (link it to `build/`) and write to `~/app/piston-ga-stats/data/` (link `~/app/piston-ga-stats` to `site/`).
 Order: `codes.py`, `build_reg.py`, `build_all.py`, `bundle.py`. Set `NTSB_AS_OF` / `REG_AS_OF` (YYYY-MM-DD)
 first. `patch_reg.py` refreshes only the registry numbers in an existing `accidents.json`.
