@@ -184,6 +184,7 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .pick-btn .pv{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 .pick-btn .caret{ color:var(--text-muted); font-size:11px; flex-shrink:0; }
 .pick-btn .cnt{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--amber); border:1px solid var(--amber-dim); border-radius:4px; padding:0 4px; margin-left:6px; }
+#pickPanel[hidden]{ display:none; }   /* .ctl's display:flex would otherwise beat the hidden attribute */
 .pick{ border:1px solid var(--amber-dim); border-radius:8px; background:#141a22; padding:10px; }
 .pick-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
 .pick-head b{ font-size:12.5px; font-weight:600; }
@@ -298,7 +299,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.19</span>
+    <span class="ver mono">v0.20</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
