@@ -182,8 +182,6 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .hin input:focus-visible{ outline:2px solid var(--amber); outline-offset:1px; }
 .hin input::placeholder{ color:var(--text-muted); font-family:'IBM Plex Sans',sans-serif; font-weight:400; }
 .hrs-note{ margin-top:4px; }
-table.sum tr.est td{ font-style:italic; }
-table.sum tr.est td:first-child{ font-style:normal; }
 /* v0.18: multi-type picker */
 .pick-btn{ all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;
   font:500 13.5px 'IBM Plex Sans',sans-serif; color:var(--text-primary); background:var(--bg-deep); border:1px solid var(--bezel-hi);
@@ -309,7 +307,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.21</span>
+    <span class="ver mono">v0.22</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -820,16 +818,14 @@ function renderSummary(){
   const hrs=[st.ha,st.hb].slice(0,sides.length), useH = sides.length===2 && hrs.every(Boolean);
   if(useH){
     data.forEach((d,i)=>d.hrs=d.ay*hrs[i]);
-    const hr=(k,d)=>{ if(d.noRate||d.ay<1) return '—'; const v=1e5*k/d.hrs, [lo,hi]=pci(k).map(x=>1e5*x/d.hrs);
-      return `≈ ${v.toFixed(2)}<span class="ci">${lo.toFixed(2)}–${hi.toFixed(2)}</span>`; };
+    const hr=(k,d,h)=>{ if(d.noRate||d.ay<1) return '—'; const v=1e5*k/d.hrs, [lo,hi]=pci(k).map(x=>1e5*x/d.hrs);
+      return `${v.toFixed(2)}<span class="ci">at your ${h.toLocaleString()} h/yr average</span><span class="ci">${lo.toFixed(2)}–${hi.toFixed(2)}</span>`; };
     rows.splice(7,0,
-      ['Your hours guess (per aircraft per year)', d=>'', 'est', null],
-      ['≈ Accidents per 100,000 flight hours', d=>hr(d.n,d), 'est', null],
-      ['≈ Fatal accidents per 100,000 flight hours', d=>hr(d.f,d), 'est', null]);
-    rows[7][1]=(d)=>Math.round(d.hrs/d.ay).toLocaleString();
+      ['(guestimate) Accidents per 100,000 flight hours', (d,i)=>hr(d.n,d,hrs[i]), 'est', null],
+      ['(guestimate) Fatal accidents per 100,000 flight hours', (d,i)=>hr(d.f,d,hrs[i]), 'est', null]);
   }
   $('sumTable').innerHTML=`<thead><tr><th></th>${th}</tr></thead><tbody>`+
-    rows.map(([l,fn,cls,k])=>`<tr class="${cls||''}${k&&HL.sum.has(k)?' hl':''}"><td>${l}</td>${data.map(d=>`<td>${fn(d)}</td>`).join('')}</tr>`).join('')+'</tbody>';
+    rows.map(([l,fn,cls,k])=>`<tr class="${cls||''}${k&&HL.sum.has(k)?' hl':''}"><td>${l}</td>${data.map((d,i)=>`<td>${fn(d,i)}</td>`).join('')}</tr>`).join('')+'</tbody>';
   const yrs=`${st.y0}–${st.y1}`, pur=st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()+' flights only';
   const fr=dataFrac(), e=ntsbEnd(), endTxt=`${String(e.getUTCDate()).padStart(2,'0')}-${MON[e.getUTCMonth()+1]}-${e.getUTCFullYear()}`;
   const partial = (st.y1===lastYear() && fr<0.999) ? ` ${st.y1} counts as ${Math.round(fr*100)}% of a year (data through ${endTxt}).` : '';
