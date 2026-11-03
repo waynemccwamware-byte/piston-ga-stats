@@ -20,7 +20,7 @@ for r in rd('ACFTREF.txt'):
 ENG={r['CODE']:(r.get('MFR','')+' '+r.get('MODEL','')).upper() for r in rd('ENGINE.txt')}
 def is_turbine(engcode): return bool(re.search(r'PT6|TPE331|PW1\d\d|ALLISON|250-B|RR250|M601|WALTER|H80',ENG.get(engcode,'')))
 skipped_turb=collections.Counter()
-tbmx=collections.Counter()
+
 def sn(s): return re.sub(r'[^0-9A-Z]','',s.upper()).lstrip('0')
 def d8(s): return s if re.fullmatch(r'\d{8}',s or '') else ''
 air={}  # (code-family, serial) -> dict
@@ -38,7 +38,6 @@ for f,k in (('MASTER.txt','m'),('DEREG.txt','d')):
         turb=is_turbine(r['ENG MFR MDL'] if k=='m' else r['ENG-MFR-MDL'])
         fam=family(mfr,model,ser,yr0,turb)[1]
         if turb and (b,fam) not in TURBOPROP: skipped_turb[(b,fam)]+=1; continue   # turbine conversion of a piston type
-        if b=='Daher': tbmx[(fam,'s>=1000' if ser.isdigit() and int(ser)>=1000 else 's<1000',yr0[:3]+'x' if yr0.isdigit() else '?')]+=1
         aw=d8(r['AIR WORTH DATE'] if k=='m' else r['AIR-WORTH-DATE'])
         ci=d8(r['CERT ISSUE DATE'] if k=='m' else r['CERT-ISSUE-DATE'])
         yr=r['YEAR MFR'] if k=='m' else r['YEAR-MFR']
@@ -55,7 +54,6 @@ for f,k in (('MASTER.txt','m'),('DEREG.txt','d')):
 print('airframes',len(air))
 print('unmapped models (top):',unf.most_common(40))
 print('turbine conversions left out of piston families:',skipped_turb.most_common())
-print('TBM family x serial x decade built:',sorted(tbmx.items()))
 c=collections.Counter(x['fam'] for x in air.values()); print(c.most_common())
 json.dump({f'{k[0]}|{k[1]}':v for k,v in air.items()},open(os.path.expanduser('~/data/airframes.json'),'w'))
 json.dump(byN,open(os.path.expanduser('~/data/byN.json'),'w'))

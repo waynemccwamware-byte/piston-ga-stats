@@ -36,10 +36,10 @@ Checked 19-Oct-2026: these scripts reproduce the live data exactly (43,024 accid
 all `causes-*.json` files) from avall.mdb 01-Oct-2026, Pre2008.mdb 06-Mar-2025 and the FAA registry 16-Oct-2026.
 
 ## Turboprops (v0.18, 03-Nov-2026)
-PC-12, TBM (700 / 850 / 900 series), PA-46 turbines (Meridian/M500/M600/M700 and PT6 JetPROP conversions) and the
+PC-12, TBM (700, 850 and 900 series as one type), PA-46 turbines (Meridian/M500/M600/M700 and PT6 JetPROP conversions) and the
 Epic E1000. Notes from the probe of the FAA and NTSB files:
-- The registry files every TBM 850 and 900-series airplane as "TBM 700"/"TBM 700N": `tbm_family()` splits by serial
-  (1000 on = 900 series) and year built (2006 on = 850). `build_reg.py` logs a serial x decade cross-check.
+- TBMs are one type (Wayne's call, 03-Nov-2026). A split was tried: the registry files every 850 and 900-series
+  airplane as "TBM 700"/"TBM 700N", so it needed serial number (1000 on = 900 series) and year built (2006 on = 850).
 - JetPROPs are found by a PT6 in `ENGINE.txt` for the registration, or the NTSB engine type TP. The registration's own
   TYPE ENGINE code is unreliable (piston Mirages carry the turboprop code). Most JetPROPs still show their piston
   engine on the registry, so the JetPROP fleet is undercounted; the app shows no rate for it.

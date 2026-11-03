@@ -298,7 +298,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.18</span>
+    <span class="ver mono">v0.19</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -449,10 +449,10 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
   </div>
 
   <div class="fine">
-    <p><b>Data.</b> NTSB aviation accident database (avall.mdb for 2008 on, Pre2008.mdb for 1982–2007) and the FAA Releasable Aircraft Database (current and deregistered aircraft), both bundled with this page, not fetched live. Aircraft are matched to the FAA registry by N-number and serial number to get the exact model; when no match exists the NTSB's make/model text is used. Included: certificated (non-homebuilt) piston airplanes from Cirrus, Diamond, Cessna, Piper, Beech and Mooney, and turboprop singles: Pilatus PC-12, Daher TBM (700, 850 and 900 series), Piper PA-46 turbines (Meridian, M500, M600, M700, and PT6 JetPROP conversions of the Malibu/Mirage) and the Epic E1000 (the kit-built Epic LT is excluded as a homebuilt). All US-registered, flights under Part 91 or Part 135. Excluded: incidents, Part 121/137 and public-use flights, ag and warbird types.</p>
+    <p><b>Data.</b> NTSB aviation accident database (avall.mdb for 2008 on, Pre2008.mdb for 1982–2007) and the FAA Releasable Aircraft Database (current and deregistered aircraft), both bundled with this page, not fetched live. Aircraft are matched to the FAA registry by N-number and serial number to get the exact model; when no match exists the NTSB's make/model text is used. Included: certificated (non-homebuilt) piston airplanes from Cirrus, Diamond, Cessna, Piper, Beech and Mooney, and turboprop singles: Pilatus PC-12, Daher TBM (700, 850 and 900 series together), Piper PA-46 turbines (Meridian, M500, M600, M700, and PT6 JetPROP conversions of the Malibu/Mirage) and the Epic E1000 (the kit-built Epic LT is excluded as a homebuilt). All US-registered, flights under Part 91 or Part 135. Excluded: incidents, Part 121/137 and public-use flights, ag and warbird types.</p>
     <p><b>Categories.</b> From 2008 on, the category is the NTSB's own "defining event," which follows the CAST/ICAO (CICTT) taxonomy. Before 2008 the NTSB used an older coding with no defining event; for those years this app maps the first listed occurrence to the nearest category. Those years are marked "derived" and use two extra labels (Weather encounter; Power loss, non-mechanical) where the old codes don't split cleanly.</p>
     <p><b>Rates.</b> "Registered aircraft" counts every airframe on the FAA registry at any time in the year, flying or not. Training aircraft fly many more hours per year than owner-flown aircraft, so per-registered-aircraft rates favor owner-flown types; no per-model flight-hour data exists. Registration counts before about 2011 include many aircraft no longer flying (the FAA's re-registration program, which ended 01-Jan-2014, cleared them out), so early-year rates read low. The range in grey is a 95% interval for random variation (Poisson).</p>
-    <p><b>Turboprop types.</b> The FAA registry files every TBM 850 and 900-series airplane as a “TBM 700” or “TBM 700N”, so this app splits them by serial number (1000 on = 900 series) and year built (2006 on = 850). JetPROPs are found by the PT6 engine on the registry record or the NTSB’s turboprop engine code. Turboprops typically fly many more hours a year than piston singles, and many PC-12s fly charter and medevac work, so per-registered-aircraft rates overstate their risk per hour flown. Part 135 rates use the whole registered fleet as the denominator (the registry doesn’t say which airplanes fly for hire), so they read low. Turboprop fleets are small: many category and phase counts are single digits.</p>
+    <p><b>Turboprop types.</b> Turboprop singles only; turboprop twins (King Air, Cheyenne, Conquest…) are not included. JetPROPs are found by the PT6 engine on the registry record or the NTSB’s turboprop engine code. Turboprops typically fly many more hours a year than piston singles, and many PC-12s fly charter and medevac work, so per-registered-aircraft rates overstate their risk per hour flown. Part 135 rates use the whole registered fleet as the denominator (the registry doesn’t say which airplanes fly for hire), so they read low. Turboprop fleets are small: many category and phase counts are single digits.</p>
     <p><b>Recent years.</b> NTSB investigations take about two years; recent accidents may be preliminary, without probable cause or findings, and the latest months are incomplete.</p>
   </div>
 
@@ -569,7 +569,7 @@ function setToSel(S){
   }
   return toks.length===1 ? toks[0] : 'u:'+toks.join('|');
 }
-const BRAND_ALL = { Daher:'All TBMs' };   // how "all of this brand" reads, where the brand name alone says little
+const BRAND_ALL = {};   // how "all of this brand" reads, where the brand name alone says little
 function tokLabel(t){ if(t.startsWith('g:')) return GG[t.slice(2)][0]; if(t.startsWith('b:') && BRAND_ALL[t.slice(2)]) return BRAND_ALL[t.slice(2)]; return !t.startsWith('f:') ? `${t.slice(2)} – ${GROUP[t[0]][0]}` : FAMS[+t.slice(2)].join(' '); }
 function tokShort(t){ if(t.startsWith('g:')) return GG[t.slice(2)][0]; return t.startsWith('b:') ? (BRAND_ALL[t.slice(2)]||`All ${t.slice(2)}`) : !t.startsWith('f:') ? `${t.slice(2)} ${GROUP[t[0]][1]}` : FAMS[+t.slice(2)][1]; }
 function selLabel(sel){ if(!sel) return '—'; return selParts(sel).map(tokLabel).join(' + '); }
@@ -704,7 +704,8 @@ function tokFromName(s){
   const g=Object.keys(GG).find(k=>GG[k][1]===s); if(g) return 'g:'+g;
   const m=s.match(/^(.+):\*$/); if(m && BRANDS.includes(m[1])) return 'b:'+m[1];
   const t=s.match(/^(.+):(singles|twins)$/); if(t && BRANDS.includes(t[1]) && hasBoth(t[1])) return (t[2]==='twins'?'m:':'s:')+t[1];
-  const i=FAMS.findIndex(f=>(f[0]+' '+f[1])===s); return i<0?null:'f:'+i;
+  const n = /^Daher TBM /.test(s) ? 'Daher TBM' : s;   // links from the first hour of v0.18 named TBM 700/850/900 series
+  const i=FAMS.findIndex(f=>(f[0]+' '+f[1])===n); return i<0?null:'f:'+i;
 }
 function selFromName(s){
   if(!s) return null;
@@ -1059,7 +1060,7 @@ const PRESETS = [
    hook:'The two classic trainers: same mission, high wing vs low wing.'},
   {id:'malibu-m600', a:'Piper PA-46 Malibu/Mirage', b:'Piper PA-46 Meridian/M500/M600/M700', label:'PA-46 piston vs turbine',
    hook:'The same basic airframe: Malibu/Mirage piston vs the PT6 Meridian, M500, M600 and M700.'},
-  {id:'tbm-pc12', a:'Daher:*', b:'Pilatus PC-12', label:'All TBMs vs PC-12',
+  {id:'tbm-pc12', a:'Daher TBM', b:'Pilatus PC-12', label:'TBM vs PC-12',
    hook:'Two pressurized turboprop singles flown in different ways; try the Part 135 filter too.'},
   {id:'default', a:'Diamond DA40', b:'Cirrus SR20', label:'Back to the default', reset:true,
    hook:'Diamond DA40 vs Cirrus SR20, with all settings back to their defaults.'},
