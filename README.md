@@ -47,7 +47,7 @@ Epic E1000. Notes from the probe of the FAA and NTSB files:
 - Part 135 accidents are kept and tagged (`part` column); the app defaults to Part 91, as before.
 
 ## Safety within category (v0.25, 03-Nov-2026)
-Section 7 is a funnel plot: every type in one category (piston singles, piston twins or turboprops) as a dot,
+Section 3 (moved up from 7 in v0.27, right after the Summary) is a funnel plot: every type in one category (piston singles, piston twins or turboprops) as a dot,
 average registered fleet (log scale) against accidents or fatal accidents per 1,000 registered aircraft-years.
 The band is the 95% Poisson limit around the category's pooled rate for that exposure (fleet x years); dashed
 lines are 99.8%. "Below/above the funnel" uses an exact two-sided Poisson test (p < 0.05). Same filters as the

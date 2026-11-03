@@ -261,7 +261,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
   .callout{ padding-right:12px; } .callout h3{ padding-right:22px; }
 }
 
-/* v0.25: section 7, Safety within category (funnel plot) */
+/* v0.25: Safety within category (funnel plot); section 3 since v0.27 */
 svg.sf .sf-lim{ fill:none; stroke:var(--text-muted); stroke-width:1; opacity:.7; }
 svg.sf .sf-lim2{ stroke-dasharray:4 4; opacity:.45; }
 svg.sf .sf-band{ fill:rgba(139,147,161,0.10); stroke:none; }
@@ -335,7 +335,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.26</span>
+    <span class="ver mono">v0.27</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -408,8 +408,33 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
         <p class="note" id="sumNote"></p>
       </section>
 
+      <section class="step" aria-labelledby="hSafe">
+        <h2 id="hSafe"><span class="num">3</span> Safety within category <span class="sub">every type in the category · rate vs fleet size</span></h2>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <div class="seg" id="sfMeas" role="group" aria-label="Measure">
+            <button type="button" data-v="all" aria-pressed="true">All accidents</button>
+            <button type="button" data-v="fatal" aria-pressed="false">Fatal accidents</button>
+          </div>
+          <div class="seg" id="sfCat" role="group" aria-label="Category">
+            <button type="button" data-v="ps" aria-pressed="true">Piston singles</button>
+            <button type="button" data-v="pm" aria-pressed="false">Piston twins</button>
+            <button type="button" data-v="t" aria-pressed="false">Turboprops</button>
+          </div>
+          <div class="seg" id="sfZoom" role="group" aria-label="Zoom">
+            <button type="button" data-z="out" aria-label="Zoom out" disabled>−</button>
+            <button type="button" data-z="in" aria-label="Zoom in">+</button>
+            <button type="button" data-z="reset" disabled>Reset</button>
+          </div>
+          <span class="sf-zl mono" id="sfZoomLvl" aria-live="polite"></span>
+        </div>
+        <div class="legend" id="legSf"></div>
+        <div class="chart-wrap" id="sfWrap"><svg class="trend sf" id="sfChart" viewBox="0 0 700 340" role="img" aria-label="Accident rate against registered fleet, every type in the category"></svg><div class="sf-pop" id="sfPop" hidden></div></div>
+        <div id="sfSum"></div>
+        <p class="note" id="sfNote"></p>
+      </section>
+
       <section class="step" aria-labelledby="h3">
-        <h2 id="h3"><span class="num">3</span> Accident category <span class="sub">share of each type's accidents · tap a row to list those accidents</span></h2>
+        <h2 id="h3"><span class="num">4</span> Accident category <span class="sub">share of each type's accidents · tap a row to list those accidents</span></h2>
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <div class="seg" id="sevSeg" role="group" aria-label="Accidents to include">
             <button type="button" data-v="all" aria-pressed="true">All accidents</button>
@@ -422,7 +447,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
       </section>
 
       <section class="step" aria-labelledby="h4">
-        <h2 id="h4"><span class="num">4</span> Phase of flight <span class="sub">phase of the defining event</span></h2>
+        <h2 id="h4"><span class="num">5</span> Phase of flight <span class="sub">phase of the defining event</span></h2>
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <div class="seg" id="phSevSeg" role="group" aria-label="Accidents to include">
             <button type="button" data-v="all" aria-pressed="true">All accidents</button>
@@ -435,7 +460,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
       </section>
 
       <section class="step" aria-labelledby="h5">
-        <h2 id="h5"><span class="num">5</span> Severity <span class="sub">49 CFR 830.2 definitions</span></h2>
+        <h2 id="h5"><span class="num">6</span> Severity <span class="sub">49 CFR 830.2 definitions</span></h2>
         <div class="legend" id="legSev"></div>
         <div class="bars" id="injBars"></div>
         <div style="height:10px"></div>
@@ -443,7 +468,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
       </section>
 
       <section class="step" aria-labelledby="h6">
-        <h2 id="h6"><span class="num">6</span> Trend <span class="sub">accidents per 1,000 registered aircraft per year</span></h2>
+        <h2 id="h6"><span class="num">7</span> Trend <span class="sub">accidents per 1,000 registered aircraft per year</span></h2>
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <div class="seg" id="trMeasure" role="group" aria-label="Measure">
             <button type="button" data-v="all" aria-pressed="true">All accidents</button>
@@ -471,31 +496,6 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
         <div class="legend" id="legRg"></div>
         <div class="chart-wrap" id="rgWrap"><svg class="trend" id="rgChart" viewBox="0 0 700 260" role="img" aria-label="Registered aircraft by year"></svg><div class="tip" id="rgTip"></div></div>
         <p class="note" id="rgNote"></p>
-      </section>
-
-      <section class="step" aria-labelledby="hSafe">
-        <h2 id="hSafe"><span class="num">7</span> Safety within category <span class="sub">every type in the category · rate vs fleet size</span></h2>
-        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <div class="seg" id="sfMeas" role="group" aria-label="Measure">
-            <button type="button" data-v="all" aria-pressed="true">All accidents</button>
-            <button type="button" data-v="fatal" aria-pressed="false">Fatal accidents</button>
-          </div>
-          <div class="seg" id="sfCat" role="group" aria-label="Category">
-            <button type="button" data-v="ps" aria-pressed="true">Piston singles</button>
-            <button type="button" data-v="pm" aria-pressed="false">Piston twins</button>
-            <button type="button" data-v="t" aria-pressed="false">Turboprops</button>
-          </div>
-          <div class="seg" id="sfZoom" role="group" aria-label="Zoom">
-            <button type="button" data-z="out" aria-label="Zoom out" disabled>−</button>
-            <button type="button" data-z="in" aria-label="Zoom in">+</button>
-            <button type="button" data-z="reset" disabled>Reset</button>
-          </div>
-          <span class="sf-zl mono" id="sfZoomLvl" aria-live="polite"></span>
-        </div>
-        <div class="legend" id="legSf"></div>
-        <div class="chart-wrap" id="sfWrap"><svg class="trend sf" id="sfChart" viewBox="0 0 700 340" role="img" aria-label="Accident rate against registered fleet, every type in the category"></svg><div class="sf-pop" id="sfPop" hidden></div></div>
-        <div id="sfSum"></div>
-        <p class="note" id="sfNote"></p>
       </section>
 
       <section class="step" aria-labelledby="h7">
@@ -666,7 +666,7 @@ function acYears(sel){
   const fr=dataFrac(); for(let y=st.y0;y<=st.y1;y++){ const v=fleetYear(sel,y); s+= y===last ? v*fr : v; }
   return s;
 }
-// sevKey: which "fatal only" toggle applies ('sev' for section 3/7/8, 'sevPh' for section 4), or none
+// sevKey: which "fatal only" toggle applies ('sev' for section 4/8/9, 'sevPh' for section 5), or none
 function rowsFor(sel, sevKey){
   if(!sel) return [];
   const fs=selFams(sel), fatalOnly = sevKey && st[sevKey]==='fatal';
@@ -938,7 +938,7 @@ function renderCats(){
   pairedBars($('catBars'), top, k=> k==='__rest'?[`All other categories (${rest.length})`,'']:(CAT[k]||[k,'']), ca, cb, ta, tb,
     k=>{ if(k==='__rest') return; st.cat = st.cat===k?null:k; st.shown=25; writeHash(); renderCats(); renderRecent(); $('h8').scrollIntoView({behavior:'smooth',block:'start'}); }, HL.cat);
   const der=[A,B].some(x=>x&&x.some(r=>r[C.der]===1));
-  $('catNote').innerHTML=(st.sev==='fatal'?'Fatal accidents only (also applies to sections 7 and 8). ':'')+(der?'Includes pre-2008 accidents with derived categories. ':'')+'Each accident has one defining event; it groups accidents of a similar type and does not by itself mean cause.';
+  $('catNote').innerHTML=(st.sev==='fatal'?'Fatal accidents only (also applies to sections 8 and 9). ':'')+(der?'Includes pre-2008 accidents with derived categories. ':'')+'Each accident has one defining event; it groups accidents of a similar type and does not by itself mean cause.';
 }
 const PH_ORDER=['Standing','Taxi','Takeoff','Initial climb','Enroute','Maneuvering','Approach','Go-around','Landing','Emergency/uncontrolled descent','Other','Unknown'];
 const PH_SUB={'Enroute':'climb to cruise, cruise, descent','Approach':'incl. VFR pattern, IFR approach','Go-around':'VFR go-around, IFR missed approach','Landing':'flare/touchdown, roll, aborted landing','Maneuvering':'incl. low-altitude flying, aerobatics'};
@@ -948,7 +948,7 @@ function renderPhases(){
   const keys=PH_ORDER.filter(k=>ca[k]||cb[k]);
   legend('legPh');
   pairedBars($('phBars'), keys, k=>[k,PH_SUB[k]||''], ca, cb, A?A.length:null, B?B.length:null, null, HL.ph);
-  $('phNote').textContent=(st.sevPh==='fatal'?'Fatal accidents only. ':'')+'Phases are grouped from the NTSB sub-phases; open an accident in section 8 to see its exact sub-phase.';
+  $('phNote').textContent=(st.sevPh==='fatal'?'Fatal accidents only. ':'')+'Phases are grouped from the NTSB sub-phases; open an accident in section 9 to see its exact sub-phase.';
 }
 function renderSeverity(){
   const A=st.a?rowsFor(st.a):null, B=st.b?rowsFor(st.b):null;
@@ -1070,7 +1070,7 @@ function renderFindings(){
     return `<div class="fcol"><h3><span class="swatch ${j?'sw-b':'sw-a'}"></span>${esc(selLabel(sel))} <span class="ci" style="color:var(--text-muted);font-weight:400">· ${withF.length} accidents with findings</span></h3>${body}</div>`;
   });
   $('findCols').innerHTML=cols.join('');
-  $('findNote').textContent=(st.sev==='fatal'?'Fatal accidents only (set in section 3). ':'')+'NTSB findings exist from 2008 on, only for completed investigations. An accident usually has several findings, so the percentages add to more than 100%. Hover or long-press a finding to see the NTSB’s full wording.';
+  $('findNote').textContent=(st.sev==='fatal'?'Fatal accidents only (set in section 4). ':'')+'NTSB findings exist from 2008 on, only for completed investigations. An accident usually has several findings, so the percentages add to more than 100%. Hover or long-press a finding to see the NTSB’s full wording.';
 }
 async function loadCauses(brand){
   const key=brand.toLowerCase();
@@ -1092,7 +1092,7 @@ function renderRecent(){
   $('recentSub').textContent=`newest first · ${rr.length.toLocaleString()} in this selection`;
   const chips=[];
   if(st.cat) chips.push(`<span class="chip">Category: ${esc((CAT[st.cat]||[st.cat])[0])} <button type="button" data-clear="cat" aria-label="Clear category filter">✕</button></span>`);
-  if(st.sev==='fatal') chips.push(`<span class="chip">Fatal only (section 3) <button type="button" data-clear="sev" aria-label="Show all accidents">✕</button></span>`);
+  if(st.sev==='fatal') chips.push(`<span class="chip">Fatal only (section 4) <button type="button" data-clear="sev" aria-label="Show all accidents">✕</button></span>`);
   chip.innerHTML=chips.join(' ');
   chip.querySelectorAll('button[data-clear]').forEach(b=>b.onclick=()=>{ if(b.dataset.clear==='cat') st.cat=null; else { st.sev='all'; setSeg('sevSeg','all'); } st.shown=25; update(); });
   const show=rr.slice(0,st.shown);
@@ -1244,13 +1244,13 @@ function renderPresets(){
   const SUB={3:'accident category',4:'phase of flight'};
   const num=v=>parseFloat(v);
   const rows=HL.items.map(x=>{ const a=num(x.va), b=num(x.vb);  // lower = bold (safety emphasis)
-    return `<tr><td><button type="button" data-sec="${x.sec}" aria-label="${esc(x.t)}: go to section ${x.sec}">${esc(x.t)} ↓</button>${SUB[x.sec]?`<small>${SUB[x.sec]}</small>`:''}</td><td class="${a<b?'lo':''}">${x.va}</td><td class="${b<a?'lo':''}">${x.vb}</td></tr>`; }).join('');
+    return `<tr><td><button type="button" data-sec="${x.sec}" aria-label="${esc(x.t)}: go to section ${({2:2,3:4,4:5})[x.sec]}">${esc(x.t)} ↓</button>${SUB[x.sec]?`<small>${SUB[x.sec]}</small>`:''}</td><td class="${a<b?'lo':''}">${x.va}</td><td class="${b<a?'lo':''}">${x.vb}</td></tr>`; }).join('');
   const fleetRow=HL.fleet?`<tr class="ctx"><td><button type="button" data-sec="2" aria-label="Average registered fleet: go to section 2">Avg. registered fleet ↓</button><small>context for the rates below</small></td><td>${Math.round(HL.fleet[0]).toLocaleString()}</td><td>${Math.round(HL.fleet[1]).toLocaleString()}</td></tr>`:'';
   const yrs=`${st.y0}–${st.y1}${st.pur==='all'?'':', '+PUR[+st.pur].toLowerCase()+' only'}${st.op==='91'?'':', '+OPTXT[st.op]}`;
   $('callout').innerHTML=`<div class="callout" role="status"><button type="button" class="co-x" aria-label="Hide this box (highlights stay)">×</button>
     <h3>What stands out · ${yrs}</h3>
     ${p?`<p class="hook">${esc(p.hook)}</p>`:''}
-    ${rows?`<table class="co-t"><thead><tr><th></th><th><span class="swatch sw-a"></span>${esc(selShort(st.a))}</th><th><span class="swatch sw-b"></span>${esc(selShort(st.b))}</th></tr></thead><tbody>${fleetRow}${rows}</tbody></table>`:'<p class="hook">No gap in sections 2–4 passes the test for this pair and these filters.</p>'}
+    ${rows?`<table class="co-t"><thead><tr><th></th><th><span class="swatch sw-a"></span>${esc(selShort(st.a))}</th><th><span class="swatch sw-b"></span>${esc(selShort(st.b))}</th></tr></thead><tbody>${fleetRow}${rows}</tbody></table>`:'<p class="hook">No gap in sections 2, 4 or 5 passes the test for this pair and these filters.</p>'}
     <p class="co-note">Gaps that pass a significance test (|z| ≥ ${HL_Z}, about 95%), recomputed from the current data and filters. They show where the records differ, not why; rates are per registered aircraft, so training use raises a rate. Tap a row to jump to it. <button type="button" class="co-clear">Clear highlights</button></p></div>`;
 }
 // "Share this comparison" (v0.6): shares the canonical URL plus the current settings in the hash
@@ -1271,7 +1271,7 @@ function shareComparison(){
     catch(err){ window.location.href='mailto:?subject='+encodeURIComponent(title)+'&body='+encodeURIComponent(text+' '+url); }
   })();
 }
-// ---- Section 7 (v0.25): Safety within category, a funnel plot ----
+// ---- Section 3 (v0.25; moved up from 7 in v0.27): Safety within category, a funnel plot ----
 // Every type in one category (piston singles, piston twins or turboprops): its rate per 1,000 registered
 // aircraft-years against its average registered fleet. The band is where a type with the category's own
 // rate would land 95% of the time given its exposure (fleet x years); dashed lines are 99.8%. A type outside
