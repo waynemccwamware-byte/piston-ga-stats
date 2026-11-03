@@ -1,8 +1,9 @@
-# Piston GA Stats
+# GA Accident Stats
 
-Live site: https://piston-ga-stats.netlify.app/ (GeezerGeek Pilot Apps)
+Live site: https://piston-ga-stats.netlify.app/ (GeezerGeek Pilot Apps). Named Piston GA Stats until v0.18
+(03-Nov-2026); the repo and site name were kept so shared links still work.
 
-Compares US accident records for two piston airplane types: accident category, phase of flight,
+Compares US accident records for piston and turboprop airplane types (one or several per side): accident category, phase of flight,
 severity, rates per registered aircraft, top NTSB findings and the latest accidents.
 
 ## Layout
@@ -33,3 +34,14 @@ first. `patch_reg.py` refreshes only the registry numbers in an existing `accide
 
 Checked 19-Oct-2026: these scripts reproduce the live data exactly (43,024 accidents, all 22 columns,
 all `causes-*.json` files) from avall.mdb 01-Oct-2026, Pre2008.mdb 06-Mar-2025 and the FAA registry 16-Oct-2026.
+
+## Turboprops (v0.18, 03-Nov-2026)
+PC-12, TBM (700 / 850 / 900 series), PA-46 turbines (Meridian/M500/M600/M700 and PT6 JetPROP conversions) and the
+Epic E1000. Notes from the probe of the FAA and NTSB files:
+- The registry files every TBM 850 and 900-series airplane as "TBM 700"/"TBM 700N": `tbm_family()` splits by serial
+  (1000 on = 900 series) and year built (2006 on = 850). `build_reg.py` logs a serial x decade cross-check.
+- JetPROPs are found by a PT6 in `ENGINE.txt` for the registration, or the NTSB engine type TP. The registration's own
+  TYPE ENGINE code is unreliable (piston Mirages carry the turboprop code). Most JetPROPs still show their piston
+  engine on the registry, so the JetPROP fleet is undercounted; the app shows no rate for it.
+- Turbine conversions of piston types (PA-31T, Soloy 206, turbine 210/Bonanza...) stay out of the piston families.
+- Part 135 accidents are kept and tagged (`part` column); the app defaults to Part 91, as before.

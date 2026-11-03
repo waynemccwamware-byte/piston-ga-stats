@@ -1,4 +1,4 @@
-# Monthly data update for Piston GA Stats.
+# Monthly data update for GA Accident Stats (repo and site name: piston-ga-stats).
 # Downloads the NTSB accident database (Access .mdb) and the FAA aircraft registry, rebuilds site/data,
 # checks the result, and commits it. Netlify then redeploys the site from the new commit.
 # Run by hand: GitHub > Actions > "Update NTSB and FAA data" > Run workflow.
@@ -11,9 +11,6 @@ name: Update NTSB and FAA data
 on:
   schedule:
     - cron: "0 15 2 * *"     # 2nd of each month, 15:00 UTC (NTSB posts avall.zip on the 1st)
-  push:                      # TEMP-BRANCH-TEST
-    branches: [turboprop-explore]   # TEMP-BRANCH-TEST
-    paths: [build/**, .github/workflows/update-data.yml]   # TEMP-BRANCH-TEST
   workflow_dispatch:
     inputs:
       force:
@@ -90,7 +87,7 @@ jobs:
           echo "NTSB file $NTSB_AS_OF, FAA registry $REG_AS_OF; live data: $OLD"
           echo "NTSB_AS_OF=$NTSB_AS_OF" >> "$GITHUB_ENV"
           echo "REG_AS_OF=$REG_AS_OF" >> "$GITHUB_ENV"
-          if [ "$NTSB_AS_OF $REG_AS_OF" = "$OLD" ] && [ "${{ inputs.force }}" != "true" ] && [ "${{ github.event_name }}" != "push" ]; then
+          if [ "$NTSB_AS_OF $REG_AS_OF" = "$OLD" ] && [ "${{ inputs.force }}" != "true" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"; echo "Data already current - nothing to do."
           fi
 
@@ -136,7 +133,6 @@ jobs:
           git config user.name "piston-ga-stats data bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add site/data
-          if [ "${{ github.event_name }}" = "push" ]; then mkdir -p explore-out && cp work/*.log explore-out/ && git add explore-out; fi   # TEMP-BRANCH-TEST
           if git diff --cached --quiet; then echo "No data changes."; exit 0; fi
           git commit -m "Data update: NTSB $NTSB_AS_OF, FAA registry $REG_AS_OF"
           git push

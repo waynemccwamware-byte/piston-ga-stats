@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>Piston GA Stats</title>
+<title>GA Accident Stats</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -175,6 +175,33 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .fine p{ margin:0 0 6px; }
 .fine a{ color:var(--teal); }
 .loading{ font-size:13px; color:var(--text-muted); padding:20px 4px; text-align:center; }
+/* v0.18: multi-type picker */
+.pick-btn{ all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;
+  font:500 13.5px 'IBM Plex Sans',sans-serif; color:var(--text-primary); background:var(--bg-deep); border:1px solid var(--bezel-hi);
+  border-radius:6px; padding:8px 10px; cursor:pointer; min-height:36px; }
+.pick-btn:hover, .pick-btn[aria-expanded="true"]{ border-color:var(--amber-dim); }
+.pick-btn:focus-visible{ outline:2px solid var(--amber); outline-offset:1px; }
+.pick-btn .pv{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.pick-btn .caret{ color:var(--text-muted); font-size:11px; flex-shrink:0; }
+.pick-btn .cnt{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--amber); border:1px solid var(--amber-dim); border-radius:4px; padding:0 4px; margin-left:6px; }
+.pick{ border:1px solid var(--amber-dim); border-radius:8px; background:#141a22; padding:10px; }
+.pick-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.pick-head b{ font-size:12.5px; font-weight:600; }
+.pick-head small{ color:var(--text-muted); font-size:11px; font-weight:400; }
+.pick-quick{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.qbtn{ font:500 11.5px 'IBM Plex Sans',sans-serif; color:var(--text-muted); background:transparent; border:1px solid var(--bezel-hi); border-radius:14px; padding:4px 10px; cursor:pointer; }
+.qbtn:hover{ color:var(--amber); border-color:var(--amber); }
+.qbtn[aria-pressed="true"]{ color:var(--amber); border-color:var(--amber-dim); background:rgba(245,166,35,0.10); }
+.qbtn:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+.pick-brands{ columns:190px; column-gap:16px; }
+.pbrand{ border:0; margin:0 0 10px; padding:0; min-width:0; break-inside:avoid; display:block; }
+.pbrand legend{ padding:0; margin:0 0 3px; font-size:12px; font-weight:600; width:100%; border-bottom:1px solid var(--bezel); }
+.pbrand label{ text-transform:none; letter-spacing:normal; display:flex; align-items:flex-start; gap:6px; font-size:12.5px; line-height:1.3; padding:3px 0; cursor:pointer; color:var(--text-primary); }
+.pbrand legend label{ font-weight:600; padding:2px 0 4px; }
+.pbrand input{ accent-color:var(--amber); margin:2px 0 0; flex-shrink:0; }
+.pbrand .tp{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--teal); border:1px solid rgba(63,167,160,0.5); border-radius:3px; padding:0 3px; margin-left:4px; vertical-align:1px; }
+.pick-foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; font-size:11px; color:var(--text-muted); }
+@media (max-width:560px){ .pick-brands{ columns:auto; } }
 /* v0.12: "Try a comparison" presets + data-driven highlights */
 :root{ --hl:var(--amber); --hl-bg:rgba(245,166,35,0.08); }
 .presets h2 .sub{ font-weight:400; }
@@ -270,10 +297,10 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 <body>
 <div class="rig">
   <div class="title-row">
-    <h1>Piston GA Stats</h1>
-    <span class="ver mono">v0.17</span>
+    <h1>GA Accident Stats</h1>
+    <span class="ver mono">v0.18</span>
   </div>
-  <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for two piston types by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
+  <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
   <div class="panel" id="panel">
     <div class="loading" id="loading">Loading NTSB accident data…</div>
@@ -290,12 +317,13 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
         <div class="ctl-grid">
           <div class="ctl">
             <span class="lbl"><span class="swatch sw-a"></span>Type A</span>
-            <div class="row"><select id="brandA" aria-label="Type A brand"></select><select id="famA" aria-label="Type A model family"></select></div>
+            <button type="button" class="pick-btn" id="pickA" aria-expanded="false" aria-controls="pickPanel"><span class="pv"></span><span class="caret">▾</span></button>
           </div>
           <div class="ctl">
             <span class="lbl"><span class="swatch sw-b"></span>Type B (compare)</span>
-            <div class="row"><select id="brandB" aria-label="Type B brand"></select><select id="famB" aria-label="Type B model family"></select></div>
+            <button type="button" class="pick-btn" id="pickB" aria-expanded="false" aria-controls="pickPanel"><span class="pv"></span><span class="caret">▾</span></button>
           </div>
+          <div class="ctl ctl-wide" id="pickPanel" hidden></div>
           <div class="ctl">
             <span class="lbl">Years</span>
             <div class="row"><select id="y0" aria-label="From year"></select><select id="y1" aria-label="To year"></select></div>
@@ -307,6 +335,14 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
               <button type="button" data-v="0" aria-pressed="false">Personal</button>
               <button type="button" data-v="1" aria-pressed="false">Instructional</button>
               <button type="button" data-v="2" aria-pressed="false">Business/other</button>
+            </div>
+          </div>
+          <div class="ctl">
+            <span class="lbl">Operating rules</span>
+            <div class="seg" id="opSeg" role="group" aria-label="Operating rules">
+              <button type="button" data-v="91" aria-pressed="true">Part 91</button>
+              <button type="button" data-v="135" aria-pressed="false">Part 135</button>
+              <button type="button" data-v="all" aria-pressed="false">Both</button>
             </div>
           </div>
         </div>
@@ -321,7 +357,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
       </section>
 
       <section class="step" aria-labelledby="h2">
-        <h2 id="h2"><span class="num">2</span> Summary <span class="sub">Part 91 accidents, US-registered aircraft</span></h2>
+        <h2 id="h2"><span class="num">2</span> Summary <span class="sub" id="sumSub">Part 91 accidents, US-registered aircraft</span></h2>
         <table class="sum" id="sumTable"></table>
         <p class="note" id="sumNote"></p>
       </section>
@@ -413,9 +449,10 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
   </div>
 
   <div class="fine">
-    <p><b>Data.</b> NTSB aviation accident database (avall.mdb for 2008 on, Pre2008.mdb for 1982–2007) and the FAA Releasable Aircraft Database (current and deregistered aircraft), both bundled with this page, not fetched live. Aircraft are matched to the FAA registry by N-number and serial number to get the exact model; when no match exists the NTSB's make/model text is used. Included: certificated (non-homebuilt) piston airplanes from Cirrus, Diamond, Cessna, Piper, Beech and Mooney, US-registered, flights under Part 91. Excluded: incidents, Part 135/137 and public-use flights, ag and warbird types.</p>
+    <p><b>Data.</b> NTSB aviation accident database (avall.mdb for 2008 on, Pre2008.mdb for 1982–2007) and the FAA Releasable Aircraft Database (current and deregistered aircraft), both bundled with this page, not fetched live. Aircraft are matched to the FAA registry by N-number and serial number to get the exact model; when no match exists the NTSB's make/model text is used. Included: certificated (non-homebuilt) piston airplanes from Cirrus, Diamond, Cessna, Piper, Beech and Mooney, and turboprop singles: Pilatus PC-12, Daher TBM (700, 850 and 900 series), Piper PA-46 turbines (Meridian, M500, M600, M700, and PT6 JetPROP conversions of the Malibu/Mirage) and the Epic E1000 (the kit-built Epic LT is excluded as a homebuilt). All US-registered, flights under Part 91 or Part 135. Excluded: incidents, Part 121/137 and public-use flights, ag and warbird types.</p>
     <p><b>Categories.</b> From 2008 on, the category is the NTSB's own "defining event," which follows the CAST/ICAO (CICTT) taxonomy. Before 2008 the NTSB used an older coding with no defining event; for those years this app maps the first listed occurrence to the nearest category. Those years are marked "derived" and use two extra labels (Weather encounter; Power loss, non-mechanical) where the old codes don't split cleanly.</p>
     <p><b>Rates.</b> "Registered aircraft" counts every airframe on the FAA registry at any time in the year, flying or not. Training aircraft fly many more hours per year than owner-flown aircraft, so per-registered-aircraft rates favor owner-flown types; no per-model flight-hour data exists. Registration counts before about 2011 include many aircraft no longer flying (the FAA's re-registration program, which ended 01-Jan-2014, cleared them out), so early-year rates read low. The range in grey is a 95% interval for random variation (Poisson).</p>
+    <p><b>Turboprop types.</b> The FAA registry files every TBM 850 and 900-series airplane as a “TBM 700” or “TBM 700N”, so this app splits them by serial number (1000 on = 900 series) and year built (2006 on = 850). JetPROPs are found by the PT6 engine on the registry record or the NTSB’s turboprop engine code. Turboprops typically fly many more hours a year than piston singles, and many PC-12s fly charter and medevac work, so per-registered-aircraft rates overstate their risk per hour flown. Part 135 rates use the whole registered fleet as the denominator (the registry doesn’t say which airplanes fly for hire), so they read low. Turboprop fleets are small: many category and phase counts are single digits.</p>
     <p><b>Recent years.</b> NTSB investigations take about two years; recent accidents may be preliminary, without probable cause or findings, and the latest months are incomplete.</p>
   </div>
 
@@ -431,7 +468,7 @@ table.sum tr.hl td:first-child{ box-shadow:inset 3px 0 0 var(--hl); color:var(--
 </div>
 
 <script>
-// ---- Piston GA Stats app logic ----
+// ---- GA Accident Stats app logic (repo/URL still piston-ga-stats) ----
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
@@ -469,23 +506,32 @@ const LIGHT = {DAYL:'Day',DUSK:'Dusk',DAWN:'Dawn',NDRK:'Night, dark',NBRT:'Night
 const WXC = {VMC:'VMC',IMC:'IMC',Unk:'Unknown'};
 const MON = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 // row columns
-const C = {y:0,m:1,d:2,fam:3,cat:4,der:5,ph:6,phd:7,inj:8,dmg:9,pur:10,fat:11,ser:12,ntsb:13,reg:14,st:15,fnd:16,mdl:17,yb:18,wx:19,lt:20,city:21};
+const C = {y:0,m:1,d:2,fam:3,cat:4,der:5,ph:6,phd:7,inj:8,dmg:9,pur:10,fat:11,ser:12,ntsb:13,reg:14,st:15,fnd:16,mdl:17,yb:18,wx:19,lt:20,city:21,pt:22};
 let M, R, FAMS, BRANDS;
-// a selection is "f:<family index>", "b:<Brand>" (all types of that brand),
-// "s:<Brand>" (all single-engine types) or "m:<Brand>" (all multi-engine types), or null.
-// Brand "*" (v0.11) = every brand in the app: "b:*" all pistons, "s:*" all piston singles, "m:*" all piston twins.
-// Multi-engine families, by "<Brand> <family>" name (everything else is single-engine)
+// A selection (v0.18) is a token:
+//   "f:<family index>"; "b:<Brand>" all of a brand; "s:<Brand>" / "m:<Brand>" that brand's singles / twins;
+//   "g:all" every type, "g:p" all pistons, "g:ps" piston singles, "g:pm" piston twins, "g:t" all turboprops;
+//   "u:<tok>|<tok>|…" several of the above together (multi-select). null = none (Type B only).
+// Any set of families is written in the shortest form (setToSel), so a pick that equals a group gets its name.
+// Multi-engine families, by "<Brand> <family>" name (everything else is single-engine; all turboprops here are singles)
 const TWINS = new Set(['Beech Baron 55/58','Beech Duchess 76','Beech Travel Air 95',
   'Cessna 310/320','Cessna 335/340','Cessna 336/337','Cessna 401-421 twins',
   'Diamond DA42','Diamond DA62',
   'Piper PA-23 Apache/Aztec','Piper PA-30/39 Twin Comanche','Piper PA-31 Navajo','Piper PA-34 Seneca','Piper PA-44 Seminole']);
 const isTwin = i => TWINS.has(FAMS[i][0]+' '+FAMS[i][1]);
+const isTP = i => !!(M.eng && M.eng[i]==='T');
 const GROUP = { b:['all types','types',':*'], s:['all singles','singles',':singles'], m:['all twins','twins',':twins'] };
-// a brand gets the singles/twins options only if it has both kinds
-const ALL='*', ALL_NAME='All';  // brand sentinel and its link-hash name (a=All:* / All:singles / All:twins)
-const inBrand = (f,b) => b===ALL || f[0]===b;
-const hasBoth = b => { const k=FAMS.map((f,i)=>inBrand(f,b)?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
-const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, coHidden:false, hlOff:false };
+// global groups: token -> [label, link name, test]
+const GG = {
+  all:['All types','All:types', ()=>true],
+  p:  ['All pistons','All:*', i=>!isTP(i)],
+  ps: ['All piston singles','All:singles', i=>!isTP(i)&&!isTwin(i)],
+  pm: ['All piston twins','All:twins', i=>!isTP(i)&&isTwin(i)],
+  t:  ['All turboprops','All:turboprops', i=>isTP(i)],
+};
+const GG_ORDER=['all','p','t','ps','pm'];
+const hasBoth = b => { const k=FAMS.map((f,i)=>f[0]===b?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, coHidden:false, hlOff:false };
 const causeCache = {};
 const famSetCache = {};
 
@@ -493,19 +539,43 @@ function fmtDate(r){ const d=String(r[C.d]).padStart(2,'0'); return (r[C.d]?d+'-
 function shortFind(s){ const p=s.split('-'); if(p.length<=2) return s; const n=p[p.length-2].startsWith('(general)')?3:2; return p.slice(-n).join(' – ').replace(' – (general)',''); }
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 // ----- selection helpers
+function tokFams(t){
+  if(t.startsWith('f:')) return [+t.slice(2)];
+  if(t.startsWith('g:')) { const g=GG[t.slice(2)]; return g ? FAMS.map((f,i)=>g[2](i)?i:-1).filter(i=>i>=0) : []; }
+  const g=t[0], b=t.slice(2);
+  return FAMS.map((f,i)=>f[0]===b && (g==='b' || (g==='m')===isTwin(i)) ? i : -1).filter(i=>i>=0);
+}
+function selParts(sel){ return !sel ? [] : sel.startsWith('u:') ? sel.slice(2).split('|') : [sel]; }
 function selFams(sel){
   if(!sel) return new Set();
   if(famSetCache[sel]) return famSetCache[sel];
-  let s;
-  if(sel.startsWith('f:')) s=new Set([+sel.slice(2)]);
-  else { const g=sel[0], b=sel.slice(2);
-    s=new Set(FAMS.map((f,i)=>inBrand(f,b) && (g==='b' || (g==='m')===isTwin(i)) ? i : -1).filter(i=>i>=0)); }
+  const s=new Set(); for(const t of selParts(sel)) for(const i of tokFams(t)) s.add(i);
   return (famSetCache[sel]=s);
 }
-function selBrand(sel){ return !sel ? '' : !sel.startsWith('f:') ? sel.slice(2) : FAMS[+sel.slice(2)][0]; }
-const ALL_LBL = { b:'All pistons', s:'All piston singles', m:'All piston twins' };
-function selLabel(sel){ if(!sel) return '—'; if(sel.slice(2)===ALL) return ALL_LBL[sel[0]]; return !sel.startsWith('f:') ? `${sel.slice(2)} – ${GROUP[sel[0]][0]}` : FAMS[+sel.slice(2)].join(' '); }
-function selShort(sel){ if(!sel) return '—'; if(sel.slice(2)===ALL) return ALL_LBL[sel[0]]; return sel.startsWith('b:') ? `All ${sel.slice(2)}` : !sel.startsWith('f:') ? `${sel.slice(2)} ${GROUP[sel[0]][1]}` : FAMS[+sel.slice(2)][1]; }
+const sameSet=(a,b)=>a.size===b.size && [...a].every(x=>b.has(x));
+// shortest token for a set of family indices
+function setToSel(S){
+  if(!S || !S.size) return null;
+  for(const g of GG_ORDER){ const G=new Set(tokFams('g:'+g)); if(G.size && sameSet(S,G)) return 'g:'+g; }
+  const toks=[]; let rest=new Set(S);
+  // a whole global group inside a bigger pick (e.g. all turboprops + the SR22): name it once
+  for(const g of ['t','ps','pm']){ const G=tokFams('g:'+g); if(G.length>1 && G.every(i=>rest.has(i)) && G.length<rest.size){ toks.push('g:'+g); G.forEach(i=>rest.delete(i)); } }
+  for(const b of BRANDS){
+    const all=tokFams('b:'+b), mine=all.filter(i=>rest.has(i)); if(!mine.length) continue;
+    if(all.length>1 && mine.length===all.length) toks.push('b:'+b);
+    else if(hasBoth(b) && mine.length>1 && sameSet(new Set(mine),new Set(tokFams('s:'+b)))) toks.push('s:'+b);
+    else if(hasBoth(b) && mine.length>1 && sameSet(new Set(mine),new Set(tokFams('m:'+b)))) toks.push('m:'+b);
+    else mine.sort((p,q)=>FAMS[p][1].localeCompare(FAMS[q][1],undefined,{numeric:true})).forEach(i=>toks.push('f:'+i));
+  }
+  return toks.length===1 ? toks[0] : 'u:'+toks.join('|');
+}
+const BRAND_ALL = { Daher:'All TBMs' };   // how "all of this brand" reads, where the brand name alone says little
+function tokLabel(t){ if(t.startsWith('g:')) return GG[t.slice(2)][0]; if(t.startsWith('b:') && BRAND_ALL[t.slice(2)]) return BRAND_ALL[t.slice(2)]; return !t.startsWith('f:') ? `${t.slice(2)} – ${GROUP[t[0]][0]}` : FAMS[+t.slice(2)].join(' '); }
+function tokShort(t){ if(t.startsWith('g:')) return GG[t.slice(2)][0]; return t.startsWith('b:') ? (BRAND_ALL[t.slice(2)]||`All ${t.slice(2)}`) : !t.startsWith('f:') ? `${t.slice(2)} ${GROUP[t[0]][1]}` : FAMS[+t.slice(2)][1]; }
+function selLabel(sel){ if(!sel) return '—'; return selParts(sel).map(tokLabel).join(' + '); }
+function selShort(sel){ if(!sel) return '—'; const p=selParts(sel); return p.length<=2 ? p.map(tokShort).join(' + ') : `${tokShort(p[0])} + ${p.length-1} more`; }
+function selBrands(sel){ return [...new Set([...selFams(sel)].map(i=>FAMS[i][0]))]; }
+function selHasTP(sel){ return [...selFams(sel)].some(isTP); }
 function fleetYear(sel,y){ let v=0; for(const i of selFams(sel)) v+=M.fleet[i][y-M.fleetY0]||0; return v; }
 const lastYear = () => M.fleetY0+M.fleet[0].length-1;
 
@@ -529,24 +599,22 @@ function acYears(sel){
 function rowsFor(sel, sevKey){
   if(!sel) return [];
   const fs=selFams(sel), fatalOnly = sevKey && st[sevKey]==='fatal';
-  return R.filter(r => fs.has(r[C.fam]) && r[C.y]>=st.y0 && r[C.y]<=st.y1 &&
+  return R.filter(r => fs.has(r[C.fam]) && r[C.y]>=st.y0 && r[C.y]<=st.y1 && opOK(r) &&
     (st.pur==='all' || r[C.pur]===+st.pur) && (!fatalOnly || r[C.inj]===3));
 }
+// operating rules (v0.18): row column pt is 1 for Part 135, 0 for Part 91
+const opOK = r => st.op==='all' || (st.op==='135') === (r[C.pt]===1);
 
 // ---------- controls ----------
 function buildControls(){
-  for (const side of ['A','B']){
-    const bs=$('brand'+side), key=side.toLowerCase();
-    bs.innerHTML=(side==='B'?'<option value="">— none —</option>':'')+BRANDS.map(b=>`<option>${b}</option>`).join('')+`<option value="${ALL}">All pistons</option>`;
-    bs.addEventListener('change',()=>{ fillFam(side); const f=$('fam'+side); st[key]= f.value||null; st.cat=null; st.shown=25; st.preset=matchPreset(); update(); });
-    $('fam'+side).addEventListener('change',e=>{ st[key]= e.target.value||null; st.cat=null; st.shown=25; st.preset=matchPreset(); update(); });
-  }
+  for (const side of ['A','B']) $('pick'+side).addEventListener('click',()=>togglePick(side));
   const last=lastYear();
   for (const id of ['y0','y1']){
     const s=$(id); let h=''; for(let y=1982;y<=last;y++) h+=`<option>${y}</option>`; s.innerHTML=h;
     s.addEventListener('change',()=>{ st.y0=+$('y0').value; st.y1=+$('y1').value; if(st.y0>st.y1){ if(id==='y0'){st.y1=st.y0;} else {st.y0=st.y1;} } st.shown=25; update(); });
   }
   seg('purSeg', v=>{ st.pur=v; st.shown=25; });
+  seg('opSeg', v=>{ st.op=v; st.shown=25; });
   seg('sevSeg', v=>{ st.sev=v; st.cat=null; st.shown=25; });
   seg('phSevSeg', v=>{ st.sevPh=v; });
   seg('trMeasure', v=>{ st.trM=v; });
@@ -556,7 +624,63 @@ function buildControls(){
   seg('recentWhich', v=>{ st.recent=v; st.shown=25; });
   $('moreBtn').addEventListener('click',()=>{ st.shown+=25; renderRecent(); });
   $('shareCmpBtn').addEventListener('click', shareComparison);
+  // picker panel: one panel, shown under the two type buttons for whichever side is open
+  const pp=$('pickPanel');
+  pp.addEventListener('change',e=>{
+    const t=e.target; if(t.type!=='checkbox') return;
+    const S=new Set(selFams(st[st.pick]));
+    const ids = t.dataset.brand ? tokFams('b:'+t.dataset.brand) : [+t.dataset.f];
+    ids.forEach(i=> t.checked ? S.add(i) : S.delete(i));
+    setSide(S);
+  });
+  pp.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    if(b.dataset.q==='none'){ setSide(new Set()); return; }
+    if(b.dataset.q){ setSide(new Set(tokFams('g:'+b.dataset.q))); return; }
+    if(b.dataset.done!==undefined){ const k=st.pick; togglePick(null); $('pick'+k.toUpperCase()).scrollIntoView({block:'nearest'}); }
+  });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && st.pick){ const s=st.pick; togglePick(null); $('pick'+s.toUpperCase()).focus(); } });
+  document.addEventListener('pointerdown',e=>{ if(st.pick && !e.target.closest('#pickPanel,.pick-btn')) togglePick(null); });
   buildPresets();
+}
+function togglePick(side){
+  const key = side ? side.toLowerCase() : null;
+  st.pick = (key && st.pick!==key) ? key : null;
+  for (const s of ['A','B']) $('pick'+s).setAttribute('aria-expanded', String(st.pick===s.toLowerCase()));
+  $('pickPanel').hidden = !st.pick;
+  if(st.pick) renderPick();
+}
+function setSide(S){
+  const key=st.pick; if(!key) return;
+  if(key==='a' && !S.size){ $('pickMsg').textContent='Type A needs at least one type.'; return; }
+  st[key]=setToSel(S); st.cat=null; st.shown=25; st.preset=matchPreset();
+  if(key==='b' && !st.b && st.recent==='b') st.recent='both';
+  update();
+}
+function renderPick(){
+  const key=st.pick, S=selFams(st[key]), pp=$('pickPanel');
+  const ae=document.activeElement, keep = ae && pp.contains(ae) ? (ae.dataset.f!==undefined?`[data-f="${ae.dataset.f}"]`:ae.dataset.brand?`[data-brand="${ae.dataset.brand}"]`:ae.dataset.q?`[data-q="${ae.dataset.q}"]`:null) : null;
+  const curTok=st[key];
+  const q=GG_ORDER.map(g=>`<button type="button" class="qbtn" data-q="${g}" aria-pressed="${curTok==='g:'+g}">${GG[g][0]}</button>`).join('')
+    + (key==='b'?`<button type="button" class="qbtn" data-q="none" aria-pressed="${!curTok}">None</button>`:'');
+  const brands=BRANDS.map(b=>{
+    const fams=FAMS.map((f,i)=>[f,i]).filter(([f])=>f[0]===b).sort((p,q)=>p[0][1].localeCompare(q[0][1],undefined,{numeric:true}));
+    const on=fams.filter(([,i])=>S.has(i)).length;
+    const all = fams.length>1 ? `<legend><label><input type="checkbox" data-brand="${esc(b)}" ${on===fams.length?'checked':''} ${on&&on<fams.length?'data-mixed="1"':''}> ${esc(b)} <small style="font-weight:400;color:var(--text-muted)">all</small></label></legend>` : `<legend>${esc(b)}</legend>`;
+    return `<fieldset class="pbrand">${all}${fams.map(([f,i])=>`<label><input type="checkbox" data-f="${i}" ${S.has(i)?'checked':''}><span>${esc(f[1])}${isTP(i)?'<span class="tp" title="turboprop">TP</span>':''}</span></label>`).join('')}</fieldset>`;
+  }).join('');
+  pp.innerHTML=`<div class="pick">
+    <div class="pick-head"><b><span class="swatch ${key==='a'?'sw-a':'sw-b'}"></span>Type ${key.toUpperCase()} <small>· tick one or more; they are added together</small></b><button type="button" class="btn primary" data-done style="padding:5px 12px">Done</button></div>
+    <div class="pick-quick" role="group" aria-label="Groups">${q}</div>
+    <div class="pick-brands">${brands}</div>
+    <div class="pick-foot"><span id="pickMsg" aria-live="polite">${S.size} type${S.size===1?'':'s'} selected: ${esc(selLabel(st[key]))}</span><button type="button" class="btn primary" data-done style="padding:5px 12px">Done</button></div></div>`;
+  pp.querySelectorAll('input[data-mixed]').forEach(x=>x.indeterminate=true);
+  if(keep){ const el=pp.querySelector(keep); if(el) el.focus({preventScroll:true}); }
+}
+function pickBtnText(side){
+  const sel=st[side.toLowerCase()], n=selFams(sel).size;
+  const el=$('pick'+side); el.querySelector('.pv').innerHTML = sel ? `${esc(selShort(sel))}${selParts(sel).length>1?`<span class="cnt">${n}</span>`:''}` : '<span style="color:var(--text-muted)">— none —</span>';
+  el.title = selLabel(sel);
 }
 function seg(id, fn){
   $(id).addEventListener('click', e=>{
@@ -566,39 +690,30 @@ function seg(id, fn){
   });
 }
 function setSeg(id, v){ $(id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', String(x.dataset.v===String(v)))); }
-function fillFam(side){
-  const b=$('brand'+side).value, f=$('fam'+side);
-  if(!b){ f.innerHTML='<option value="">—</option>'; f.disabled=true; return; }
-  f.disabled=false;
-  if(b===ALL){ // all-brands choice: all types first (the default), then singles and twins
-    f.innerHTML=`<option value="b:${ALL}">All piston types</option><option value="s:${ALL}">All piston singles</option><option value="m:${ALL}">All piston twins</option>`;
-    return;
-  }
-  const opts=FAMS.map((x,i)=>[x,i]).filter(([x])=>x[0]===b).sort((p,q)=>p[0][1].localeCompare(q[0][1],undefined,{numeric:true}));
-  // specific families first (the first one is the default), then "All <brand> singles" / "twins" (brands with both), then "All <brand> types"
-  const grp = hasBoth(b) ? `<option value="s:${esc(b)}">All ${esc(b)} singles</option><option value="m:${esc(b)}">All ${esc(b)} twins</option>` : '';
-  f.innerHTML=opts.map(([x,i])=>`<option value="f:${i}">${esc(x[1])}</option>`).join('')+grp+`<option value="b:${esc(b)}">All ${esc(b)} types</option>`;
-}
 function syncControls(){
-  for (const side of ['A','B']){
-    const sel=st[side.toLowerCase()];
-    $('brand'+side).value = sel ? selBrand(sel) : '';
-    fillFam(side);
-    if (sel) $('fam'+side).value=sel;
-  }
+  pickBtnText('A'); pickBtnText('B');
+  if(st.pick) renderPick();
   $('y0').value=String(st.y0); $('y1').value=String(st.y1);
-  setSeg('purSeg',st.pur); setSeg('sevSeg',st.sev); setSeg('phSevSeg',st.sevPh); setSeg('trMeasure',st.trM); setSeg('trSmooth',st.trS); setSeg('rgMeasure',st.rgM); setSeg('rgSmooth',st.rgS); setSeg('recentWhich',st.recent);
+  setSeg('purSeg',st.pur); setSeg('opSeg',st.op); setSeg('sevSeg',st.sev); setSeg('phSevSeg',st.sevPh); setSeg('trMeasure',st.trM); setSeg('trSmooth',st.trS); setSeg('rgMeasure',st.rgM); setSeg('rgSmooth',st.rgS); setSeg('recentWhich',st.recent);
 }
 
 // ---------- URL hash (shareable state) ----------
-function selFromName(s){
-  if(!s) return null;
-  const am=s.match(/^All:(\*|singles|twins)$/); if(am) return ({'*':'b:','singles':'s:','twins':'m:'})[am[1]]+ALL;
+// Link names: "Brand Family", "Brand:*" / "Brand:singles" / "Brand:twins", "All:*" (pistons, as before v0.18),
+// "All:singles"/"All:twins" (piston), "All:turboprops", "All:types"; several joined with " + ".
+function tokFromName(s){
+  const g=Object.keys(GG).find(k=>GG[k][1]===s); if(g) return 'g:'+g;
   const m=s.match(/^(.+):\*$/); if(m && BRANDS.includes(m[1])) return 'b:'+m[1];
-  const g=s.match(/^(.+):(singles|twins)$/); if(g && BRANDS.includes(g[1]) && hasBoth(g[1])) return (g[2]==='twins'?'m:':'s:')+g[1];
+  const t=s.match(/^(.+):(singles|twins)$/); if(t && BRANDS.includes(t[1]) && hasBoth(t[1])) return (t[2]==='twins'?'m:':'s:')+t[1];
   const i=FAMS.findIndex(f=>(f[0]+' '+f[1])===s); return i<0?null:'f:'+i;
 }
-function selToName(sel){ return !sel.startsWith('f:') ? (sel.slice(2)===ALL?ALL_NAME:sel.slice(2))+GROUP[sel[0]][2] : FAMS[+sel.slice(2)].join(' '); }
+function selFromName(s){
+  if(!s) return null;
+  const toks=s.split(' + ').map(x=>tokFromName(x.trim())).filter(Boolean); if(!toks.length) return null;
+  const S=new Set(); toks.forEach(t=>tokFams(t).forEach(i=>S.add(i)));
+  return setToSel(S);
+}
+function tokToName(t){ if(t.startsWith('g:')) return GG[t.slice(2)][1]; return !t.startsWith('f:') ? t.slice(2)+GROUP[t[0]][2] : FAMS[+t.slice(2)].join(' '); }
+function selToName(sel){ return selParts(sel).map(tokToName).join(' + '); }
 function readHash(){
   const p=new URLSearchParams(location.hash.slice(1)), last=lastYear();
   const pr=PRESETS.find(x=>x.id===p.get('pair') && !x.reset);  // v0.12: a preset link sets A and B (years etc. still come from the link)
@@ -612,6 +727,7 @@ function readHash(){
   if (p.has('y1')) st.y1=Math.min(Math.max(+p.get('y1')||last,1982),last);
   if (st.y0>st.y1) st.y0=st.y1;
   if (p.has('p') && ['all','0','1','2'].includes(p.get('p'))) st.pur=p.get('p');
+  if (['135','all'].includes(p.get('op'))) st.op=p.get('op');
   // section toggles (v0.6): only written when not the default
   if (p.get('s')==='fatal') st.sev='fatal';
   if (p.get('ps')==='fatal') st.sevPh='fatal';
@@ -630,7 +746,7 @@ function writeHash(){
   if (st.hlOff) p.set('hl','0');
   if (st.a) p.set('a',selToName(st.a));
   if (st.b) p.set('b',selToName(st.b));
-  p.set('y0',st.y0); p.set('y1',st.y1); if(st.pur!=='all') p.set('p',st.pur);
+  p.set('y0',st.y0); p.set('y1',st.y1); if(st.pur!=='all') p.set('p',st.pur); if(st.op!=='91') p.set('op',st.op);
   if (st.sev!=='all') p.set('s',st.sev);
   if (st.sevPh!=='all') p.set('ps',st.sevPh);
   if (st.trM!=='all') p.set('tm',st.trM);
@@ -653,12 +769,12 @@ function renderSummary(){
   const data=sides.map(sel=>{
     const rr=rowsFor(sel), fat=rr.filter(r=>r[C.inj]===3), sers=rr.filter(r=>r[C.inj]===2);
     const ay=acYears(sel), years=st.y1-st.y0+1;
-    const fs=selFams(sel), purAll=R.filter(r=>fs.has(r[C.fam])&&r[C.y]>=st.y0&&r[C.y]<=st.y1);
+    const fs=selFams(sel), purAll=R.filter(r=>fs.has(r[C.fam])&&r[C.y]>=st.y0&&r[C.y]<=st.y1&&opOK(r));
     const inst=purAll.filter(r=>r[C.pur]===1).length;
-    return {n:rr.length, f:fat.length, deaths:fat.reduce((s,r)=>s+r[C.fat],0), s:sers.length, ay, fleet:ay/years, inst, purN:purAll.length};
+    return {n:rr.length, f:fat.length, deaths:fat.reduce((s,r)=>s+r[C.fat],0), s:sers.length, ay, fleet:ay/years, inst, purN:purAll.length, noRate:onlyNoRate(sel)};
   });
   const th=sides.map((sel,i)=>`<th><span class="swatch ${i?'sw-b':'sw-a'}"></span>${esc(selShort(sel))}</th>`).join('');
-  const rate=(k,ay)=>{ if(ay<1) return '—'; const v=1000*k/ay, [lo,hi]=pci(k).map(x=>1000*x/ay);
+  const rate=(k,ay,d)=>{ if(d&&d.noRate) return '—<span class="flag">fleet count incomplete</span>'; if(ay<1) return '—'; const v=1000*k/ay, [lo,hi]=pci(k).map(x=>1000*x/ay);
     return `${v.toFixed(2)}<span class="ci">${lo.toFixed(2)}–${hi.toFixed(2)}</span>${k<10?'<span class="flag">small sample</span>':''}`; };
   const pct=(a,b)=> b? Math.round(100*a/b)+'%' : '—';
   const rows=[
@@ -666,9 +782,9 @@ function renderSummary(){
     ['Fatal accidents', d=>`${d.f.toLocaleString()} <span class="ci">${pct(d.f,d.n)} of accidents</span>`, '', 'fshare'],
     ['Fatalities', d=>d.deaths.toLocaleString()],
     ['Serious-injury accidents', d=>d.s.toLocaleString()],
-    ['Avg. registered fleet', d=>Math.round(d.fleet).toLocaleString()],
-    ['Accidents per 1,000 registered aircraft-years', d=>rate(d.n,d.ay), 'key', 'rate'],
-    ['Fatal accidents per 1,000 registered aircraft-years', d=>rate(d.f,d.ay), 'key', 'frate'],
+    ['Avg. registered fleet', d=>d.noRate?'—':Math.round(d.fleet).toLocaleString()],
+    ['Accidents per 1,000 registered aircraft-years', d=>rate(d.n,d.ay,d), 'key', 'rate'],
+    ['Fatal accidents per 1,000 registered aircraft-years', d=>rate(d.f,d.ay,d), 'key', 'frate'],
     ['Instructional share of accidents', d=>pct(d.inst,d.purN), '', 'inst'],
   ];
   $('sumTable').innerHTML=`<thead><tr><th></th>${th}</tr></thead><tbody>`+
@@ -677,9 +793,17 @@ function renderSummary(){
   const fr=dataFrac(), e=ntsbEnd(), endTxt=`${String(e.getUTCDate()).padStart(2,'0')}-${MON[e.getUTCMonth()+1]}-${e.getUTCFullYear()}`;
   const partial = (st.y1===lastYear() && fr<0.999) ? ` ${st.y1} counts as ${Math.round(fr*100)}% of a year (data through ${endTxt}).` : '';
   const derived = st.y0<2008 ? ' Years before 2008 use derived categories.' : '';
-  const allB = sides.some(s=>!s.startsWith('f:')) ? ' "All types", "all singles" and "all twins" cover the model families this app lists for that brand (ag aircraft and antiques/warbirds are not included); the Cessna 336/337 (centerline thrust) counts as a twin.'+(sides.some(s=>s.slice(2)===ALL)?` "All pistons" sums those lists across all ${BRANDS.length} brands in the app (${BRANDS.join(', ')}); it is not the whole US piston fleet.`:'') : '';
-  $('sumNote').innerHTML=`${yrs}, ${pur}. Rates are per registered aircraft, not per flight hour: a type used heavily for training will look worse than an owner-flown type with the same per-hour risk. Grey figures are the 95% range.${partial}${derived}${allB}`;
+  const grp = sides.some(x=>!x.startsWith('f:')) ? ' Group picks ("All …", or several types ticked together) add up the model families this app lists (ag aircraft, antiques/warbirds and turboprop twins are not included); the Cessna 336/337 (centerline thrust) counts as a twin. "All pistons" and "All turboprops" are those lists across every brand in the app, not the whole US fleet.' : '';
+  const tp = sides.some(selHasTP) ? ' Turboprops usually fly far more hours a year than piston singles, so a per-registered-aircraft rate overstates their risk per hour flown.' : '';
+  const jp = sides.some(x=>selFams(x).has(JETPROP_I)) ? ' JetPROP: most conversions still show their original piston engine on the FAA registry, so its fleet count is far too low and no rate is shown; in a group it inflates the rate slightly (and the Malibu/Mirage fleet includes those airframes).' : '';
+  const op = st.op==='91' ? '' : ' Part 135 accidents are counted against the whole registered fleet (the registry doesn’t say which airplanes fly for hire), so Part 135 rates read low.';
+  $('sumNote').innerHTML=`${yrs}, ${pur}, ${OPTXT[st.op]}. Rates are per registered aircraft, not per flight hour: a type used heavily for training will look worse than an owner-flown type with the same per-hour risk. Grey figures are the 95% range.${partial}${derived}${tp}${jp}${op}${grp}`;
+  $('sumSub').textContent=`${OPTXT[st.op].replace(/^./,c=>c.toUpperCase())} accidents, US-registered aircraft`;
 }
+const OPTXT={'91':'Part 91','135':'Part 135','all':'Part 91 and 135'};
+let JETPROP_I=-1;
+// a side made only of families whose registry count is known to be incomplete gets no rate
+function onlyNoRate(sel){ const f=selFams(sel); return f.size>0 && [...f].every(i=>i===JETPROP_I); }
 function pairedBars(el, keys, getLabel, countsA, countsB, totA, totB, clickFn, hl){
   if(!keys.length){ el.innerHTML='<div class="empty">No accidents match these filters.</div>'; return; }
   const max=Math.max(1e-9,...keys.map(k=>Math.max(totA?(countsA[k]||0)/totA:0, totB?(countsB[k]||0)/totB:0)));
@@ -741,7 +865,7 @@ function renderTrend(){
   const years=[]; for(let y=st.y0;y<=st.y1;y++) years.push(y);
   const last=lastYear(), sels=[st.a,st.b];
   const series=sels.map(sel=>{
-    if(!sel) return null;
+    if(!sel || onlyNoRate(sel)) return null;
     const cnt={}; for(const r of rowsFor(sel)) if(st.trM==='all'||r[C.inj]===3) cnt[r[C.y]]=(cnt[r[C.y]]||0)+1;
     return years.map(y=>{
       let k=0, ay=0; const h=(st.trS-1)/2;
@@ -923,6 +1047,8 @@ function ntsbLinks(n){
 const PRESETS = [
   {id:'singles-twins', a:'All:singles', b:'All:twins', label:'All singles vs all twins',
    hook:'The big picture: how does the piston-twin accident record differ from the singles’?'},
+  {id:'pistons-turboprops', a:'All:singles', b:'All:turboprops', label:'Piston singles vs turboprops',
+   hook:'Moving up: how does the single-engine turboprop record differ from the piston singles’?'},
   {id:'seneca-baron', a:'Piper PA-34 Seneca', b:'Beech Baron 55/58', label:'Piper Seneca vs Beech Baron',
    hook:'Two popular light piston twins.'},
   {id:'beech-cirrus', a:'Beech:singles', b:'Cirrus:*', label:'All Beech singles vs all Cirrus',
@@ -931,6 +1057,10 @@ const PRESETS = [
    hook:'Same airframe, normally aspirated vs turbocharged.'},
   {id:'c172-pa28', a:'Cessna 172', b:'Piper PA-28 Cherokee/Warrior/Archer', label:'Cessna 172 vs Piper PA-28',
    hook:'The two classic trainers: same mission, high wing vs low wing.'},
+  {id:'malibu-m600', a:'Piper PA-46 Malibu/Mirage', b:'Piper PA-46 Meridian/M500/M600/M700', label:'PA-46 piston vs turbine',
+   hook:'The same basic airframe: Malibu/Mirage piston vs the PT6 Meridian, M500, M600 and M700.'},
+  {id:'tbm-pc12', a:'Daher:*', b:'Pilatus PC-12', label:'All TBMs vs PC-12',
+   hook:'Two pressurized turboprop singles flown in different ways; try the Part 135 filter too.'},
   {id:'default', a:'Diamond DA40', b:'Cirrus SR20', label:'Back to the default', reset:true,
    hook:'Diamond DA40 vs Cirrus SR20, with all settings back to their defaults.'},
 ];
@@ -951,7 +1081,7 @@ function computeHL(){
   const yrsN=st.y1-st.y0+1; HL.fleet=[ayA/yrsN, ayB/yrsN];  // context row (same figure as section 2), never bolded or flagged
   const fA=A.filter(r=>r[C.inj]===3).length, fB=B.filter(r=>r[C.inj]===3).length;
   const r2=(k,ay)=>(1000*k/ay).toFixed(2), pc=(a,b)=>Math.round(100*a/b)+'%';
-  if(ayA>=1 && ayB>=1){
+  if(ayA>=1 && ayB>=1 && !onlyNoRate(st.a) && !onlyNoRate(st.b)){
     let z=zRate(A.length,ayA,B.length,ayB);
     if(Math.abs(z)>=HL_Z && A.length+B.length>=HL_MIN) sum.push({sec:2,k:'rate',z,t:'Accidents per 1,000 aircraft-years',va:r2(A.length,ayA),vb:r2(B.length,ayB)});
     z=zRate(fA,ayA,fB,ayB);
@@ -993,12 +1123,12 @@ function matchPreset(){ const m=PRESETS.find(x=>!x.reset && selFromName(x.a)===s
 function applyPreset(id){
   const p=PRESETS.find(x=>x.id===id); if(!p) return;
   if(p.reset){  // "Back to the default": the app's opening state, no highlights
-    Object.assign(st,{preset:null, coHidden:false, hlOff:false, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all',
+    Object.assign(st,{preset:null, coHidden:false, hlOff:false, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all', op:'91',
       sev:'all', sevPh:'all', trM:'all', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25});
     syncControls(); update(); return;
   }
   st.preset=id; st.coHidden=false; st.hlOff=false; st.a=selFromName(p.a); st.b=selFromName(p.b);
-  st.y0=2000; st.y1=lastYear(); st.pur='all'; st.sev='all'; st.sevPh='all'; st.cat=null; st.shown=25;
+  st.y0=2000; st.y1=lastYear(); st.pur='all'; st.op='91'; st.sev='all'; st.sevPh='all'; st.cat=null; st.shown=25;
   if(st.recent==='b' && !st.b) st.recent='both';
   syncControls(); update();
 }
@@ -1014,7 +1144,7 @@ function renderPresets(){
   const rows=HL.items.map(x=>{ const a=num(x.va), b=num(x.vb);  // lower = bold (safety emphasis)
     return `<tr><td><button type="button" data-sec="${x.sec}" aria-label="${esc(x.t)}: go to section ${x.sec}">${esc(x.t)} ↓</button>${SUB[x.sec]?`<small>${SUB[x.sec]}</small>`:''}</td><td class="${a<b?'lo':''}">${x.va}</td><td class="${b<a?'lo':''}">${x.vb}</td></tr>`; }).join('');
   const fleetRow=HL.fleet?`<tr class="ctx"><td><button type="button" data-sec="2" aria-label="Average registered fleet: go to section 2">Avg. registered fleet ↓</button><small>context for the rates below</small></td><td>${Math.round(HL.fleet[0]).toLocaleString()}</td><td>${Math.round(HL.fleet[1]).toLocaleString()}</td></tr>`:'';
-  const yrs=`${st.y0}–${st.y1}${st.pur==='all'?'':', '+PUR[+st.pur].toLowerCase()+' only'}`;
+  const yrs=`${st.y0}–${st.y1}${st.pur==='all'?'':', '+PUR[+st.pur].toLowerCase()+' only'}${st.op==='91'?'':', '+OPTXT[st.op]}`;
   $('callout').innerHTML=`<div class="callout" role="status"><button type="button" class="co-x" aria-label="Hide this box (highlights stay)">×</button>
     <h3>What stands out · ${yrs}</h3>
     ${p?`<p class="hook">${esc(p.hook)}</p>`:''}
@@ -1026,7 +1156,7 @@ function shareComparison(){
   writeHash();
   const url='https://piston-ga-stats.netlify.app/'+location.hash;
   const names=[st.a,st.b].filter(Boolean).map(selLabel).join(' vs ');
-  const title=`Piston GA Stats: ${names} (${st.y0}\u2013${st.y1})`;
+  const title=`GA Accident Stats: ${names} (${st.y0}\u2013${st.y1})`;
   const text=`NTSB accident comparison, ${names}, ${st.y0}\u2013${st.y1}.`;
   const lab=$('shareCmpBtn').querySelector('span'), orig=lab.innerHTML, msg=$('shareCmpMsg');
   const say=t=>{ lab.textContent=t; msg.textContent=t; setTimeout(()=>{ lab.innerHTML=orig; msg.textContent=''; },2200); };
@@ -1040,18 +1170,20 @@ function shareComparison(){
   })();
 }
 function update(){
-  writeHash();
+  writeHash(); pickBtnText('A'); pickBtnText('B'); if(st.pick) renderPick();
   computeHL(); renderPresets();
   renderSummary(); renderCats(); renderPhases(); renderSeverity(); renderTrend(); renderReg(); renderFindings(); renderRecent();
 }
 
 fetch('data/accidents.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).then(d=>{
   M=d.meta; R=d.rows; FAMS=M.fams; BRANDS=[...new Set(FAMS.map(f=>f[0]))].sort();
+  JETPROP_I=FAMS.findIndex(f=>f[0]==='Piper'&&f[1]==='PA-46 JetPROP');
+  if(R.length && R[0].length<=C.pt) R.forEach(r=>r[C.pt]=0);  // data built before v0.18: all Part 91
   st.a=selFromName('Diamond DA40'); st.b=selFromName('Cirrus SR20'); st.y0=2000; st.y1=lastYear();
   readHash();
   buildControls(); syncControls();
   const fmt=s=>{ const [y,m,dd]=s.split('-'); return `${dd}-${MON[+m]}-${y}`; };
-  $('dataNote').innerHTML=`<b>${R.length.toLocaleString()}</b> accidents, 1982 to date. NTSB data as of ${fmt(M.ntsbAsOf)}; FAA registry as of ${fmt(M.regAsOf)}. Each brand's list ends with "All … types"; the brand list ends with "All pistons" (every brand in the app, with all types, singles or twins). All your settings are saved in the page link, so you can bookmark this comparison or share it.`;
+  $('dataNote').innerHTML=`<b>${R.length.toLocaleString()}</b> accidents, 1982 to date. NTSB data as of ${fmt(M.ntsbAsOf)}; FAA registry as of ${fmt(M.regAsOf)}. Tap Type A or Type B to tick one type or several (they are added together), or a group such as All pistons or All turboprops. All your settings are saved in the page link, so you can bookmark this comparison or share it.`;
   $('loading').hidden=true; $('app').hidden=false;
   update();
 }).catch(err=>{
