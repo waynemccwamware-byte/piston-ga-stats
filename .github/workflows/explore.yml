@@ -1,0 +1,45 @@
+# One-off data probe for the turboprop additions (03-Nov-2026). Runs only on pushes to the turboprop-explore
+# branch, never on main, and commits its reports to explore-out/ on that branch. Delete with the branch.
+name: Turboprop data probe
+on:
+  push:
+    branches: [turboprop-explore]
+    paths: [build/explore_turboprop.py, .github/workflows/explore.yml]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      NTSB: https://data.ntsb.gov/avdata/FileDirectory/DownloadFile?fileID=C%3A%5Cavdata%5C
+      FAA_URL: https://registry.faa.gov/database/ReleasableAircraft.zip
+      UA: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq mdbtools
+      - id: pre
+        uses: actions/cache/restore@v5
+        with: { path: raw/Pre2008.zip, key: ntsb-pre2008-v1 }
+      - if: steps.pre.outputs.cache-hit != 'true'
+        run: mkdir -p raw && curl -fL --retry 3 --retry-delay 20 -A "$UA" -o raw/Pre2008.zip "${NTSB}Pre2008.zip"
+      - run: mkdir -p raw && curl -fL --retry 3 --retry-delay 20 -A "$UA" -o raw/avall.zip "${NTSB}avall.zip"
+      - id: faa
+        continue-on-error: true
+        run: curl -fL --retry 3 --retry-delay 20 -A "$UA" -o raw/ReleasableAircraft.zip "$FAA_URL"
+      - if: steps.faa.outcome != 'success'
+        uses: actions/cache/restore@v5
+        with: { path: raw/ReleasableAircraft.zip, key: faa-registry-none, restore-keys: faa-registry- }
+      - name: Unpack and export
+        run: |
+          D=$HOME/data; mkdir -p $D/ntsb/csv $D/pre/csv $D/reg work
+          unzip -o -q raw/avall.zip -d work; unzip -o -q raw/Pre2008.zip -d work
+          unzip -o -q raw/ReleasableAircraft.zip MASTER.txt DEREG.txt ACFTREF.txt ENGINE.txt -d $D/reg || unzip -o -q raw/ReleasableAircraft.zip MASTER.txt DEREG.txt ACFTREF.txt -d $D/reg
+          for t in events aircraft engines; do mdb-export work/avall.mdb $t > $D/ntsb/csv/$t.csv; done
+          for t in events aircraft engines; do mdb-export work/Pre2008.mdb $t > $D/pre/csv/$t.csv; done
+      - run: python3 build/explore_turboprop.py explore-out
+      - name: Commit reports to this branch
+        run: |
+          git config user.name "piston-ga-stats data bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add explore-out && git commit -m "Turboprop probe reports" && git push
