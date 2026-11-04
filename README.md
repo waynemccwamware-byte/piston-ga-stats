@@ -64,3 +64,6 @@ Pan/zoom (v0.26): the view is kept in data space and the chart redrawn (no CSS s
 Safari Mac trackpad via gesture events), Ctrl/Cmd + wheel, or the − + Reset buttons; drag pans once zoomed. Up to
 25×, clamped to the full view. One finger scrolls the page until zoomed (touch-action pan-y, then none). A change
 of category, measure or filters returns to the full view; picking types keeps it. Zoom is not saved in the link.
+Labels (v0.30): Types A and B always; once zoomed in, every dot, like the Airports Visited map. Each label tries
+right, left, above, then below its dot and is skipped if it would overlap another label, a dot or the plot edge, so
+more names appear as you zoom.

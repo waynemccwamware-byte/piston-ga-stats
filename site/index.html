@@ -269,6 +269,7 @@ svg.sf .sf-avg{ stroke:var(--text-primary); stroke-width:1; stroke-dasharray:6 4
 svg.sf .sf-avgt{ fill:var(--text-primary); opacity:.75; }
 svg.sf .sf-hit{ fill:transparent; cursor:pointer; }
 svg.sf .sf-lbl{ font:600 12px 'IBM Plex Sans',sans-serif; paint-order:stroke; stroke:var(--bg-panel); stroke-width:4px; stroke-linejoin:round; }
+svg.sf .sf-lbl2{ font:500 10.5px 'IBM Plex Mono',monospace; fill:var(--text-primary); opacity:.85; paint-order:stroke; stroke:var(--bg-panel); stroke-width:3.5px; stroke-linejoin:round; pointer-events:none; }
 svg.sf .sf-lbl-a{ fill:var(--series-a); } svg.sf .sf-lbl-b{ fill:var(--series-b); }
 .sf-sw{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--text-muted); opacity:.8; margin-right:6px; vertical-align:-1px; }
 .sf-sw-o{ background:transparent; border:1.5px solid var(--text-muted); }
@@ -335,7 +336,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.29</span>
+    <span class="ver mono">v0.30</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -1333,7 +1334,7 @@ function renderSafety(){
   const filt=`${st.y0}–${st.y1}, ${st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()+' only'}, ${OPTXT[st.op]}`;
   const p91 = st.op==='91' && cat==='t' ? ' Part 91 only: airplanes that also fly charter stay in the fleet count but their Part 135 accidents drop out, so charter-heavy types (many PC-12s) read low.' : '';
   const reg = st.y0<2014 ? ' Registered counts before about 2011 include aircraft no longer flying, so early rates read low.' : '';
-  $('sfNote').innerHTML=`${filt}; ${pts.length} ${SF_CATS[cat][1]} types. Each dot is one type. The shaded band is where a type with the category’s average rate would land 95% of the time, given its fleet size; dashed lines are 99.8%. The band narrows to the right because bigger fleets give steadier rates: a dot outside it differs from the average by more than chance, while a small-fleet dot far from the line may still be inside. With fleets this large, even modest real differences pass the test. <b>Outside the funnel means different, not safer or less safe:</b> rates are per registered aircraft, not per flight hour, so types that fly many hours (training, charter) sit higher and lightly flown types (many antiques) sit lower, for reasons that are not about the airplane. The PA-46 JetPROP is left out (its fleet count is unreliable).${p91}${reg} Tap a dot for its numbers and to make it Type A or B. Zoom with a pinch, ⌘ or Ctrl + scroll, or the + and − buttons; once zoomed, drag to pan.`;
+  $('sfNote').innerHTML=`${filt}; ${pts.length} ${SF_CATS[cat][1]} types. Each dot is one type. The shaded band is where a type with the category’s average rate would land 95% of the time, given its fleet size; dashed lines are 99.8%. The band narrows to the right because bigger fleets give steadier rates: a dot outside it differs from the average by more than chance, while a small-fleet dot far from the line may still be inside. With fleets this large, even modest real differences pass the test. <b>Outside the funnel means different, not safer or less safe:</b> rates are per registered aircraft, not per flight hour, so types that fly many hours (training, charter) sit higher and lightly flown types (many antiques) sit lower, for reasons that are not about the airplane. The PA-46 JetPROP is left out (its fleet count is unreliable).${p91}${reg} Tap a dot for its numbers and to make it Type A or B. Zoom with a pinch, ⌘ or Ctrl + scroll, or the + and − buttons; once zoomed, drag to pan, and every type’s name appears wherever it fits.`;
 }
 function sfClick(e){
   if(sfMoved){ sfMoved=false; return; }
@@ -1375,6 +1376,30 @@ function sfXTicks(a, b){
 function sfStep(raw){ const m=10**Math.floor(Math.log10(raw)); return [1,2,2.5,5,10].map(x=>x*m).find(x=>x>=raw*0.999); }
 const sfFmt=(v,st)=>{ const d=st>=1?0:Math.min(4,(String(+st.toPrecision(3)).split('.')[1]||'').length); return v.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); };
 
+// Labels (v0.30): Types A and B always (when they are at most 3 types each); once zoomed in, every dot, like the
+// Airports Visited map. Each label tries right, left, above, then below its dot and is dropped if it would overlap a
+// label already placed, another dot or the plot edge, so more names appear as zooming spreads the dots apart.
+function sfLabels(shown, zoomed, lblA, lblB){
+  const L=SF_L, R=SF_W-SF_R, T=SF_T, Bt=SF_T+SF_PH, boxes=[], out=[];
+  const order=[...shown].sort((u,w)=>(({a:0,b:1}[u.r]??2)-({a:0,b:1}[w.r]??2)) || w.d.fleet-u.d.fleet);
+  const hitsDot=(b,self)=>shown.some(o=>o!==self && o.cx+o.rad>b.x0 && o.cx-o.rad<b.x1 && o.cy+o.rad>b.y0 && o.cy-o.rad<b.y1);
+  const hitsBox=b=>boxes.some(o=>b.x0<o.x1+2 && b.x1>o.x0-2 && b.y0<o.y1+1 && b.y1>o.y0-1);
+  for(const o of order){
+    const ab=!!o.r;
+    if(ab ? !(o.r==='a'?lblA:lblB) : !zoomed) continue;
+    const txt=FAMS[o.d.i][1], w=txt.length*(ab?6.9:6.3), h=ab?12:11, g=o.rad+4;
+    const cands=[['start',o.cx+g,o.cy+4],['end',o.cx-g,o.cy+4],['middle',o.cx,o.cy-g-1],['middle',o.cx,o.cy+g+h-2]];
+    for(const [anc,x,y] of cands){
+      const x0=anc==='start'?x:anc==='end'?x-w:x-w/2, b={x0, x1:x0+w, y0:y-h+2, y1:y+2};
+      if(b.x0<L+2 || b.x1>R-2 || b.y0<T || b.y1>Bt) continue;
+      if(hitsBox(b) || hitsDot(b,o)) continue;
+      boxes.push(b);
+      out.push(`<text class="${ab?'sf-lbl sf-lbl-'+o.r:'sf-lbl2'}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anc}">${esc(txt)}</text>`);
+      break;
+    }
+  }
+  return out.join('');
+}
 function sfDraw(){
   const svg=$('sfChart'), {pts, p, years, cat, A, B, dom}=SF; if(!dom){ sfZoomBtns(); return; }
   const v=SF.view||dom, zoomed=!!SF.view, ml=SF.meas.toLowerCase();
@@ -1404,7 +1429,7 @@ function sfDraw(){
   const avg=1000*p, avgIn = avg>=v.y0 && avg<=v.y1;
   if(avgIn) g+=`<line class="sf-avg" x1="${L}" x2="${W-Rm}" y1="${Y(avg)}" y2="${Y(avg)}"/><text class="axis sf-avgt" x="${L+6}" y="${Math.min(T+ph-4, Y(avg)+15)}">${SF_CATS[cat][1]} average ${avg.toFixed(2)}</text>`;
   const rk=i=>({a:2,b:1}[role(i)]||0), inCat=S=>[...S].filter(i=>pts.some(d=>d.i===i)).length;
-  const lblA=inCat(A)<=3, lblB=inCat(B)<=3, hits=[];
+  const lblA=inCat(A)<=3, lblB=inCat(B)<=3, hits=[], shown=[];
   for(const d of [...pts].sort((u,w)=>rk(u.i)-rk(w.i))){
     if(!inX(d.fleet)) continue;
     const r=role(d.i), cx=X(d.fleet), top=!zoomed && d.rate>v.y1;    // full view only: off-scale marker at the top
@@ -1414,11 +1439,10 @@ function sfDraw(){
     const tt=esc(`${FAMS[d.i].join(' ')}: ${d.rate.toFixed(2)} (${d.k} ${ml}, fleet ${Math.round(d.fleet).toLocaleString()})${top?', off scale':''}`);
     g+= top ? `<path d="M${cx-rad},${T+rad*1.6}L${cx},${T}L${cx+rad},${T+rad*1.6}Z" fill="${fill}" stroke="${col}" stroke-width="1.5" opacity="${op}"><title>${tt}</title></path>`
             : `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="${fill}" stroke="${col}" stroke-width="1.5" opacity="${op}"><title>${tt}</title></circle>`;
-    if(r && (r==='a'?lblA:lblB)){ const right=cx>W-Rm-150;
-      g+=`<text class="sf-lbl sf-lbl-${r}" x="${cx+(right?-11:11)}" y="${(top?T+12:cy)+4}" text-anchor="${right?'end':'start'}">${esc(FAMS[d.i][1])}</text>`; }
+    shown.push({d, r, cx, cy, rad});
     hits.push(`<circle class="sf-hit" data-i="${d.i}" cx="${cx}" cy="${cy}" r="12"/>`);
   }
-  g+=hits.join('')+'</g>';
+  g+=sfLabels(shown, zoomed, lblA, lblB)+hits.join('')+'</g>';
   svg.innerHTML=g;
   svg.style.touchAction = zoomed ? 'none' : 'pan-y';   // zoomed: one finger pans the chart; otherwise it scrolls the page
   svg.classList.toggle('sf-zoomed', zoomed);
