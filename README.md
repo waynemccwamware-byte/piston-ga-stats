@@ -74,3 +74,8 @@ the Order's model lists; e.g. Baron 55/58 -> BE55, 210 -> T210, 401-421 -> C402)
 registry calls every TBM a 700, so year built splits it (2006 on = 850, 2014 on = 900 series); 700 and 850 tie, label
 TBM7. Shared designators as in the Order: 172 Hawk XP = C172, DA40 NG = DA40. JetPROP = P46T (JETPROP DLX).
 If families change in build/families.py, update SF_DES to match.
+Full view (v0.32): "Open full view ↗" opens the same page with `view=funnel` in its own window (re-clicking reloads
+that window with the new settings). In that mode (`body.fv`) only section 3 shows, the chart is drawn at the window's
+own size (1 SVG unit = 1 CSS px, redrawn on resize/rotation), and a top bar gives what's shown, Full screen (only
+where the browser allows it for a page element; not on iPhone) and Close (or "Full page" when opened from a link).
+The window's link carries `sm=all` when needed; changes made there don't touch the page that opened it.

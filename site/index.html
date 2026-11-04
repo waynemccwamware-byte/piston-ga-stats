@@ -284,6 +284,25 @@ svg.sf .sf-lbl-a{ fill:var(--series-a); } svg.sf .sf-lbl-b{ fill:var(--series-b)
 .sf-pop .sf-x{ position:absolute; top:4px; right:6px; background:none; border:0; color:var(--text-muted); font-size:18px; cursor:pointer; }
 .sf-n-a{ color:var(--series-a); font-weight:600; } .sf-n-b{ color:var(--series-b); font-weight:600; }
 .sf-warn{ color:var(--amber); }
+/* v0.32: "Open full view" opens #...&view=funnel in its own window: only this section, filling the window */
+.sf-open{ padding:6px 10px; font-size:12px; margin-left:auto; }
+.sf-fvbar{ display:none; }
+.sf-more > summary{ display:none; }
+body.fv{ padding:0; min-height:0; }
+body.fv .rig{ max-width:none; }
+body.fv .rig > :not(#panel), body.fv #loading ~ #app > :not(#secSafe), body.fv #hSafe, body.fv .sf-open{ display:none !important; }
+body.fv .panel{ border:0; padding:0; background:none; border-radius:0; }
+body.fv #secSafe{ margin:0; border:0; border-radius:0; height:100vh; height:100dvh; display:flex; flex-direction:column; padding:10px 12px calc(8px + env(safe-area-inset-bottom,0px)); background:var(--bg-panel); }
+body.fv #secSafe:fullscreen{ height:100vh; }
+body.fv .sf-fvbar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; font-size:13.5px; }
+body.fv .sf-fvwhat{ color:var(--text-muted); font-size:12px; }
+body.fv .sf-fvbtns{ margin-left:auto; display:flex; gap:6px; }
+body.fv .sf-fvbtns .btn{ padding:5px 10px; font-size:12px; }
+body.fv #sfWrap{ flex:1 1 0; min-height:200px; overflow:hidden; }
+body.fv #sfChart{ position:absolute; inset:0; width:100%; }
+body.fv #sfChart{ height:100%; }
+body.fv .sf-more{ flex:0 0 auto; max-height:40vh; overflow:auto; margin-top:6px; }
+body.fv .sf-more > summary{ display:list-item; cursor:pointer; font-size:12px; color:var(--text-muted); padding:4px 0; }
 #sfZoom button{ min-width:34px; font-size:14px; line-height:1; } #sfZoom button[data-z=reset]{ font-size:12px; }
 #sfZoom button:disabled{ opacity:.35; cursor:default; }
 .sf-zl{ align-self:center; font-size:11.5px; color:var(--amber); }
@@ -337,7 +356,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.31</span>
+    <span class="ver mono">v0.32</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -410,7 +429,8 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
         <p class="note" id="sumNote"></p>
       </section>
 
-      <section class="step" aria-labelledby="hSafe">
+      <section class="step" id="secSafe" aria-labelledby="hSafe">
+        <div class="sf-fvbar" id="sfFvBar"><b>Safety within category</b><span class="sf-fvwhat" id="sfFvWhat"></span><span class="sf-fvbtns"><button type="button" class="btn" id="sfFs" hidden>⛶ Full screen</button><button type="button" class="btn" id="sfClose">Close</button></span></div>
         <h2 id="hSafe"><span class="num">3</span> Safety within category <span class="sub">every type in the category · rate vs fleet size</span></h2>
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <div class="seg" id="sfMeas" role="group" aria-label="Measure">
@@ -428,11 +448,14 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
             <button type="button" data-z="reset" disabled>Reset</button>
           </div>
           <span class="sf-zl mono" id="sfZoomLvl" aria-live="polite"></span>
+          <button type="button" class="btn sf-open" id="sfOpen" title="Open this chart on its own, sized to its window">Open full view ↗</button>
         </div>
         <div class="legend" id="legSf"></div>
         <div class="chart-wrap" id="sfWrap"><svg class="trend sf" id="sfChart" viewBox="0 0 700 340" role="img" aria-label="Accident rate against registered fleet, every type in the category"></svg><div class="sf-pop" id="sfPop" hidden></div></div>
+        <details class="sf-more" id="sfMore" open><summary>Below / above the funnel, and how to read it</summary>
         <div id="sfSum"></div>
         <p class="note" id="sfNote"></p>
+        </details>
       </section>
 
       <section class="step" aria-labelledby="h3">
@@ -604,7 +627,7 @@ const GG = {
 };
 const GG_ORDER=['all','p','t','ps','pm'];
 const hasBoth = b => { const k=FAMS.map((f,i)=>f[0]===b?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
-const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'fatal', sevPh:'fatal', trM:'fatal', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, sfM:'fatal', sfC:null, coHidden:false, hlOff:false };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'fatal', sevPh:'fatal', trM:'fatal', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, sfM:'fatal', sfC:null, view:null, coHidden:false, hlOff:false };
 const causeCache = {};
 const famSetCache = {};
 
@@ -703,6 +726,21 @@ function buildControls(){
   seg('sfCat', v=>{ st.sfC=v; });
   $('sfWrap').addEventListener('click', sfClick);
   sfBindGestures();
+  $('sfOpen').addEventListener('click', sfOpenFull);
+  if(st.view==='funnel'){
+    const el=$('secSafe'), req=el.requestFullscreen||el.webkitRequestFullscreen;
+    const isFs=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+    if(req && (document.fullscreenEnabled||document.webkitFullscreenEnabled)){ $('sfFs').hidden=false;
+      $('sfFs').addEventListener('click',()=>{ if(isFs()) (document.exitFullscreen||document.webkitExitFullscreen).call(document); else req.call(el); });
+      const lab=()=>{ $('sfFs').textContent = isFs() ? 'Exit full screen' : '⛶ Full screen'; };
+      document.addEventListener('fullscreenchange',lab); document.addEventListener('webkitfullscreenchange',lab); }
+    // Close works for a window this page opened; a full-view link opened some other way goes to the full page instead
+    if(!window.opener){ $('sfClose').textContent='Full page'; $('sfClose').addEventListener('click',()=>{ st.view=null; writeHash(); location.reload(); }); }
+    else $('sfClose').addEventListener('click',()=>window.close());
+    let rt=0; const re=()=>{ clearTimeout(rt); rt=setTimeout(()=>{ $('sfPop').hidden=true; sfDraw(); }, 60); };
+    addEventListener('resize', re); addEventListener('orientationchange', re);
+    if(window.visualViewport) visualViewport.addEventListener('resize', re);
+  }
   $('moreBtn').addEventListener('click',()=>{ st.shown+=25; renderRecent(); });
   $('shareCmpBtn').addEventListener('click', shareComparison);
   // picker panel: one panel, shown under the two type buttons for whichever side is open
@@ -821,6 +859,8 @@ function readHash(){
   // v0.29: every All/Fatal toggle (sections 3, 4, 5, 7) opens on Fatal and is not kept in the link
   // v0.28: section 3's measure always opens on Fatal accidents; it is not kept in the link
   if (['ps','pm','t'].includes(p.get('sc'))) st.sfC=p.get('sc');
+  // v0.32: full view (its own window). The window that opens it hands over the measure too (sm), for that window only.
+  if (p.get('view')==='funnel'){ st.view='funnel'; if (p.get('sm')==='all') st.sfM='all'; }
   if (p.get('ts')==='1') st.trS=1;
   if (p.get('rm')==='new') st.rgM='new';
   if (p.get('rs')==='1') st.rgS=1;
@@ -842,6 +882,7 @@ function writeHash(){
   if (st.recent!=='both') p.set('r',st.recent);
   if (st.cat) p.set('c',st.cat);
   if (st.sfC) p.set('sc',st.sfC);
+  if (st.view){ p.set('view',st.view); if (st.sfM==='all') p.set('sm','all'); }
   history.replaceState(null,'','#'+p.toString());
 }
 
@@ -1307,11 +1348,21 @@ function sfData(cat){
 // dots stay sharp and the axes relabel. SF.dom is the full view; SF.view is null until you zoom. A change of
 // category, measure or filters goes back to the full view; picking types keeps the zoom.
 let SF = {pts:[], meas:'', key:'', dom:null, view:null, p:0, years:1, cat:'ps', A:new Set(), B:new Set()};
-const SF_W=700, SF_H=340, SF_L=50, SF_R=14, SF_T=14, SF_B=44, SF_PW=SF_W-SF_L-SF_R, SF_PH=SF_H-SF_T-SF_B, SF_MAXZ=25;
+let SF_W=700, SF_H=340, SF_PW=0, SF_PH=0; const SF_L=50, SF_R=14, SF_T=14, SF_B=44, SF_MAXZ=25;
+function sfDims(){
+  if(st.view==='funnel'){ const w=$('sfWrap'); SF_W=Math.max(320, Math.round(w.clientWidth)); SF_H=Math.max(200, Math.round(w.clientHeight)); }
+  else { SF_W=700; SF_H=340; }
+  SF_PW=SF_W-SF_L-SF_R; SF_PH=SF_H-SF_T-SF_B; $('sfChart').setAttribute('viewBox', `0 0 ${SF_W} ${SF_H}`);
+}
+sfDims();
 function renderSafety(){
   const cat=sfCat(), {pts, p, years}=sfData(cat), A=selFams(st.a), B=selFams(st.b);
   setSeg('sfCat', cat); $('sfPop').hidden=true;
   const meas = st.sfM==='fatal' ? 'Fatal accidents' : 'Accidents', ml=meas.toLowerCase();
+  if(st.view==='funnel'){
+    const what=`${selShort(st.a)}${st.b?' vs '+selShort(st.b):''} · ${SF_CATS[cat][0].toLowerCase()} · ${st.y0}–${st.y1} · ${st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()} · ${OPTXT[st.op]}`;
+    $('sfFvWhat').textContent=what; document.title='Safety within category: '+selShort(st.a)+(st.b?' vs '+selShort(st.b):'');
+  }
   const key=[cat,st.sfM,st.y0,st.y1,st.pur,st.op].join('|');
   const role = i => A.has(i) ? 'a' : B.has(i) ? 'b' : '', inCat=S=>[...S].filter(i=>pts.some(d=>d.i===i)).length;
   legend('legSf');
@@ -1337,6 +1388,16 @@ function renderSafety(){
   const reg = st.y0<2014 ? ' Registered counts before about 2011 include aircraft no longer flying, so early rates read low.' : '';
   $('sfNote').innerHTML=`${filt}; ${pts.length} ${SF_CATS[cat][1]} types. Each dot is one type. The shaded band is where a type with the category’s average rate would land 95% of the time, given its fleet size; dashed lines are 99.8%. The band narrows to the right because bigger fleets give steadier rates: a dot outside it differs from the average by more than chance, while a small-fleet dot far from the line may still be inside. With fleets this large, even modest real differences pass the test. <b>Outside the funnel means different, not safer or less safe:</b> rates are per registered aircraft, not per flight hour, so types that fly many hours (training, charter) sit higher and lightly flown types (many antiques) sit lower, for reasons that are not about the airplane. The PA-46 JetPROP is left out (its fleet count is unreliable).${p91}${reg} Tap a dot for its numbers and to make it Type A or B. Zoom with a pinch, ⌘ or Ctrl + scroll, or the + and − buttons; once zoomed, drag to pan, and every type gets a label wherever it fits: its ICAO type designator (FAA Order JO 7360.1K; a type that spans several shows its most common one, and the popup lists them all).`;
 }
+let sfWin=null;
+function sfOpenFull(){
+  writeHash();
+  const p=new URLSearchParams(location.hash.slice(1)); p.delete('pair'); p.set('view','funnel');
+  if(st.sfM==='all') p.set('sm','all'); if(!st.sfC) p.set('sc', sfCat());
+  const url=location.pathname+'#'+p.toString();
+  if(sfWin && !sfWin.closed){ sfWin.location.replace(url); sfWin.location.reload(); sfWin.focus(); return; }
+  const w=Math.min(1400, Math.round(screen.availWidth*0.85)), h=Math.min(900, Math.round(screen.availHeight*0.85));
+  sfWin=window.open(url, '_blank', `popup=yes,width=${w},height=${h}`);
+}
 function sfClick(e){
   if(sfMoved){ sfMoved=false; return; }
   const pop=$('sfPop');
@@ -1360,10 +1421,10 @@ function sfClick(e){
     <div class="sf-v">${v}</div>
     <div class="sf-btns"><button type="button" class="btn" data-set="a">Set as Type A</button><button type="button" class="btn" data-set="b">Set as Type B</button></div>`;
   pop.dataset.i=i; pop.hidden=false;
-  const wrap=$('sfWrap'), s=$('sfChart').getBoundingClientRect().width/700, cx=+hit.getAttribute('cx')*s, cy=+hit.getAttribute('cy')*s;
+  const wrap=$('sfWrap'), s=$('sfChart').getBoundingClientRect().width/SF_W, cx=+hit.getAttribute('cx')*s, cy=+hit.getAttribute('cy')*s;
   const w=Math.min(260, wrap.clientWidth-8);
   pop.style.width=w+'px'; pop.style.left=Math.max(4, Math.min(cx-w/2, wrap.clientWidth-w-4))+'px';
-  pop.style.top=(cy>170*s ? cy-pop.offsetHeight-14 : cy+14)+'px';
+  pop.style.top=(cy>SF_H/2*s ? cy-pop.offsetHeight-14 : cy+14)+'px';
 }
 // Ticks for the current view. x (log10 fleet): 1-3, then 1-2-5, then every integer multiple, then plain linear steps
 function sfXTicks(a, b){
@@ -1411,6 +1472,7 @@ function sfLabels(shown, zoomed, lblA, lblB){
 function sfDraw(){
   const svg=$('sfChart'), {pts, p, years, cat, A, B, dom}=SF; if(!dom){ sfZoomBtns(); return; }
   const v=SF.view||dom, zoomed=!!SF.view, ml=SF.meas.toLowerCase();
+  sfDims();
   const W=SF_W, H=SF_H, L=SF_L, Rm=SF_R, T=SF_T, pw=SF_PW, ph=SF_PH;
   const X=f=>L+pw*(Math.log10(f)-v.x0)/(v.x1-v.x0), Y=r=>T+ph*(1-(r-v.y0)/(v.y1-v.y0));
   const inX=f=>{ const l=Math.log10(f); return l>=v.x0-1e-9 && l<=v.x1+1e-9; };
@@ -1550,6 +1612,7 @@ fetch('data/accidents.json').then(r=>{ if(!r.ok) throw new Error(r.status); retu
   if(R.length && R[0].length<=C.pt) R.forEach(r=>r[C.pt]=0);  // data built before v0.18: all Part 91
   st.a=selFromName('Diamond DA40'); st.b=selFromName('Cirrus SR20'); st.y0=2000; st.y1=lastYear();
   readHash();
+  if(st.view==='funnel'){ document.body.classList.add('fv'); $('sfMore').open=false; }
   buildControls(); syncControls();
   const fmt=s=>{ const [y,m,dd]=s.split('-'); return `${dd}-${MON[+m]}-${y}`; };
   $('dataNote').innerHTML=`<b>${R.length.toLocaleString()}</b> accidents, 1982 to date. NTSB data as of ${fmt(M.ntsbAsOf)}; FAA registry as of ${fmt(M.regAsOf)}. Tap Type A or Type B to tick one type or several (they are added together), or a group such as All pistons or All turboprops. All your settings are saved in the page link, so you can bookmark this comparison or share it.`;
