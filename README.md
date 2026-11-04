@@ -67,3 +67,10 @@ of category, measure or filters returns to the full view; picking types keeps it
 Labels (v0.30): Types A and B always; once zoomed in, every dot, like the Airports Visited map. Each label tries
 right, left, above, then below its dot and is skipped if it would overlap another label, a dot or the plot edge, so
 more names appear as you zoom.
+Type designators (v0.31): when zoomed, types other than A and B are labeled by ICAO type designator (`SF_DES` in
+index.html), checked against FAA Order JO 7360.1K (issued 10-Apr-2025) by reading the Order's PDF tables. A family
+spanning several designators is labeled with the one most common in its own accident records (model text mapped by
+the Order's model lists; e.g. Baron 55/58 -> BE55, 210 -> T210, 401-421 -> C402); the popup lists them all. TBM: the
+registry calls every TBM a 700, so year built splits it (2006 on = 850, 2014 on = 900 series); 700 and 850 tie, label
+TBM7. Shared designators as in the Order: 172 Hawk XP = C172, DA40 NG = DA40. JetPROP = P46T (JETPROP DLX).
+If families change in build/families.py, update SF_DES to match.

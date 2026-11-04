@@ -277,6 +277,7 @@ svg.sf .sf-lbl-a{ fill:var(--series-a); } svg.sf .sf-lbl-b{ fill:var(--series-b)
 .sf-pop b{ font-family:'IBM Plex Mono',monospace; font-weight:500; }
 .sf-pop .sf-pt{ font-weight:600; font-size:13.5px; margin:0 18px 4px 0; }
 .sf-pop .sf-ci{ color:var(--text-muted); font-size:11.5px; }
+.sf-pop .sf-des{ color:var(--text-muted); font-size:11.5px; margin:-2px 0 4px; } .sf-pop .sf-des b{ color:var(--text-primary); }
 .sf-pop .sf-v{ color:var(--text-muted); margin-top:4px; }
 .sf-pop .sf-btns{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
 .sf-pop .sf-btns .btn{ padding:5px 9px; font-size:12px; }
@@ -336,7 +337,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.30</span>
+    <span class="ver mono">v0.31</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -1334,7 +1335,7 @@ function renderSafety(){
   const filt=`${st.y0}–${st.y1}, ${st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()+' only'}, ${OPTXT[st.op]}`;
   const p91 = st.op==='91' && cat==='t' ? ' Part 91 only: airplanes that also fly charter stay in the fleet count but their Part 135 accidents drop out, so charter-heavy types (many PC-12s) read low.' : '';
   const reg = st.y0<2014 ? ' Registered counts before about 2011 include aircraft no longer flying, so early rates read low.' : '';
-  $('sfNote').innerHTML=`${filt}; ${pts.length} ${SF_CATS[cat][1]} types. Each dot is one type. The shaded band is where a type with the category’s average rate would land 95% of the time, given its fleet size; dashed lines are 99.8%. The band narrows to the right because bigger fleets give steadier rates: a dot outside it differs from the average by more than chance, while a small-fleet dot far from the line may still be inside. With fleets this large, even modest real differences pass the test. <b>Outside the funnel means different, not safer or less safe:</b> rates are per registered aircraft, not per flight hour, so types that fly many hours (training, charter) sit higher and lightly flown types (many antiques) sit lower, for reasons that are not about the airplane. The PA-46 JetPROP is left out (its fleet count is unreliable).${p91}${reg} Tap a dot for its numbers and to make it Type A or B. Zoom with a pinch, ⌘ or Ctrl + scroll, or the + and − buttons; once zoomed, drag to pan, and every type’s name appears wherever it fits.`;
+  $('sfNote').innerHTML=`${filt}; ${pts.length} ${SF_CATS[cat][1]} types. Each dot is one type. The shaded band is where a type with the category’s average rate would land 95% of the time, given its fleet size; dashed lines are 99.8%. The band narrows to the right because bigger fleets give steadier rates: a dot outside it differs from the average by more than chance, while a small-fleet dot far from the line may still be inside. With fleets this large, even modest real differences pass the test. <b>Outside the funnel means different, not safer or less safe:</b> rates are per registered aircraft, not per flight hour, so types that fly many hours (training, charter) sit higher and lightly flown types (many antiques) sit lower, for reasons that are not about the airplane. The PA-46 JetPROP is left out (its fleet count is unreliable).${p91}${reg} Tap a dot for its numbers and to make it Type A or B. Zoom with a pinch, ⌘ or Ctrl + scroll, or the + and − buttons; once zoomed, drag to pan, and every type gets a label wherever it fits: its ICAO type designator (FAA Order JO 7360.1K; a type that spans several shows its most common one, and the popup lists them all).`;
 }
 function sfClick(e){
   if(sfMoved){ sfMoved=false; return; }
@@ -1353,6 +1354,7 @@ function sfClick(e){
           : 'Inside the funnel: not distinguishable from the category average.';
   pop.innerHTML=`<button type="button" class="sf-x" aria-label="Close">×</button>
     <div class="sf-pt">${esc(FAMS[i].join(' '))}</div>
+    ${sfDes(i).length?`<div class="sf-des">ICAO type designator${sfDes(i).length>1?'s':''} <b>${sfDes(i).join(' · ')}</b></div>`:''}
     <div>Avg. registered fleet <b>${Math.round(d.fleet).toLocaleString()}</b></div>
     <div>${SF.meas} <b>${d.k}</b> · <b>${d.rate.toFixed(2)}</b> per 1,000 <span class="sf-ci">(${lo.toFixed(2)}–${hi.toFixed(2)})</span>${d.k<SF_SMALL?' <span class="flag">small sample</span>':''}</div>
     <div class="sf-v">${v}</div>
@@ -1376,9 +1378,15 @@ function sfXTicks(a, b){
 function sfStep(raw){ const m=10**Math.floor(Math.log10(raw)); return [1,2,2.5,5,10].map(x=>x*m).find(x=>x>=raw*0.999); }
 const sfFmt=(v,st)=>{ const d=st>=1?0:Math.min(4,(String(+st.toPrecision(3)).split('.')[1]||'').length); return v.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); };
 
-// Labels (v0.30): Types A and B always (when they are at most 3 types each); once zoomed in, every dot, like the
+// Labels (v0.30): Types A and B always, by name (when they are at most 3 types each); once zoomed in, every other dot
+// by its ICAO type designator (v0.31), like the
 // Airports Visited map. Each label tries right, left, above, then below its dot and is dropped if it would overlap a
 // label already placed, another dot or the plot edge, so more names appear as zooming spreads the dots apart.
+// ICAO type designators for each family (v0.31), checked against FAA Order JO 7360.1K (issued 10-Apr-2025).
+// First one = the label: for a family spanning several, the most common in its own accident records
+// (TBM: 700 and 850 series tie, so TBM7). The 172 Hawk XP shares C172 and the DA40 NG shares DA40, as in the Order.
+const SF_DES = {"Beech Baron 55/58":["BE55","BE58","B58T"],"Beech Bonanza 33":["BE33"],"Beech Bonanza 35 (V-tail)":["BE35"],"Beech Bonanza 36":["BE36","BT36"],"Beech Duchess 76":["BE76"],"Beech Musketeer/Sundowner/Sierra":["BE23","BE24","BE19"],"Beech Skipper 77":["BE77"],"Beech Travel Air 95":["BE95"],"Cessna 120/140":["C140","C120"],"Cessna 150/152":["C150","C152"],"Cessna 170":["C170"],"Cessna 172":["C172"],"Cessna 172 Hawk XP":["C172"],"Cessna 172RG":["C72R"],"Cessna 175":["C175"],"Cessna 177/Cardinal":["C177","C77R"],"Cessna 180/185":["C180","C185"],"Cessna 182":["C182","C82R","C82T","C82S"],"Cessna 195":["C195","C190"],"Cessna 205/206/207":["C206","C207","T206","C205"],"Cessna 210":["T210","C210","P210"],"Cessna 310/320":["C310","C320"],"Cessna 335/340":["C340","C335"],"Cessna 336/337":["C337","P337","C336"],"Cessna 350/400 (Columbia)":["COL4","C240","COL3"],"Cessna 401-421 twins":["C402","C421","C414","C411"],"Cirrus SR20":["SR20"],"Cirrus SR22":["SR22"],"Cirrus SR22T":["S22T"],"Daher TBM":["TBM7","TBM8","TBM9"],"Diamond DA20":["DV20"],"Diamond DA40":["DA40"],"Diamond DA40 NG":["DA40"],"Diamond DA42":["DA42"],"Diamond DA62":["DA62"],"Epic E1000":["EPIC"],"Mooney M20 (C/E/F/G/J)":["M20P"],"Mooney M20 early (A/B)":["M20P"],"Mooney M20K/M/R/S/TN/V":["M20T","M20P"],"Pilatus PC-12":["PC12"],"Piper J-3 Cub":["J3"],"Piper PA-12 Super Cruiser":["PA12"],"Piper PA-18 Super Cub":["PA18"],"Piper PA-22 Tri-Pacer/Colt":["PA22"],"Piper PA-23 Apache/Aztec":["PA27","PA23"],"Piper PA-24 Comanche":["PA24"],"Piper PA-28 Cherokee/Warrior/Archer":["P28A","P28B"],"Piper PA-28R Arrow":["P28R","P28S","P28U","P28T"],"Piper PA-30/39 Twin Comanche":["PA30"],"Piper PA-31 Navajo":["PA31"],"Piper PA-32 Cherokee Six/Saratoga":["PA32","P32R","P32T"],"Piper PA-34 Seneca":["PA34"],"Piper PA-38 Tomahawk":["PA38"],"Piper PA-44 Seminole":["PA44"],"Piper PA-46 JetPROP":["P46T"],"Piper PA-46 Malibu/Mirage":["PA46"],"Piper PA-46 Meridian/M500/M600/M700":["P46T","M600","M700"]};
+const sfDes = i => SF_DES[FAMS[i].join(' ')] || [];
 function sfLabels(shown, zoomed, lblA, lblB){
   const L=SF_L, R=SF_W-SF_R, T=SF_T, Bt=SF_T+SF_PH, boxes=[], out=[];
   const order=[...shown].sort((u,w)=>(({a:0,b:1}[u.r]??2)-({a:0,b:1}[w.r]??2)) || w.d.fleet-u.d.fleet);
@@ -1387,7 +1395,7 @@ function sfLabels(shown, zoomed, lblA, lblB){
   for(const o of order){
     const ab=!!o.r;
     if(ab ? !(o.r==='a'?lblA:lblB) : !zoomed) continue;
-    const txt=FAMS[o.d.i][1], w=txt.length*(ab?6.9:6.3), h=ab?12:11, g=o.rad+4;
+    const txt = ab ? FAMS[o.d.i][1] : (sfDes(o.d.i)[0] || FAMS[o.d.i][1]), w=txt.length*(ab?6.9:6.3), h=ab?12:11, g=o.rad+4;
     const cands=[['start',o.cx+g,o.cy+4],['end',o.cx-g,o.cy+4],['middle',o.cx,o.cy-g-1],['middle',o.cx,o.cy+g+h-2]];
     for(const [anc,x,y] of cands){
       const x0=anc==='start'?x:anc==='end'?x-w:x-w/2, b={x0, x1:x0+w, y0:y-h+2, y1:y+2};
@@ -1436,7 +1444,7 @@ function sfDraw(){
     if(zoomed && (d.rate<v.y0 || d.rate>v.y1)) continue;
     const cy = top ? T+6 : Y(d.rate);
     const col = r ? `var(--series-${r})` : 'var(--text-muted)', rad=r?7:5, fill=d.k<SF_SMALL?'none':col, op=r?1:0.7;
-    const tt=esc(`${FAMS[d.i].join(' ')}: ${d.rate.toFixed(2)} (${d.k} ${ml}, fleet ${Math.round(d.fleet).toLocaleString()})${top?', off scale':''}`);
+    const tt=esc(`${FAMS[d.i].join(' ')}${sfDes(d.i).length?' ('+sfDes(d.i).join('/')+')':''}: ${d.rate.toFixed(2)} (${d.k} ${ml}, fleet ${Math.round(d.fleet).toLocaleString()})${top?', off scale':''}`);
     g+= top ? `<path d="M${cx-rad},${T+rad*1.6}L${cx},${T}L${cx+rad},${T+rad*1.6}Z" fill="${fill}" stroke="${col}" stroke-width="1.5" opacity="${op}"><title>${tt}</title></path>`
             : `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="${fill}" stroke="${col}" stroke-width="1.5" opacity="${op}"><title>${tt}</title></circle>`;
     shown.push({d, r, cx, cy, rad});
