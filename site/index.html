@@ -270,6 +270,7 @@ svg.sf .sf-avgt{ fill:var(--text-primary); opacity:.75; }
 svg.sf .sf-hit{ fill:transparent; cursor:pointer; }
 svg.sf .sf-lbl{ font:600 12px 'IBM Plex Sans',sans-serif; paint-order:stroke; stroke:var(--bg-panel); stroke-width:4px; stroke-linejoin:round; }
 svg.sf .sf-lbl2{ font:500 10.5px 'IBM Plex Mono',monospace; fill:var(--text-primary); opacity:.85; paint-order:stroke; stroke:var(--bg-panel); stroke-width:3.5px; stroke-linejoin:round; pointer-events:none; }
+svg.sf .sf-lead{ stroke:var(--text-muted); stroke-width:.8; opacity:.55; pointer-events:none; }
 svg.sf .sf-lbl-a{ fill:var(--series-a); } svg.sf .sf-lbl-b{ fill:var(--series-b); }
 .sf-sw{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--text-muted); opacity:.8; margin-right:6px; vertical-align:-1px; }
 .sf-sw-o{ background:transparent; border:1.5px solid var(--text-muted); }
@@ -356,7 +357,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.32</span>
+    <span class="ver mono">v0.33</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -448,6 +449,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
             <button type="button" data-z="reset" disabled>Reset</button>
           </div>
           <span class="sf-zl mono" id="sfZoomLvl" aria-live="polite"></span>
+          <div class="seg"><button type="button" id="sfLblBtn" aria-pressed="false" title="Label every dot with its ICAO type designator, at any zoom">Show labels</button></div>
           <button type="button" class="btn sf-open" id="sfOpen" title="Open this chart on its own, sized to its window">Open full view ↗</button>
         </div>
         <div class="legend" id="legSf"></div>
@@ -727,6 +729,7 @@ function buildControls(){
   $('sfWrap').addEventListener('click', sfClick);
   sfBindGestures();
   $('sfOpen').addEventListener('click', sfOpenFull);
+  $('sfLblBtn').addEventListener('click', ()=>{ st.sfLbl=!st.sfLbl; $('sfLblBtn').setAttribute('aria-pressed',String(st.sfLbl)); writeHash(); sfDraw(); });
   if(st.view==='funnel'){
     const el=$('secSafe'), req=el.requestFullscreen||el.webkitRequestFullscreen;
     const isFs=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
@@ -819,7 +822,7 @@ function syncControls(){
   if(st.pick) renderPick();
   $('hrsA').value=st.ha||''; $('hrsB').value=st.hb||'';
   $('y0').value=String(st.y0); $('y1').value=String(st.y1);
-  setSeg('purSeg',st.pur); setSeg('opSeg',st.op); setSeg('sevSeg',st.sev); setSeg('phSevSeg',st.sevPh); setSeg('trMeasure',st.trM); setSeg('trSmooth',st.trS); setSeg('rgMeasure',st.rgM); setSeg('rgSmooth',st.rgS); setSeg('recentWhich',st.recent); setSeg('sfMeas',st.sfM);
+  setSeg('purSeg',st.pur); setSeg('opSeg',st.op); setSeg('sevSeg',st.sev); setSeg('phSevSeg',st.sevPh); setSeg('trMeasure',st.trM); setSeg('trSmooth',st.trS); setSeg('rgMeasure',st.rgM); setSeg('rgSmooth',st.rgS); setSeg('recentWhich',st.recent); setSeg('sfMeas',st.sfM); $('sfLblBtn').setAttribute('aria-pressed',String(!!st.sfLbl));
 }
 
 // ---------- URL hash (shareable state) ----------
@@ -861,6 +864,7 @@ function readHash(){
   if (['ps','pm','t'].includes(p.get('sc'))) st.sfC=p.get('sc');
   // v0.32: full view (its own window). The window that opens it hands over the measure too (sm), for that window only.
   if (p.get('view')==='funnel'){ st.view='funnel'; if (p.get('sm')==='all') st.sfM='all'; }
+  if (p.get('sl')==='1') st.sfLbl=true;
   if (p.get('ts')==='1') st.trS=1;
   if (p.get('rm')==='new') st.rgM='new';
   if (p.get('rs')==='1') st.rgS=1;
@@ -883,6 +887,7 @@ function writeHash(){
   if (st.cat) p.set('c',st.cat);
   if (st.sfC) p.set('sc',st.sfC);
   if (st.view){ p.set('view',st.view); if (st.sfM==='all') p.set('sm','all'); }
+  if (st.sfLbl) p.set('sl','1');
   history.replaceState(null,'','#'+p.toString());
 }
 
@@ -1386,7 +1391,7 @@ function renderSafety(){
   const filt=`${st.y0}–${st.y1}, ${st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()+' only'}, ${OPTXT[st.op]}`;
   const p91 = st.op==='91' && cat==='t' ? ' Part 91 only: airplanes that also fly charter stay in the fleet count but their Part 135 accidents drop out, so charter-heavy types (many PC-12s) read low.' : '';
   const reg = st.y0<2014 ? ' Registered counts before about 2011 include aircraft no longer flying, so early rates read low.' : '';
-  $('sfNote').innerHTML=`${filt}; ${pts.length} ${SF_CATS[cat][1]} types. Each dot is one type. The shaded band is where a type with the category’s average rate would land 95% of the time, given its fleet size; dashed lines are 99.8%. The band narrows to the right because bigger fleets give steadier rates: a dot outside it differs from the average by more than chance, while a small-fleet dot far from the line may still be inside. With fleets this large, even modest real differences pass the test. <b>Outside the funnel means different, not safer or less safe:</b> rates are per registered aircraft, not per flight hour, so types that fly many hours (training, charter) sit higher and lightly flown types (many antiques) sit lower, for reasons that are not about the airplane. The PA-46 JetPROP is left out (its fleet count is unreliable).${p91}${reg} Tap a dot for its numbers and to make it Type A or B. Zoom with a pinch, ⌘ or Ctrl + scroll, or the + and − buttons; once zoomed, drag to pan, and every type gets a label wherever it fits: its ICAO type designator (FAA Order JO 7360.1K; a type that spans several shows its most common one, and the popup lists them all).`;
+  $('sfNote').innerHTML=`${filt}; ${pts.length} ${SF_CATS[cat][1]} types. Each dot is one type. The shaded band is where a type with the category’s average rate would land 95% of the time, given its fleet size; dashed lines are 99.8%. The band narrows to the right because bigger fleets give steadier rates: a dot outside it differs from the average by more than chance, while a small-fleet dot far from the line may still be inside. With fleets this large, even modest real differences pass the test. <b>Outside the funnel means different, not safer or less safe:</b> rates are per registered aircraft, not per flight hour, so types that fly many hours (training, charter) sit higher and lightly flown types (many antiques) sit lower, for reasons that are not about the airplane. The PA-46 JetPROP is left out (its fleet count is unreliable).${p91}${reg} Tap a dot for its numbers and to make it Type A or B. Zoom with a pinch, ⌘ or Ctrl + scroll, or the + and − buttons; once zoomed, drag to pan, and every type gets a label wherever it fits (or tap Show labels for labels at any zoom): its ICAO type designator (FAA Order JO 7360.1K; a type that spans several shows its most common one, and the popup lists them all).`;
 }
 let sfWin=null;
 function sfOpenFull(){
@@ -1448,26 +1453,38 @@ const sfFmt=(v,st)=>{ const d=st>=1?0:Math.min(4,(String(+st.toPrecision(3)).spl
 // (TBM: 700 and 850 series tie, so TBM7). The 172 Hawk XP shares C172 and the DA40 NG shares DA40, as in the Order.
 const SF_DES = {"Beech Baron 55/58":["BE55","BE58","B58T"],"Beech Bonanza 33":["BE33"],"Beech Bonanza 35 (V-tail)":["BE35"],"Beech Bonanza 36":["BE36","BT36"],"Beech Duchess 76":["BE76"],"Beech Musketeer/Sundowner/Sierra":["BE23","BE24","BE19"],"Beech Skipper 77":["BE77"],"Beech Travel Air 95":["BE95"],"Cessna 120/140":["C140","C120"],"Cessna 150/152":["C150","C152"],"Cessna 170":["C170"],"Cessna 172":["C172"],"Cessna 172 Hawk XP":["C172"],"Cessna 172RG":["C72R"],"Cessna 175":["C175"],"Cessna 177/Cardinal":["C177","C77R"],"Cessna 180/185":["C180","C185"],"Cessna 182":["C182","C82R","C82T","C82S"],"Cessna 195":["C195","C190"],"Cessna 205/206/207":["C206","C207","T206","C205"],"Cessna 210":["T210","C210","P210"],"Cessna 310/320":["C310","C320"],"Cessna 335/340":["C340","C335"],"Cessna 336/337":["C337","P337","C336"],"Cessna 350/400 (Columbia)":["COL4","C240","COL3"],"Cessna 401-421 twins":["C402","C421","C414","C411"],"Cirrus SR20":["SR20"],"Cirrus SR22":["SR22"],"Cirrus SR22T":["S22T"],"Daher TBM":["TBM7","TBM8","TBM9"],"Diamond DA20":["DV20"],"Diamond DA40":["DA40"],"Diamond DA40 NG":["DA40"],"Diamond DA42":["DA42"],"Diamond DA62":["DA62"],"Epic E1000":["EPIC"],"Mooney M20 (C/E/F/G/J)":["M20P"],"Mooney M20 early (A/B)":["M20P"],"Mooney M20K/M/R/S/TN/V":["M20T","M20P"],"Pilatus PC-12":["PC12"],"Piper J-3 Cub":["J3"],"Piper PA-12 Super Cruiser":["PA12"],"Piper PA-18 Super Cub":["PA18"],"Piper PA-22 Tri-Pacer/Colt":["PA22"],"Piper PA-23 Apache/Aztec":["PA27","PA23"],"Piper PA-24 Comanche":["PA24"],"Piper PA-28 Cherokee/Warrior/Archer":["P28A","P28B"],"Piper PA-28R Arrow":["P28R","P28S","P28U","P28T"],"Piper PA-30/39 Twin Comanche":["PA30"],"Piper PA-31 Navajo":["PA31"],"Piper PA-32 Cherokee Six/Saratoga":["PA32","P32R","P32T"],"Piper PA-34 Seneca":["PA34"],"Piper PA-38 Tomahawk":["PA38"],"Piper PA-44 Seminole":["PA44"],"Piper PA-46 JetPROP":["P46T"],"Piper PA-46 Malibu/Mirage":["PA46"],"Piper PA-46 Meridian/M500/M600/M700":["P46T","M600","M700"]};
 const sfDes = i => SF_DES[FAMS[i].join(' ')] || [];
-function sfLabels(shown, zoomed, lblA, lblB){
-  const L=SF_L, R=SF_W-SF_R, T=SF_T, Bt=SF_T+SF_PH, boxes=[], out=[];
+// "Show labels" (v0.33): label every dot at any zoom. Besides the four spots next to the dot it also tries the
+// diagonals and then rings farther out, joined to the dot by a thin leader line, so crowded clusters still get names;
+// a label is dropped only when no spot within about 5 dot-widths is free.
+function sfLabels(shown, zoomed, lblA, lblB, all, keepOut=[]){
+  const L=SF_L, R=SF_W-SF_R, T=SF_T, Bt=SF_T+SF_PH, boxes=[...keepOut], out=[], leads=[];
   const order=[...shown].sort((u,w)=>(({a:0,b:1}[u.r]??2)-({a:0,b:1}[w.r]??2)) || w.d.fleet-u.d.fleet);
   const hitsDot=(b,self)=>shown.some(o=>o!==self && o.cx+o.rad>b.x0 && o.cx-o.rad<b.x1 && o.cy+o.rad>b.y0 && o.cy-o.rad<b.y1);
   const hitsBox=b=>boxes.some(o=>b.x0<o.x1+2 && b.x1>o.x0-2 && b.y0<o.y1+1 && b.y1>o.y0-1);
   for(const o of order){
-    const ab=!!o.r;
-    if(ab ? !(o.r==='a'?lblA:lblB) : !zoomed) continue;
+    // a Type A/B dot is named in full only when its side is at most 3 types; otherwise (e.g. A = all piston
+    // singles) it is labelled like any other dot, by designator (fixed v0.33: those dots used to get no label at all)
+    const ab=!!o.r && (o.r==='a'?lblA:lblB);
+    if(!ab && !zoomed) continue;
     const txt = ab ? FAMS[o.d.i][1] : (sfDes(o.d.i)[0] || FAMS[o.d.i][1]), w=txt.length*(ab?6.9:6.3), h=ab?12:11, g=o.rad+4;
     const cands=[['start',o.cx+g,o.cy+4],['end',o.cx-g,o.cy+4],['middle',o.cx,o.cy-g-1],['middle',o.cx,o.cy+g+h-2]];
-    for(const [anc,x,y] of cands){
+    if(all) for(const k of [1,1.9,2.9,4.2]) for(const [dx,dy] of [[1,-1],[-1,-1],[1,1],[-1,1],[1,0],[-1,0],[0,-1],[0,1]]){
+      if(k===1 && (dx===0||dy===0)) continue;      // the four plain spots are already in the list
+      const r=g*k+(k>1?6:0), x=o.cx+dx*r, y=o.cy+dy*r*0.8+(dy>0?h-2:dy<0?0:4);
+      cands.push([dx>0?'start':dx<0?'end':'middle', x, y, k>1]);
+    }
+    for(const [anc,x,y,lead] of cands){
       const x0=anc==='start'?x:anc==='end'?x-w:x-w/2, b={x0, x1:x0+w, y0:y-h+2, y1:y+2};
       if(b.x0<L+2 || b.x1>R-2 || b.y0<T || b.y1>Bt) continue;
       if(hitsBox(b) || hitsDot(b,o)) continue;
       boxes.push(b);
+      if(lead){ const tx=anc==='start'?b.x0:anc==='end'?b.x1:(b.x0+b.x1)/2, ty=Math.min(Math.max(o.cy,b.y0),b.y1), a=Math.atan2(ty-o.cy,tx-o.cx);
+        leads.push(`<line class="sf-lead" x1="${(o.cx+Math.cos(a)*(o.rad+1)).toFixed(1)}" y1="${(o.cy+Math.sin(a)*(o.rad+1)).toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}"/>`); }
       out.push(`<text class="${ab?'sf-lbl sf-lbl-'+o.r:'sf-lbl2'}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anc}">${esc(txt)}</text>`);
       break;
     }
   }
-  return out.join('');
+  return leads.join('')+out.join('');
 }
 function sfDraw(){
   const svg=$('sfChart'), {pts, p, years, cat, A, B, dom}=SF; if(!dom){ sfZoomBtns(); return; }
@@ -1497,7 +1514,9 @@ function sfDraw(){
   g+=`<path class="sf-band" d="${up}L${lo.slice(1).split('L').reverse().join('L')}Z"/>`;
   g+=`<path class="sf-lim" d="${up}"/><path class="sf-lim" d="${lo}"/><path class="sf-lim sf-lim2" d="${curve(3.09)}"/><path class="sf-lim sf-lim2" d="${curve(-3.09)}"/>`;
   const avg=1000*p, avgIn = avg>=v.y0 && avg<=v.y1;
-  if(avgIn) g+=`<line class="sf-avg" x1="${L}" x2="${W-Rm}" y1="${Y(avg)}" y2="${Y(avg)}"/><text class="axis sf-avgt" x="${L+6}" y="${Math.min(T+ph-4, Y(avg)+15)}">${SF_CATS[cat][1]} average ${avg.toFixed(2)}</text>`;
+  const avgTxt=`${SF_CATS[cat][1]} average ${avg.toFixed(2)}`, avgY=Math.min(T+ph-4, Y(avg)+15);
+  const keepOut = avgIn ? [{x0:L+4, x1:L+8+avgTxt.length*6.7, y0:avgY-11, y1:avgY+3}] : [];   // labels steer clear of the average's caption
+  if(avgIn) g+=`<line class="sf-avg" x1="${L}" x2="${W-Rm}" y1="${Y(avg)}" y2="${Y(avg)}"/><text class="axis sf-avgt" x="${L+6}" y="${avgY}">${avgTxt}</text>`;
   const rk=i=>({a:2,b:1}[role(i)]||0), inCat=S=>[...S].filter(i=>pts.some(d=>d.i===i)).length;
   const lblA=inCat(A)<=3, lblB=inCat(B)<=3, hits=[], shown=[];
   for(const d of [...pts].sort((u,w)=>rk(u.i)-rk(w.i))){
@@ -1512,7 +1531,7 @@ function sfDraw(){
     shown.push({d, r, cx, cy, rad});
     hits.push(`<circle class="sf-hit" data-i="${d.i}" cx="${cx}" cy="${cy}" r="12"/>`);
   }
-  g+=sfLabels(shown, zoomed, lblA, lblB)+hits.join('')+'</g>';
+  g+=sfLabels(shown, zoomed || !!st.sfLbl, lblA, lblB, !!st.sfLbl, keepOut)+hits.join('')+'</g>';
   svg.innerHTML=g;
   svg.style.touchAction = zoomed ? 'none' : 'pan-y';   // zoomed: one finger pans the chart; otherwise it scrolls the page
   svg.classList.toggle('sf-zoomed', zoomed);
