@@ -141,6 +141,7 @@ svg.trend .grid{ stroke:var(--bezel); stroke-width:1; }
 svg.trend .axis{ fill:var(--text-muted); font:11px 'IBM Plex Mono',monospace; }
 svg.trend .la{ fill:none; stroke:var(--series-a); stroke-width:2; }
 svg.trend .lb{ fill:none; stroke:var(--series-b); stroke-width:2; }
+svg.trend .lt{ fill:none; stroke:var(--teal); stroke-width:2; }
 svg.trend .xh{ stroke:var(--text-muted); stroke-width:1; stroke-dasharray:3 3; }
 svg.trend .dash{ stroke-dasharray:4 4; }
 .subhead{ font-size:12.5px; font-weight:600; margin:16px 0 8px; padding-top:12px; border-top:1px solid var(--bezel); }
@@ -357,7 +358,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.33</span>
+    <span class="ver mono">v0.34</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -523,6 +524,24 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
         <div class="legend" id="legRg"></div>
         <div class="chart-wrap" id="rgWrap"><svg class="trend" id="rgChart" viewBox="0 0 700 260" role="img" aria-label="Registered aircraft by year"></svg><div class="tip" id="rgTip"></div></div>
         <p class="note" id="rgNote"></p>
+        <h3 class="subhead">Total accidents per year <span class="sub" style="font-weight:400;color:var(--text-muted);font-size:11.5px">· whole category, not per registered aircraft</span></h3>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <div class="seg" id="toMeas" role="group" aria-label="Accidents to count">
+            <button type="button" data-v="all" aria-pressed="false">All accidents</button>
+            <button type="button" data-v="fatal" aria-pressed="true">Fatal accidents</button>
+          </div>
+          <div class="seg" id="toCat" role="group" aria-label="Category">
+            <button type="button" data-v="ps" aria-pressed="true">All piston singles</button>
+            <button type="button" data-v="pm" aria-pressed="false">All piston twins</button>
+            <button type="button" data-v="t" aria-pressed="false">All turboprops</button>
+          </div>
+          <div class="seg" id="toSmooth" role="group" aria-label="Smoothing">
+            <button type="button" data-v="3" aria-pressed="true">3-yr average</button>
+            <button type="button" data-v="1" aria-pressed="false">Yearly</button>
+          </div>
+        </div>
+        <div class="chart-wrap" id="toWrap"><svg class="trend" id="toChart" viewBox="0 0 700 260" role="img" aria-label="Total accidents per year in the chosen category"></svg><div class="tip" id="toTip"></div></div>
+        <p class="note" id="toNote"></p>
       </section>
 
       <section class="step" aria-labelledby="h7">
@@ -629,7 +648,7 @@ const GG = {
 };
 const GG_ORDER=['all','p','t','ps','pm'];
 const hasBoth = b => { const k=FAMS.map((f,i)=>f[0]===b?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
-const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'fatal', sevPh:'fatal', trM:'fatal', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, preset:null, sfM:'fatal', sfC:null, view:null, coHidden:false, hlOff:false };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'fatal', sevPh:'fatal', trM:'fatal', trS:3, rgM:'active', rgS:3, toM:'fatal', toS:3, toC:null, recent:'both', cat:null, shown:25, preset:null, sfM:'fatal', sfC:null, view:null, coHidden:false, hlOff:false };
 const causeCache = {};
 const famSetCache = {};
 
@@ -723,6 +742,9 @@ function buildControls(){
   seg('trSmooth', v=>{ st.trS=+v; });
   seg('rgMeasure', v=>{ st.rgM=v; });
   seg('rgSmooth', v=>{ st.rgS=+v; });
+  seg('toMeas', v=>{ st.toM=v; });
+  seg('toCat', v=>{ st.toC=v; });
+  seg('toSmooth', v=>{ st.toS=+v; });
   seg('recentWhich', v=>{ st.recent=v; st.shown=25; });
   seg('sfMeas', v=>{ st.sfM=v; });
   seg('sfCat', v=>{ st.sfC=v; });
@@ -822,7 +844,7 @@ function syncControls(){
   if(st.pick) renderPick();
   $('hrsA').value=st.ha||''; $('hrsB').value=st.hb||'';
   $('y0').value=String(st.y0); $('y1').value=String(st.y1);
-  setSeg('purSeg',st.pur); setSeg('opSeg',st.op); setSeg('sevSeg',st.sev); setSeg('phSevSeg',st.sevPh); setSeg('trMeasure',st.trM); setSeg('trSmooth',st.trS); setSeg('rgMeasure',st.rgM); setSeg('rgSmooth',st.rgS); setSeg('recentWhich',st.recent); setSeg('sfMeas',st.sfM); $('sfLblBtn').setAttribute('aria-pressed',String(!!st.sfLbl));
+  setSeg('purSeg',st.pur); setSeg('opSeg',st.op); setSeg('sevSeg',st.sev); setSeg('phSevSeg',st.sevPh); setSeg('trMeasure',st.trM); setSeg('trSmooth',st.trS); setSeg('rgMeasure',st.rgM); setSeg('rgSmooth',st.rgS); setSeg('toMeas',st.toM); setSeg('toSmooth',st.toS); setSeg('recentWhich',st.recent); setSeg('sfMeas',st.sfM); $('sfLblBtn').setAttribute('aria-pressed',String(!!st.sfLbl));
 }
 
 // ---------- URL hash (shareable state) ----------
@@ -868,6 +890,9 @@ function readHash(){
   if (p.get('ts')==='1') st.trS=1;
   if (p.get('rm')==='new') st.rgM='new';
   if (p.get('rs')==='1') st.rgS=1;
+  if (p.get('om')==='all') st.toM='all';
+  if (p.get('os')==='1') st.toS=1;
+  if (['ps','pm','t'].includes(p.get('oc'))) st.toC=p.get('oc');
   if (['a','b'].includes(p.get('r'))) st.recent=p.get('r');
   if (p.has('c') && M.cats.includes(p.get('c'))) st.cat=p.get('c');
   if (st.recent==='b' && !st.b) st.recent='both';
@@ -883,6 +908,9 @@ function writeHash(){
   if (st.trS!==3) p.set('ts',st.trS);
   if (st.rgM!=='active') p.set('rm',st.rgM);
   if (st.rgS!==3) p.set('rs',st.rgS);
+  if (st.toM!=='fatal') p.set('om',st.toM);
+  if (st.toS!==3) p.set('os',st.toS);
+  if (st.toC) p.set('oc',st.toC);
   if (st.recent!=='both') p.set('r',st.recent);
   if (st.cat) p.set('c',st.cat);
   if (st.sfC) p.set('sc',st.sfC);
@@ -1099,6 +1127,50 @@ function renderReg(){
     : `Airframes registered in the US for the first time that year: new production plus used imports. Aircraft returning to the registry after a gap are not counted, because the FAA files don't link an old deregistration to a later re-registration.${partial?` ${last} runs only to ${fmt(M.regAsOf)}; its count is scaled up to a full year and drawn dashed.`:''}`;
   $('rgNote').textContent=sm+note;
 }
+// v0.34: total accidents per year for a whole category (piston singles / twins / turboprops), not a rate.
+// Follows the years, purpose and Part 91/135 filters. Category defaults to Type A's (as section 3 does) until picked.
+// The last data year is partial: its count is scaled up to a full year and drawn dashed (the tooltip gives the real count).
+const TO_CATS = {ps:['g:ps','All piston singles','piston-single'], pm:['g:pm','All piston twins','piston-twin'], t:['g:t','All turboprops','turboprop']};
+function toCat(){ if(st.toC) return st.toC; const cs=new Set([...selFams(st.a)].map(i=>isTP(i)?'t':isTwin(i)?'pm':'ps')); return cs.size===1?[...cs][0]:'ps'; }
+function renderTotals(){
+  const cat=toCat(); setSeg('toCat',cat);
+  const svg=$('toChart'), W=700, H=260, L=44, Rm=12, T=12, Bm=28;
+  const years=[]; for(let y=st.y0;y<=st.y1;y++) years.push(y);
+  const last=lastYear(), fr=dataFrac(), fs=new Set(tokFams(TO_CATS[cat][0])), fatal=st.toM==='fatal';
+  const cnt={}; for(const r of R){ if(!fs.has(r[C.fam]) || r[C.y]<st.y0 || r[C.y]>st.y1 || !opOK(r)) continue;
+    if(st.pur!=='all' && r[C.pur]!==+st.pur) continue; if(fatal && r[C.inj]!==3) continue; cnt[r[C.y]]=(cnt[r[C.y]]||0)+1; }
+  const partial = st.y1===last && fr<0.999;
+  const full = y => (cnt[y]||0) / (y===last && partial ? fr : 1);
+  const pts=years.map(y=>{ const h=(st.toS-1)/2; let s2=0,n=0; for(let yy=y-h; yy<=y+h; yy++){ if(yy<st.y0||yy>st.y1) continue; s2+=full(yy); n++; } return {y, v:n?s2/n:null, raw:cnt[y]||0}; });
+  const vals=pts.filter(p=>p.v!=null).map(p=>p.v);
+  if(!vals.length || Math.max(...vals)===0 && !Object.keys(cnt).length){ svg.innerHTML=''; $('toNote').textContent='No accidents for this range and filters.'; return; }
+  const ymax=niceMax(Math.max(1,...vals)), xs=y=> years.length===1 ? L+(W-L-Rm)/2 : L+(W-L-Rm)*(y-st.y0)/(st.y1-st.y0), ys=v=>T+(H-T-Bm)*(1-v/ymax);
+  let g='';
+  for(let i=0;i<=4;i++){ const v=ymax*i/4, y=ys(v); g+=`<line class="grid" x1="${L}" x2="${W-Rm}" y1="${y}" y2="${y}"/><text class="axis" x="${L-6}" y="${y+4}" text-anchor="end">${ymax<10&&v%1?v.toFixed(1):Math.round(v).toLocaleString()}</text>`; }
+  const step=Math.max(1,Math.ceil(years.length/9));
+  years.forEach((y,i)=>{ if(i%step===0||i===years.length-1) g+=`<text class="axis" x="${xs(y)}" y="${H-8}" text-anchor="middle">${y}</text>`; });
+  const solid=partial? pts.filter(p=>p.y<last) : pts, d=solid.map((p,j)=>(j?'L':'M')+xs(p.y).toFixed(1)+','+ys(p.v).toFixed(1)).join('');
+  if(d) g+=`<path class="lt" d="${d}"/>`;
+  if(partial && pts.length>1){ const a=pts[pts.length-2], b=pts[pts.length-1]; g+=`<path class="lt dash" d="M${xs(a.y).toFixed(1)},${ys(a.v).toFixed(1)}L${xs(b.y).toFixed(1)},${ys(b.v).toFixed(1)}"/>`; }
+  if(pts.length===1) g+=`<circle cx="${xs(pts[0].y)}" cy="${ys(pts[0].v)}" r="4" fill="var(--teal)"/>`;
+  g+=`<line class="xh" id="toXh" x1="0" x2="0" y1="${T}" y2="${H-Bm}" visibility="hidden"/><rect x="${L}" y="${T}" width="${W-L-Rm}" height="${H-T-Bm}" fill="transparent" id="toHit"/>`;
+  svg.innerHTML=g;
+  const tip=$('toTip'), wrap=$('toWrap'), hit=$('toHit'), xh=$('toXh'), what=fatal?'fatal accidents':'accidents';
+  const move=e=>{
+    const rc=svg.getBoundingClientRect(), x=(e.clientX-rc.left)*W/rc.width;
+    let yr=Math.round(st.y0+(x-L)/(W-L-Rm)*(st.y1-st.y0)); yr=Math.max(st.y0,Math.min(st.y1,yr));
+    const p=pts[yr-st.y0]; xh.setAttribute('x1',xs(yr)); xh.setAttribute('x2',xs(yr)); xh.setAttribute('visibility','visible');
+    const v=p.v==null?'—':(st.toS===3||(yr===last&&partial) ? p.v.toFixed(1) : Math.round(p.v).toLocaleString());
+    tip.innerHTML=`<div class="t">${st.toS===3?`${Math.max(st.y0,yr-1)}–${Math.min(st.y1,yr+1)} avg (centered on ${yr})`:yr}</div><div>${esc(TO_CATS[cat][1])}: ${v} ${what}${yr===last&&partial?' (full-year estimate)':''}</div><div class="t">${yr}: ${p.raw.toLocaleString()}${yr===last&&partial?' so far':''}</div>`;
+    tip.style.display='block';
+    const wr=wrap.getBoundingClientRect(); let left=e.clientX-wr.left+12; if(left+tip.offsetWidth>wr.width) left=e.clientX-wr.left-tip.offsetWidth-12; tip.style.left=Math.max(0,left)+'px'; tip.style.top='6px';
+  };
+  hit.addEventListener('pointermove',move); hit.addEventListener('pointerdown',move);
+  hit.addEventListener('pointerleave',()=>{ tip.style.display='none'; xh.setAttribute('visibility','hidden'); });
+  const e=ntsbEnd(), endTxt=`${String(e.getUTCDate()).padStart(2,'0')}-${MON[e.getUTCMonth()+1]}-${e.getUTCFullYear()}`;
+  const pur=st.pur==='all'?'all purposes':PUR[+st.pur].toLowerCase()+' flights only';
+  $('toNote').innerHTML=`${(st.toS===3?'Centered 3-year average. ':'')}Every ${TO_CATS[cat][2]} type in the app added together (${fs.size} types; Types A and B don’t change this chart), ${pur}, ${OPTXT[st.op]}. A count, not a rate: it rises and falls with the size of the fleet and how much it flies, so the rate chart above is the one for comparing safety.${partial?` ${last} runs only to ${endTxt}; its count is scaled up to a full year and drawn dashed.`:''}${cat==='ps'||cat==='pm'?' A midair between two airplanes in the category counts as two accidents.':''}`;
+}
 function niceMax(v){ if(v<=0) return 1; const p=Math.pow(10,Math.floor(Math.log10(v))), n=v/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; }
 function renderFindings(){
   const cols=[st.a,st.b].map((sel,j)=>{
@@ -1268,11 +1340,11 @@ function applyPreset(id){
   const p=PRESETS.find(x=>x.id===id); if(!p) return;
   if(p.reset){  // "Back to the default": the app's opening state, no highlights
     Object.assign(st,{preset:null, coHidden:false, hlOff:false, ha:null, hb:null, a:selFromName(p.a), b:selFromName(p.b), y0:2000, y1:lastYear(), pur:'all', op:'91',
-      sev:'fatal', sevPh:'fatal', trM:'fatal', trS:3, rgM:'active', rgS:3, recent:'both', cat:null, shown:25, sfM:'fatal', sfC:null});
+      sev:'fatal', sevPh:'fatal', trM:'fatal', trS:3, rgM:'active', rgS:3, toM:'fatal', toS:3, toC:null, recent:'both', cat:null, shown:25, sfM:'fatal', sfC:null});
     syncControls(); update(); return;
   }
   st.preset=id; st.coHidden=false; st.hlOff=false; st.a=selFromName(p.a); st.b=selFromName(p.b); st.ha=st.hb=null;
-  st.y0=2000; st.y1=lastYear(); st.pur='all'; st.op='91'; st.sev='fatal'; st.sevPh='fatal'; st.trM='fatal'; st.cat=null; st.shown=25; st.sfC=null;
+  st.y0=2000; st.y1=lastYear(); st.pur='all'; st.op='91'; st.sev='fatal'; st.sevPh='fatal'; st.trM='fatal'; st.toM='fatal'; st.toC=null; st.cat=null; st.shown=25; st.sfC=null;
   if(st.recent==='b' && !st.b) st.recent='both';
   syncControls(); update();
 }
@@ -1622,7 +1694,7 @@ function sfBindGestures(){
 function update(){
   writeHash(); pickBtnText('A'); pickBtnText('B'); if(st.pick) renderPick();
   computeHL(); renderPresets();
-  renderSummary(); renderCats(); renderPhases(); renderSeverity(); renderTrend(); renderReg(); renderSafety(); renderFindings(); renderRecent();
+  renderSummary(); renderCats(); renderPhases(); renderSeverity(); renderTrend(); renderReg(); renderTotals(); renderSafety(); renderFindings(); renderRecent();
 }
 
 fetch('data/accidents.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).then(d=>{
