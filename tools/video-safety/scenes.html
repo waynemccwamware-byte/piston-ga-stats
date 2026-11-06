@@ -1,0 +1,319 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- Safety and Piston Singles video: every scene, drawn at 1920x1080 for a given time t (render(t)).
+     Filmed frame by frame by film.py, which injects window.DATA (scene-data.json), PLAN (plan.json), CUES (cues.json)
+     and SCENE (s0..s7). Fonts: IBM Plex from ../../node_modules or the paths film.py sets in FONTCSS. -->
+<style id="fontcss"></style>
+<style>
+:root{--bg:#10141a;--panel:#1b222c;--bezel:#2a323f;--bezel-hi:#3a4454;--amber:#f5a623;--series:#c4820f;
+  --text:#e7e4dc;--muted:#8b93a1;--teal:#3fa7a0;--alert:#e0705f}
+*{box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:var(--bg)}
+body{background:radial-gradient(ellipse at 50% 0%,#171d26 0%,var(--bg) 65%);font-family:'IBM Plex Sans',sans-serif;color:var(--text)}
+.abs{position:absolute}
+.mono{font-family:'IBM Plex Mono',monospace}
+.hdr{left:96px;top:64px;display:flex;align-items:baseline;gap:22px}
+.badge{font:600 30px 'IBM Plex Mono';color:var(--amber);border:2px solid var(--amber-dim,#7a5a1e);border-radius:10px;padding:2px 14px}
+.htitle{font:600 46px 'IBM Plex Sans'}
+.hsub{font:400 28px 'IBM Plex Sans';color:var(--muted)}
+.foot{left:96px;bottom:44px;font:500 20px 'IBM Plex Mono';color:var(--muted);letter-spacing:.03em}
+.chip{padding:12px 22px;border:1px solid var(--bezel-hi);border-radius:26px;font:400 25px 'IBM Plex Sans';color:var(--text);background:rgba(27,34,44,.92);white-space:nowrap}
+.chip b{color:var(--amber);font-weight:600}
+.card{background:var(--panel);border:1px solid var(--bezel);border-radius:18px;padding:28px 34px}
+.k{font:500 22px 'IBM Plex Mono';letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+svg text{font-family:'IBM Plex Mono',monospace}
+#fade{position:absolute;inset:0;background:#000;pointer-events:none}
+</style></head>
+<body><div id="stage" class="abs" style="inset:0"></div><div id="fade"></div>
+<script>
+const W=1920,H=1080, $=id=>document.getElementById(id);
+const cl=x=>Math.max(0,Math.min(1,x));
+const ease=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2};
+const at=(t,a,d=.8)=>ease((t-a)/d);
+const S=()=>PLAN.find(p=>p.id===SCENE);
+// time of a moment inside a clip, in scene time
+const tc=(clip,sec=0)=>S().clips[clip]+sec;
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const el=(html)=>{const d=document.createElement('div');d.innerHTML=html.trim();return d.firstChild;};
+const stage=()=>$('stage');
+function vis(e,p,dy=18){e.style.opacity=p;e.style.transform=`translateY(${(1-p)*dy}px)`;}
+function header(n,title,sub){stage().appendChild(el(`<div class="abs hdr" id="hdr"><span class="badge">${n}</span><span class="htitle">${title}</span><span class="hsub">${sub}</span></div>`));}
+function footer(txt){stage().appendChild(el(`<div class="abs foot" id="foot">${txt}</div>`));}
+const SRC='US piston singles · Part 91 · NTSB accident data through 31-Oct-2026 · FAA aircraft registry';
+const svgNS='http://www.w3.org/2000/svg';
+function sv(tag,attrs,parent){const e=document.createElementNS(svgNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+function planePath(x,y,s,fill){ // small airplane silhouette, nose right
+  return `<g transform="translate(${x},${y}) scale(${s})"><path fill="${fill}" d="M-10,-1.2 L4,-1.2 L9,-0.6 Q11,0 9,0.6 L4,1.2 L-10,1.2 Z M-2,-1 L1,-1 L-3,-9 L-5,-9 Z M-2,1 L1,1 L-3,9 L-5,9 Z M-9,-0.8 L-7,-0.8 L-10,-4 L-11.2,-4 Z M-9,0.8 L-7,0.8 L-10,4 L-11.2,4 Z"/></g>`;}
+function hospPath(x,y,s,fill){return `<g transform="translate(${x},${y}) scale(${s})"><rect x="-8" y="-8" width="16" height="16" rx="3" fill="none" stroke="${fill}" stroke-width="1.6"/><path fill="${fill}" d="M-1.6,-5.5h3.2v3.9h3.9v3.2h-3.9v3.9h-3.2v-3.9h-3.9v-3.2h3.9z"/></g>`;}
+
+const SCENES={};
+/* ---------- s0 cold open ---------- */
+SCENES.s0={build(){
+  stage().innerHTML=`
+  <div class="abs mono" id="cap" style="left:0;right:0;top:120px;text-align:center;font:500 30px 'IBM Plex Mono';color:var(--muted);letter-spacing:.06em">US PISTON SINGLES · PART 91 · NTSB &amp; FAA RECORDS</div>
+  <svg class="abs" width="1920" height="1080" style="left:0;top:0"><line id="ln" stroke="#c4820f" stroke-width="4" stroke-linecap="round"/><circle id="d1" r="12" fill="#f5a623"/><circle id="d2" r="12" fill="#f5a623"/></svg>
+  <div class="abs mono" id="l1" style="left:300px;top:250px;font-size:30px;color:var(--muted)">2000–02</div>
+  <div class="abs" id="n1" style="left:292px;top:300px;font:600 170px 'IBM Plex Sans';color:var(--amber);line-height:1;font-variant-numeric:tabular-nums">0</div>
+  <div class="abs mono" id="l2" style="left:1250px;top:250px;font-size:30px;color:var(--muted)">2024–26</div>
+  <div class="abs" id="n2" style="left:1242px;top:300px;font:600 170px 'IBM Plex Sans';color:var(--amber);line-height:1;font-variant-numeric:tabular-nums">0</div>
+  <div class="abs" id="u1" style="left:300px;top:490px;font-size:30px">fatal accidents a year</div>
+  <div class="abs" id="u2" style="left:1250px;top:490px;font-size:30px">fatal accidents a year</div>
+  <div class="abs mono" id="f0" style="left:300px;top:610px;font-size:24px;color:var(--muted)">REGISTERED FLEET</div>
+  <div class="abs mono" id="f1" style="left:300px;top:650px;font:500 46px 'IBM Plex Mono'">≈${fmt(Math.round(F0/1000)*1000)}</div>
+  <div class="abs mono" id="f2" style="left:1250px;top:650px;font:500 46px 'IBM Plex Mono'">≈${fmt(Math.round(F1/1000)*1000)}</div>
+  <div class="abs chip" id="chip" style="left:50%;top:760px;translate:-50% 0;color:var(--muted)">3-year averages · 2026 prorated from data through 31-Oct</div>
+  <div class="abs" id="q" style="left:0;right:0;top:880px;text-align:center;font:500 52px 'IBM Plex Sans'">Real progress, or just <b style="color:var(--amber);font-weight:600">fewer airplanes</b>?</div>
+  <div class="abs" id="facts" style="left:0;right:0;top:965px;text-align:center;font:400 30px 'IBM Plex Sans';color:var(--teal)">Just the facts. The conclusions are yours.</div>`;
+},render(t){
+  const c=k=>tc('s0-open',k);
+  vis($('cap'),at(t,0.6));
+  vis($('l1'),at(t,c(4.9))); vis($('u1'),at(t,c(7.0)));
+  $('n1').style.opacity=at(t,c(4.9),.5); $('n1').textContent=Math.round(A0*at(t,c(5.2),c(8.6)-c(5.2)));
+  vis($('l2'),at(t,c(11.4))); vis($('u2'),at(t,c(13.1)));
+  $('n2').style.opacity=at(t,c(11.4),.5); $('n2').textContent=Math.round(A1*at(t,c(13.0),1.6));
+  const x1=310,y1=548,x2=1260,y2=548+(1-A1/A0)*60,p=at(t,c(14.6),1.4);
+  sv0($('d1'),{cx:x1,cy:y1}).style.opacity=at(t,c(14.4),.3); sv0($('d2'),{cx:x2,cy:y2}).style.opacity=at(t,c(15.9),.3);
+  sv0($('ln'),{x1,y1,x2:x1+(x2-x1)*p,y2:y1+(y2-y1)*p});
+  vis($('f0'),at(t,c(16.8))); vis($('f1'),at(t,c(17.0))); vis($('f2'),at(t,c(17.6)));
+  vis($('chip'),at(t,c(18.2),.6),8);
+  vis($('q'),at(t,c(19.7),1.0),20);
+  vis($('facts'),at(t,c(24.9),.8),10);
+}};
+function sv0(e,a){for(const k in a)e.setAttribute(k,a[k]);return e;}
+let A0,A1,F0,F1;
+
+/* ---------- s1 / s7 cards ---------- */
+const CARDCSS=`position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 165px`;
+SCENES.s1={build(){stage().innerHTML=`<div style="${CARDCSS}">
+  <div class="k" id="a">GeezerGeek Pilot</div>
+  <h1 id="b" style="font-size:96px;font-weight:600;margin:22px 0 26px">Safety and Piston Singles</h1>
+  <div id="c" style="width:180px;height:6px;background:var(--amber);border-radius:3px;margin:6px 0 40px"></div>
+  <p id="d" style="font-size:40px;line-height:1.4;color:var(--muted);margin:0">Just the facts, from GA Accident Stats</p></div>
+  <div class="abs mono" id="e" style="left:165px;bottom:84px;font:500 24px 'IBM Plex Mono';color:var(--muted);letter-spacing:.06em">Narrated by Wayne McClelland</div>`;},
+ render(t){vis($('a'),at(t,.3));vis($('b'),at(t,.6));$('c').style.width=180*at(t,1.1)+'px';vis($('d'),at(t,1.4));vis($('e'),at(t,2.0));}};
+SCENES.s7={build(){stage().innerHTML=`<div style="${CARDCSS}"><div style="display:flex;align-items:center;gap:96px"><div style="flex:1">
+  <div class="k" id="a">Your turn</div>
+  <h1 id="b" style="font-size:78px;font-weight:600;margin:20px 0 26px">Run it for your airplane</h1>
+  <p id="c" style="font-size:36px;color:var(--text);margin:0">GA Accident Stats and more pilot tools, on GeezerGeek Pilot Apps:</p>
+  <div id="d" class="mono" style="font:600 40px 'IBM Plex Mono';color:var(--amber);margin:30px 0">geezer-geek-pilot-control-panel.netlify.app</div></div>
+  <div id="e"><div style="width:375px;height:375px;border-radius:20px;overflow:hidden;box-shadow:0 0 0 3px var(--bezel)">${DATA.qr}</div>
+  <div class="mono" style="font:500 21px 'IBM Plex Mono';color:var(--muted);text-align:center;margin-top:18px;letter-spacing:.1em">SCAN TO OPEN</div></div></div></div>
+  <div class="abs" id="f" style="left:165px;right:165px;bottom:62px;font-size:23px;line-height:1.55;color:var(--muted)">
+  Data: NTSB accident database (through 31-Oct-2026) and FAA aircraft registry, as compiled by GA Accident Stats. Rates are per registered aircraft, not per flight hour. Not safety or flight advice.<br>
+  Music: “Ambient Acoustic Guitars Vol. 1” by Sascha Ende, ende.app, licensed CC BY 4.0.</div>`;},
+ render(t){vis($('a'),at(t,.3));vis($('b'),at(t,.5));vis($('c'),at(t,.8));vis($('d'),at(t,1.0));vis($('e'),at(t,1.2),0);vis($('f'),at(t,1.6),0);}};
+
+/* ---------- s2 what's counted ---------- */
+SCENES.s2={build(){
+  header('1','What’s being counted','two public sources, one yardstick');
+  footer(SRC);
+  const brands=['Beech','Cessna','Cirrus','Diamond','Mooney','Piper'];
+  stage().insertAdjacentHTML('beforeend',`
+  <div class="abs card" id="c1" style="left:96px;top:200px;width:820px"><div class="k">NTSB</div><div style="font:600 46px 'IBM Plex Sans';margin-top:10px">Accident database</div></div>
+  <div class="abs card" id="c2" style="left:1004px;top:200px;width:820px"><div class="k">FAA</div><div style="font:600 46px 'IBM Plex Sans';margin-top:10px">Aircraft registry</div></div>
+  <div class="abs" id="mon" style="left:0;right:0;top:390px;text-align:center;font:400 30px 'IBM Plex Sans';color:var(--teal)">both refreshed every month in GA Accident Stats</div>
+  <div class="abs" id="n38" style="left:96px;top:470px;display:flex;align-items:baseline;gap:22px"><span style="font:600 120px 'IBM Plex Sans';color:var(--amber);line-height:1">38</span><span style="font-size:38px">piston-single model families</span></div>
+  <div class="abs" id="br" style="left:96px;top:620px;display:flex;gap:16px">${brands.map((b,i)=>`<span class="chip" id="b${i}" style="font-size:26px">${b}</span>`).join('')}</div>
+  <div class="abs chip" id="p91" style="left:1100px;top:500px;font-size:30px;border-color:var(--amber)"><b>Part 91</b> flying only</div>
+  <div class="abs" id="frac" style="left:96px;top:735px;display:flex;align-items:center;gap:34px">
+    <div style="text-align:center"><div style="font:500 38px 'IBM Plex Sans';padding:0 14px 12px">accidents</div><div style="height:4px;background:var(--text)"></div><div style="font:500 38px 'IBM Plex Sans';padding:12px 14px 0">registered aircraft</div></div>
+    <div style="font:500 52px 'IBM Plex Mono';color:var(--muted)">× 1,000</div><div style="font:500 38px 'IBM Plex Sans';color:var(--amber)">per year</div></div>
+  <div class="abs" id="stamp" style="left:1120px;top:752px;font:600 40px 'IBM Plex Mono';color:var(--alert);border:4px solid var(--alert);border-radius:12px;padding:10px 26px;rotate:-6deg">NOT per flight hour</div>
+  <div class="abs" id="hangar" style="left:1100px;top:880px;width:720px;font:400 28px 'IBM Plex Sans';color:var(--muted);line-height:1.4">An airplane that flies a lot looks worse than one that mostly sits in the hangar.</div>`);
+},render(t){
+  const a=k=>tc('s2-sources',k), b=k=>tc('s2-yardstick',k);
+  vis($('hdr'),at(t,.2)); $('foot').style.opacity=at(t,.4);
+  vis($('c1'),at(t,a(3.0))); vis($('c2'),at(t,a(7.0)));
+  vis($('mon'),at(t,a(11.1)));
+  vis($('n38'),at(t,b(0.4)));
+  for(let i=0;i<6;i++) vis($('b'+i),at(t,b(2.6)+i*.18,.5),10);
+  vis($('p91'),at(t,b(5.1)));
+  vis($('frac'),at(t,b(6.5)));
+  const s=at(t,b(11.2),.35); $('stamp').style.opacity=s; $('stamp').style.scale=1.6-.6*s;
+  vis($('hangar'),at(t,b(12.4)));
+}};
+
+/* ---------- s3 trend ---------- */
+const TX0=200,TX1=1720,TY0=220,TY1=820,TYMAX=1.1;
+const tx=y=>TX0+(y-2000)/26*(TX1-TX0), ty=v=>TY1-v/TYMAX*(TY1-TY0);
+SCENES.s3={build(){
+  header('2','The trend','fatal accidents per 1,000 registered aircraft per year · 3-year average');
+  footer(SRC);
+  const yrs=DATA.years, f=DATA.fatal3;
+  let g=`<svg class="abs" width="1920" height="1080" style="left:0;top:0" id="tsvg">`;
+  g+=`<g id="axes">`;
+  for(const v of [0,.25,.5,.75,1.0]) g+=`<line x1="${TX0}" x2="${TX1}" y1="${ty(v)}" y2="${ty(v)}" stroke="#2a323f" stroke-width="2"/><text x="${TX0-20}" y="${ty(v)+9}" text-anchor="end" fill="#8b93a1" font-size="26">${v===1?'1.0':v.toFixed(2)}</text>`;
+  for(const y of [2000,2003,2006,2009,2012,2015,2018,2021,2024,2026]) g+=`<text x="${tx(y)}" y="${TY1+46}" text-anchor="middle" fill="#8b93a1" font-size="26">${y}</text>`;
+  g+=`</g><rect id="early" x="${tx(2000)}" y="${TY0}" width="${tx(2011)-tx(2000)}" height="${TY1-TY0}" fill="url(#hatch)"/>
+  <defs><pattern id="hatch" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="16" stroke="#3fa7a0" stroke-width="3" opacity=".22"/></pattern>
+  <clipPath id="clipL"><rect id="clipR" x="0" y="0" width="0" height="1080"/></clipPath></defs>
+  <path id="line" clip-path="url(#clipL)" fill="none" stroke="#f5a623" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" d="${yrs.map((y,i)=>(i?'L':'M')+tx(y).toFixed(1)+','+ty(f[y]).toFixed(1)).join('')}"/>
+  <g id="brk" fill="none" stroke="#8b93a1" stroke-width="3"><path d="M${tx(2011)},${ty(.50)} v14 H${tx(2023)} v-14"/></g>
+  <text id="brkT" x="${(tx(2011)+tx(2023))/2}" y="${ty(.50)+52}" text-anchor="middle" fill="#8b93a1" font-size="28">plateau, 2009–2023</text>`;
+  const call=(id,y,txt,dx,dy)=>`<g id="${id}"><circle cx="${tx(y)}" cy="${ty(f[y])}" r="11" fill="#f5a623"/><text x="${tx(y)+dx}" y="${ty(f[y])+dy}" fill="#e7e4dc" font-size="44" font-weight="600">${txt}</text></g>`;
+  g+=call('k0',2000,'≈1.0',22,-24)+call('k1',2009,'≈0.63',-10,64)+call('k2',2025,'≈0.44',-90,72);
+  // inset: all accidents a year (2026 prorated)
+  const ix0=1240,ix1=1690,iy0=250,iy1=400, cnt=DATA.all, last=yrs[yrs.length-1];
+  const cv=y=>y===last?cnt[y]/DATA.lastShare:cnt[y], imax=900;
+  const ixx=y=>ix0+(y-2000)/26*(ix1-ix0), iyy=v=>iy1-v/imax*(iy1-iy0);
+  g+=`<g id="inset"><rect x="${ix0-30}" y="${iy0-70}" width="${ix1-ix0+60}" height="${iy1-iy0+110}" rx="16" fill="#1b222c" stroke="#2a323f"/>
+   <text x="${ix0}" y="${iy0-30}" fill="#8b93a1" font-size="24">ALL ACCIDENTS A YEAR</text>
+   <path fill="none" stroke="#3fa7a0" stroke-width="4" d="${yrs.map((y,i)=>(i?'L':'M')+ixx(y).toFixed(1)+','+iyy(cv(y)).toFixed(1)).join('')}"/>
+   <text x="${ixx(2000)}" y="${iyy(cv(2000))+40}" fill="#e7e4dc" font-size="28" font-weight="600">≈850</text>
+   <text x="${ixx(2026)}" y="${iyy(cv(2026))+42}" text-anchor="end" fill="#e7e4dc" font-size="28" font-weight="600">under 500</text></g>`;
+  g+=`</svg>`;
+  stage().insertAdjacentHTML('beforeend',g+`
+   <div class="abs chip" id="ch1" style="left:${TX0+20}px;top:895px"><b>Early rates read low:</b> registry counts before ~2011 include aircraft no longer flying</div>
+   <div class="abs chip" id="ch2" style="left:1110px;top:700px">2026: data through 31-Oct, prorated</div>
+   <div class="abs chip" id="ch3" style="left:1040px;top:778px"><b>FAA:</b> FY2024, lowest GA fatal accident rate since 2009</div>`);
+},render(t){
+  const a=k=>tc('s3-trend',k), b=k=>tc('s3-footnotes',k), c=k=>tc('s3-all',k);
+  vis($('hdr'),at(t,.1)); $('foot').style.opacity=at(t,.3);
+  $('axes').style.opacity=at(t,a(0.4),1);
+  // reveal the line by year: to 2000.3 at the "In 2000" sentence, to 2009 by "By 2009", to 2023 over the plateau, to the end last
+  const keys=[[a(1.0),2000],[a(6.7),2000.4],[a(12.6),2009],[a(17.8),2009],[a(22.4),2023],[a(23.2),2023],[a(26.0),2026]];
+  let yr=2000; for(let i=0;i<keys.length-1;i++){const [t0,y0]=keys[i],[t1,y1]=keys[i+1]; if(t>=t0) yr=y0+(y1-y0)*ease((t-t0)/(t1-t0||1));}
+  if(t<keys[0][0]) yr=1999.9;
+  $('clipR').setAttribute('width',tx(yr)+8);
+  $('k0').style.opacity=at(t,a(6.9),.5); $('k1').style.opacity=at(t,a(13.4),.5); $('k2').style.opacity=at(t,a(26.0),.5);
+  $('brk').style.opacity=$('brkT').style.opacity=at(t,a(18.0),.8);
+  $('early').style.opacity=at(t,b(1.9),1);
+  vis($('ch1'),at(t,b(1.9)),10); vis($('ch2'),at(t,b(17.3)),10); vis($('ch3'),at(t,b(27.3)),10);
+  $('inset').style.opacity=at(t,c(0.4),.8);
+}};
+
+/* ---------- s4 funnel ---------- */
+const PX0=230,PX1=1470,PY0=200,PY1=860,YMAX=2.5,LX0=Math.log10(30),LX1=Math.log10(30000);
+const px=f=>PX0+(Math.log10(f)-LX0)/(LX1-LX0)*(PX1-PX0), py=v=>PY1-Math.min(v,YMAX)/YMAX*(PY1-PY0);
+const sfQ=(lam,z)=>Math.max(0,lam+z*Math.sqrt(lam)+(z*z-1)/6);
+function limRate(f,z){const ay=f*DATA.funnel.years, lam=DATA.funnel.avg/1000*ay; return 1000*sfQ(lam,z)/ay;}
+function limPath(z,step){let d='';for(let lx=LX0;lx<=LX1+1e-9;lx+=0.01){const f=10**lx;d+=(d?'L':'M')+px(f).toFixed(1)+','+py(limRate(f,z)).toFixed(1);}return d;}
+function bandPath(z){let up='',lo='';const pts=[];for(let lx=LX0;lx<=LX1+1e-9;lx+=0.01)pts.push(10**lx);
+  up=pts.map((f,i)=>(i?'L':'M')+px(f).toFixed(1)+','+py(limRate(f,z)).toFixed(1)).join('');
+  lo=pts.slice().reverse().map(f=>'L'+px(f).toFixed(1)+','+py(limRate(f,-z)).toFixed(1)).join('');return up+lo+'Z';}
+SCENES.s4={build(){
+  header('3','The funnel plot','how one type compares with the whole category');
+  footer('US piston singles · Part 91 · fatal accidents 2000 – 31-Oct-2026 · NTSB · FAA registry');
+  const avg=DATA.funnel.avg, pts=DATA.funnel.pts.slice().sort((a,b)=>a.fleet-b.fleet);
+  let g=`<svg class="abs" width="1920" height="1080" style="left:0;top:0"><defs><clipPath id="pc"><rect x="${PX0}" y="${PY0}" width="${PX1-PX0}" height="${PY1-PY0}"/></clipPath></defs><g id="ax">`;
+  for(const v of [0,.5,1,1.5,2,2.5]) g+=`<line x1="${PX0}" x2="${PX1}" y1="${py(v)}" y2="${py(v)}" stroke="#2a323f" stroke-width="2"/>`;
+  for(const f of [30,100,300,1000,3000,10000,30000]) g+=`<line x1="${px(f)}" x2="${px(f)}" y1="${PY0}" y2="${PY1}" stroke="#2a323f" stroke-width="1.5" stroke-dasharray="4 8"/>`;
+  g+=`</g><g id="xl">`; for(const f of [30,100,300,1000,3000,10000,30000]) g+=`<text x="${px(f)}" y="${PY1+42}" text-anchor="middle" fill="#8b93a1" font-size="26">${fmt(f)}</text>`;
+  g+=`<text x="${(PX0+PX1)/2}" y="${PY1+92}" text-anchor="middle" fill="#e7e4dc" font-size="28">average registered fleet (log scale) →</text></g><g id="yl">`;
+  for(const v of [0,.5,1,1.5,2,2.5]) g+=`<text x="${PX0-18}" y="${py(v)+9}" text-anchor="end" fill="#8b93a1" font-size="26">${v.toFixed(2)}</text>`;
+  g+=`<text transform="translate(${PX0-120},${(PY0+PY1)/2}) rotate(-90)" text-anchor="middle" fill="#e7e4dc" font-size="28">fatal accidents per 1,000 aircraft-years</text></g>
+   <g clip-path="url(#pc)"><path id="band" fill="#2f3b4b" opacity=".55"/><path id="d1" d="${limPath(3.09)}" fill="none" stroke="#8b93a1" stroke-width="2.5" stroke-dasharray="10 9"/>
+   <path id="d2" d="${limPath(-3.09)}" fill="none" stroke="#8b93a1" stroke-width="2.5" stroke-dasharray="10 9"/>
+   <line id="avg" x1="${PX0}" x2="${PX1}" y1="${py(avg)}" y2="${py(avg)}" stroke="#f5a623" stroke-width="3" stroke-dasharray="16 10"/></g>
+   <text id="avgT" x="${PX0+16}" y="${py(avg)-60}" fill="#f5a623" font-size="30">piston-single average ${avg.toFixed(2)}</text>
+   <text id="b95" x="${px(45)}" y="${py(1.85)}" fill="#c9d1dc" font-size="30">95%</text>
+   <text id="b998" x="${px(700)+14}" y="${py(limRate(700,3.09))-16}" fill="#8b93a1" font-size="28">99.8%</text><g id="dots">`;
+  pts.forEach((p,i)=>{const hollow=p.k<10, col=p.v==='hi'?'#f5a623':p.v==='lo'?'#3fa7a0':'#c4820f';
+    g+=`<g id="p${i}" data-v="${p.v}"><circle class="ring" cx="${px(p.fleet)}" cy="${py(p.rate)}" r="22" fill="none" stroke="${col}" stroke-width="4" opacity="0"/>
+      <circle cx="${px(p.fleet)}" cy="${py(p.rate)}" r="11" fill="${hollow?'none':'#c4820f'}" stroke="#c4820f" stroke-width="${hollow?3:0}"/></g>`;});
+  const c172=pts.find(p=>p.icao==='C172'&&p.name.endsWith(' 172'));
+  g+=`</g><g id="sky"><line x1="${px(c172.fleet)}" y1="${py(c172.rate)+24}" x2="${px(c172.fleet)}" y2="${py(c172.rate)+70}" stroke="#3fa7a0" stroke-width="3"/>
+     <text x="${PX1+4}" y="${py(c172.rate)+108}" text-anchor="end" fill="#3fa7a0" font-size="34" font-weight="600">C172 Skyhawk</text></g></svg>`;
+  stage().insertAdjacentHTML('beforeend',g);
+  // right-hand panel: history, coin flips, limits text, lists
+  const flips=(n,h,cols,r)=>{let s='';for(let i=0;i<n;i++){const x=(i%cols)*r*2.6+r, y=Math.floor(i/cols)*r*2.6+r;s+=`<circle cx="${x}" cy="${y}" r="${r}" fill="${i<h?'#f5a623':'#3a4454'}"/>`;}return s;};
+  let hist=`<svg width="320" height="200">`;
+  const hs=[[30,40,.6],[60,150,.7],[120,95,.5],[180,120,.45],[250,110,.42],[290,105,.4],[90,60,.62],[210,90,.48]];
+  hs.forEach(([x,y],i)=>{hist+=`<g class="hico">${hospPath(x,y,1.5,'#c9d1dc')}</g><g class="pico">${planePath(x,y,1.6,'#f5a623')}</g>`;});
+  hist+=`<path d="M10,10 Q120,100 310,92 M10,190 Q120,110 310,118" fill="none" stroke="#3a4454" stroke-width="2"/></svg>`;
+  stage().insertAdjacentHTML('beforeend',`
+   <div class="abs card" id="hist" style="left:1530px;top:200px;width:350px"><div class="k" style="font-size:18px">Where it comes from</div>
+     <div style="margin:16px 0 8px">${hist}</div>
+     <div id="h1" style="font-size:24px;line-height:1.4">David Spiegelhalter, early 2000s: comparing hospitals' surgical results</div>
+     <div id="h2" style="font-size:22px;line-height:1.4;color:var(--muted);margin-top:12px">used in England's reviews of children's heart surgery</div></div>
+   <div class="abs card" id="coin" style="left:1530px;top:200px;width:350px">
+     <div class="k" style="font-size:18px">10 flips</div><svg width="300" height="50" style="margin:12px 0">${flips(10,7,10,11)}</svg>
+     <div style="font-size:24px;margin-bottom:22px">7 heads: means nothing</div>
+     <div id="c2"><div class="k" style="font-size:18px">1,000 flips</div><svg width="300" height="120" style="margin:12px 0">${flips(1000,700,50,2.2)}</svg>
+     <div style="font-size:24px">700 heads: something's up</div></div></div>
+   <div class="abs card" id="lim" style="left:1530px;top:200px;width:350px;font-size:24px;line-height:1.45">
+     <div><span style="display:inline-block;width:40px;height:22px;background:#2f3b4b;vertical-align:-3px;margin-right:10px"></span>95%: where an average type lands, for its fleet size</div>
+     <div id="l2" style="margin-top:16px"><span style="display:inline-block;width:40px;border-top:3px dashed #8b93a1;vertical-align:5px;margin-right:10px"></span>99.8%</div>
+     <div id="l3" style="margin-top:22px;color:var(--text)">Outside: differs from the average by more than chance</div>
+     <div id="l4" style="margin-top:14px;color:var(--muted)">Inside, even far from the line: may just be luck</div></div>
+   <div class="abs card" id="lists" style="left:1530px;top:200px;width:350px;font-size:22px;line-height:1.5">
+     <div id="lo"><div class="k" style="font-size:18px;color:var(--teal)">Below the funnel</div><div class="mono" style="font-size:22px;margin:8px 0 18px">${pts.filter(p=>p.v==='lo').sort((a,b)=>b.fleet-a.fleet).map(p=>p.icao).join(' · ')}</div></div>
+     <div id="hi"><div class="k" style="font-size:18px">Above the funnel</div><div class="mono" style="font-size:22px;margin-top:8px">${pts.filter(p=>p.v==='hi').sort((a,b)=>b.rate-a.rate).map(p=>p.icao).join(' · ')}</div></div>
+     <div style="font-size:18px;color:var(--muted);margin-top:16px">ICAO type designators; open circles: under 10 fatal accidents</div></div>
+   <div class="abs" id="cav" style="left:${PX0}px;top:205px;width:${PX1-PX0}px;text-align:center;padding:22px;background:rgba(16,20,26,.93);border:2px solid var(--amber);border-radius:16px">
+     <div style="font:600 42px 'IBM Plex Sans'">Outside the funnel means <span style="color:var(--amber)">different</span>, not safer or less safe.</div>
+     <div id="cav2" style="font:400 28px 'IBM Plex Sans';color:var(--muted);margin-top:10px">Rates per registered airplane · not per flight hour · not per mission</div></div>`);
+  this.pts=pts;
+},render(t){
+  const I=k=>tc('s4-intro',k),Hs=k=>tc('s4-history',k),A=k=>tc('s4-axes',k),C=k=>tc('s4-coin',k),L=k=>tc('s4-limits',k),D=k=>tc('s4-dots',k),V=k=>tc('s4-caveat',k);
+  vis($('hdr'),at(t,.1)); $('foot').style.opacity=at(t,.3);
+  $('ax').style.opacity=at(t,I(0.6),1.2);
+  $('xl').style.opacity=at(t,A(3.8)); $('yl').style.opacity=at(t,A(11.6));
+  $('avg').style.opacity=$('avgT').style.opacity=at(t,A(17.0));
+  // panels: each shows in its window
+  const win=(e,a,b)=>{const p=Math.min(at(t,a,.6),1-at(t,b,.5));e.style.opacity=p;e.style.transform=`translateX(${(1-at(t,a,.6))*30}px)`;};
+  win($('hist'),Hs(0.4),A(0.2)); $('h2').style.opacity=at(t,Hs(12.0));
+  const morph=at(t,Hs(14.5),1.4); document.querySelectorAll('.hico').forEach(e=>e.style.opacity=1-morph); document.querySelectorAll('.pico').forEach(e=>e.style.opacity=morph);
+  win($('coin'),C(1.9),L(0.0)); $('c2').style.opacity=at(t,C(7.1));
+  win($('lim'),L(0.3),D(0.0)); $('l2').style.opacity=at(t,L(11.0)); $('l3').style.opacity=at(t,L(15.0)); $('l4').style.opacity=at(t,L(20.3));
+  win($('lists'),D(2.0),1e9); $('lo').style.opacity=at(t,D(2.0)); $('hi').style.opacity=at(t,D(8.2));
+  // band grows out of the average line on "A small fleet is the ten flips"
+  const z=1.96*at(t,C(12.8),2.4); $('band').setAttribute('d',bandPath(Math.max(z,.001))); $('band').style.opacity=z>0.01?1:0;
+  $('b95').style.opacity=at(t,L(0.6)); $('d1').style.opacity=$('d2').style.opacity=$('b998').style.opacity=at(t,L(11.0));
+  // dots drop in, smallest fleet first
+  this.pts.forEach((p,i)=>{const g=$('p'+i), s=D(-0.4)+i*0.06, q=at(t,s,.5); g.style.opacity=q; g.style.transform=`translateY(${(1-q)*-30}px)`;
+    const ring=g.querySelector('.ring'); ring.setAttribute('opacity', p.v==='lo'?at(t,D(2.6),.6): p.v==='hi'?at(t,D(8.2),.6):0);});
+  $('sky').style.opacity=at(t,D(3.2),.6);
+  vis($('cav'),at(t,V(2.4),.7),-14); $('cav2').style.opacity=at(t,V(7.6));
+}};
+
+/* ---------- s5 where fatal accidents still happen ---------- */
+SCENES.s5={build(){
+  header('4','Where fatal accidents still happen','2,624 fatal accidents, 2000 – 31-Oct-2026');
+  footer(SRC);
+  const C=DATA.category, T=DATA.fatalTotal;
+  const NAMES={'LOC-I':'Loss of control in flight','CFIT':'Controlled flight into terrain','SCF-PP':'Powerplant failure','WX':'Weather encounter','LALT':'Low-altitude operation','UIMC':'VFR into IMC'};
+  const top=Object.keys(NAMES), rest=T-top.reduce((s,k)=>s+C[k],0);
+  const cat=top.map(k=>[k,NAMES[k],C[k]]).concat([['rest','All other categories',rest]]);
+  const P=DATA.phase, order=['Takeoff','Initial climb','Enroute','Maneuvering','Approach','Go-around','Landing'];
+  const prest=T-order.reduce((s,k)=>s+P[k],0);
+  const ph=order.map(k=>[k,k==='Enroute'?'En route':k,P[k]]).concat([['rest','Other / unknown',prest]]);
+  const bars=(id,rows,x,w,title)=>{let h=`<div class="abs" id="${id}" style="left:${x}px;top:270px;width:${w}px"><div class="k" style="margin-bottom:22px">${title}</div>`;
+    rows.forEach(([k,n,v],i)=>{const pct=Math.round(100*v/T);h+=`<div class="row" data-k="${k}" style="display:grid;grid-template-columns:420px 1fr;align-items:center;gap:18px;height:62px">
+      <div style="font-size:27px">${n}</div><div style="display:flex;align-items:center;gap:14px"><div class="bar" data-w="${v/887*100}" style="height:24px;border-radius:12px;background:#c4820f;width:0"></div>
+      <span class="mono val" style="font-size:25px;white-space:nowrap">${pct}%</span></div></div>`;});
+    return h+'</div>';};
+  stage().insertAdjacentHTML('beforeend',`
+   <div class="abs" id="top" style="left:96px;top:160px;display:flex;align-items:baseline;gap:20px"><span style="font:600 64px 'IBM Plex Sans';color:var(--amber)">≈56</span><span style="font-size:32px">fatal accidents a year, 2024–26 average</span></div>`
+   +bars('cat',cat,96,860,'Accident category')+bars('ph',ph,1010,820,'Phase of flight')
+   +`<div class="abs" id="def" style="left:96px;top:880px;font-size:27px;color:var(--teal)">Each accident has one defining event: it groups similar accidents together; it isn't the cause.</div>`);
+},render(t){
+  const a=k=>tc('s5-category',k), b=k=>tc('s5-phase',k);
+  vis($('hdr'),at(t,.1)); $('foot').style.opacity=at(t,.3);
+  vis($('top'),at(t,a(0.6)));
+  const grow=(id,t0)=>{document.querySelectorAll(`#${id} .row`).forEach((r,i)=>{const p=at(t,t0+i*.12,.9);
+    r.querySelector('.bar').style.width=(+r.querySelector('.bar').dataset.w*0.42*p)+'%';r.querySelector('.val').style.opacity=p;r.style.opacity=.25+.75*at(t,t0,.4);});};
+  vis($('cat'),at(t,a(7.7)),10); grow('cat',a(7.9));
+  vis($('ph'),at(t,b(0.3)),10); grow('ph',b(0.5));
+  // highlight what the narration names; the rest dims
+  const hl=(id,map)=>document.querySelectorAll(`#${id} .row`).forEach(r=>{let on=0;for(const [k,t0] of map) if(r.dataset.k===k) on=Math.max(on,at(t,t0,.5));
+     const any=Math.max(...map.map(([,t0])=>at(t,t0,.5)));r.querySelector('.bar').style.background=on>.5?'#f5a623':'#c4820f';
+     r.style.opacity=(1-any*0.6)+on*any*0.6;});
+  hl('cat',[['LOC-I',a(9.0)],['CFIT',a(17.9)],['SCF-PP',a(17.9)],['WX',a(17.9)]]);
+  vis($('def'),at(t,b(14.4)),8);
+  hl('ph',[['Enroute',b(2.4)],['Maneuvering',b(5.3)],['Initial climb',b(9.2)],['Approach',b(9.2)]]);
+}};
+
+/* ---------- boot ---------- */
+window.setup=function(){
+  const p=DATA.fleet, y=DATA.years, last=y[y.length-1];
+  A0=(DATA.fatal[2000]+DATA.fatal[2001]+DATA.fatal[2002])/3;
+  A1=(DATA.fatal[last-2]+DATA.fatal[last-1]+DATA.fatal[last]/DATA.lastShare)/3;
+  F0=(p[2000]+p[2001]+p[2002])/3; F1=(p[last-2]+p[last-1]+p[last])/3;
+  SCENES[SCENE].build();
+};
+window.render=function(t){
+  const s=S(); SCENES[SCENE].render(t);
+  $('fade').style.opacity = Math.max(1-at(t,0,.5), at(t,s.dur-.5,.5));
+};
+</script></body></html>

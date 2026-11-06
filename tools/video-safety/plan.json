@@ -1,0 +1,82 @@
+[
+ {
+  "id": "s0",
+  "title": "Cold open",
+  "start": 0.0,
+  "dur": 31.61,
+  "clips": {
+   "s0-open": 1.5
+  }
+ },
+ {
+  "id": "s1",
+  "title": "Title",
+  "start": 31.61,
+  "dur": 7.0,
+  "clips": {}
+ },
+ {
+  "id": "s2",
+  "title": "What's counted",
+  "start": 38.61,
+  "dur": 44.57,
+  "clips": {
+   "s2-sources": 0.8,
+   "s2-yardstick": 19.52
+  }
+ },
+ {
+  "id": "s3",
+  "title": "The trend",
+  "start": 83.18,
+  "dur": 79.72,
+  "clips": {
+   "s3-trend": 0.6,
+   "s3-footnotes": 29.45,
+   "s3-all": 69.42
+  }
+ },
+ {
+  "id": "s4",
+  "title": "The funnel plot",
+  "start": 162.9,
+  "dur": 142.68,
+  "clips": {
+   "s4-intro": 0.6,
+   "s4-history": 11.4,
+   "s4-axes": 33.92,
+   "s4-coin": 57.74,
+   "s4-limits": 80.6,
+   "s4-dots": 106.55,
+   "s4-caveat": 118.87
+  }
+ },
+ {
+  "id": "s5",
+  "title": "Where fatal accidents still happen",
+  "start": 305.58,
+  "dur": 54.92,
+  "clips": {
+   "s5-category": 0.6,
+   "s5-phase": 31.12
+  }
+ },
+ {
+  "id": "s6",
+  "title": "Try it yourself",
+  "start": 360.5,
+  "dur": 24.45,
+  "clips": {
+   "s6-tour": 0.5
+  }
+ },
+ {
+  "id": "s7",
+  "title": "End card",
+  "start": 384.95,
+  "dur": 18.06,
+  "clips": {
+   "s7-end": 0.8
+  }
+ }
+]

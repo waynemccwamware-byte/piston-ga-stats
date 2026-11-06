@@ -1,0 +1,420 @@
+{
+ "s0-open": {
+  "dur": 28.61,
+  "speech": [
+   0.42,
+   28.2
+  ],
+  "sentences": [
+   {
+    "t": 0.42,
+    "text": "At the turn of the century, piston single-engine airplanes flying under Part 91 in the US had about 147 fatal accidents a year."
+   },
+   {
+    "t": 13.07,
+    "text": "Over the last three years: about 56."
+   },
+   {
+    "t": 14.89,
+    "text": "The registered fleet shrank too, so is that real progress, or just fewer airplanes?"
+   },
+   {
+    "t": 23.29,
+    "text": "Let's look at the numbers."
+   },
+   {
+    "t": 24.87,
+    "text": "Just the facts."
+   },
+   {
+    "t": 26.44,
+    "text": "The conclusions are yours."
+   }
+  ],
+  "snapped": 4
+ },
+ "s2-sources": {
+  "dur": 18.22,
+  "speech": [
+   0.41,
+   17.8
+  ],
+  "sentences": [
+   {
+    "t": 0.41,
+    "text": "Everything here comes from two public sources: the NTSB accident database and the FAA aircraft registry."
+   },
+   {
+    "t": 11.12,
+    "text": "GA Accident Stats, one of my GeezerGeek Pilot apps, refreshes both every month."
+   }
+  ],
+  "snapped": 1
+ },
+ "s2-yardstick": {
+  "dur": 23.85,
+  "speech": [
+   0.42,
+   23.43
+  ],
+  "sentences": [
+   {
+    "t": 0.42,
+    "text": "That's 38 piston-single model families from six makers, Part 91 flying only."
+   },
+   {
+    "t": 6.51,
+    "text": "The yardstick is accidents per thousand registered airplanes per year."
+   },
+   {
+    "t": 12.43,
+    "text": "Not per flight hour."
+   },
+   {
+    "t": 15.11,
+    "text": "So an airplane that flies a lot will look worse than one that mostly sits in the hangar."
+   },
+   {
+    "t": 22.65,
+    "text": "Keep that in mind."
+   }
+  ],
+  "snapped": 4
+ },
+ "s3-trend": {
+  "dur": 28.35,
+  "speech": [
+   0.43,
+   27.91
+  ],
+  "sentences": [
+   {
+    "t": 0.43,
+    "text": "Here's the fatal accident rate for all piston singles, as a three-year average."
+   },
+   {
+    "t": 6.74,
+    "text": "In 2000 it was about one fatal accident per thousand airplanes per year."
+   },
+   {
+    "t": 13.22,
+    "text": "By 2009 it was about point six three, roughly a third lower."
+   },
+   {
+    "t": 17.83,
+    "text": "Then it sat on a plateau for well over a decade."
+   },
+   {
+    "t": 23.19,
+    "text": "In the last three years it dropped again, to about point four four."
+   }
+  ],
+  "snapped": 4
+ },
+ "s3-footnotes": {
+  "dur": 39.47,
+  "speech": [
+   0.41,
+   39.04
+  ],
+  "sentences": [
+   {
+    "t": 0.41,
+    "text": "Two footnotes."
+   },
+   {
+    "t": 1.84,
+    "text": "Registry counts before about 2011 still include plenty of airplanes that weren't flying, so the early rates actually read low: the real improvement is likely bigger than this line shows."
+   },
+   {
+    "t": 17.27,
+    "text": "And the latest drop is new: 2026 is counted through October and prorated to a full year."
+   },
+   {
+    "t": 24.56,
+    "text": "It isn't only this app's numbers, though."
+   },
+   {
+    "t": 27.34,
+    "text": "The FAA reports fiscal 2024 had the lowest general aviation fatal accident rate since it began tracking in 2009."
+   },
+   {
+    "t": 38.33,
+    "text": "Worth watching."
+   }
+  ],
+  "snapped": 5
+ },
+ "s3-all": {
+  "dur": 8.7,
+  "speech": [
+   0.44,
+   8.27
+  ],
+  "sentences": [
+   {
+    "t": 0.44,
+    "text": "All accidents, not just fatal ones, fell too: from about 850 a year to under 500."
+   }
+  ],
+  "snapped": 0
+ },
+ "s4-intro": {
+  "dur": 10.3,
+  "speech": [
+   0.43,
+   9.9
+  ],
+  "sentences": [
+   {
+    "t": 0.43,
+    "text": "So the whole category improved."
+   },
+   {
+    "t": 3.21,
+    "text": "But how does one type compare with the rest?"
+   },
+   {
+    "t": 6.92,
+    "text": "That's what a funnel plot is for."
+   }
+  ],
+  "snapped": 2
+ },
+ "s4-history": {
+  "dur": 22.02,
+  "speech": [
+   0.4,
+   21.58
+  ],
+  "sentences": [
+   {
+    "t": 0.4,
+    "text": "It comes from medicine."
+   },
+   {
+    "t": 2.69,
+    "text": "Statistician David Spiegelhalter developed it in the early 2000s to compare hospitals' surgical results, and it was used in England's reviews of children's heart surgery, so a small unit wasn't condemned for a run of bad luck."
+   }
+  ],
+  "snapped": 1
+ },
+ "s4-axes": {
+  "dur": 23.32,
+  "speech": [
+   0.42,
+   22.87
+  ],
+  "sentences": [
+   {
+    "t": 0.42,
+    "text": "Each dot will be one airplane type."
+   },
+   {
+    "t": 3.77,
+    "text": "Left to right is fleet size, from a few dozen airplanes to over twenty thousand Skyhawks."
+   },
+   {
+    "t": 11.57,
+    "text": "Up and down is the fatal accident rate, 2000 to today."
+   },
+   {
+    "t": 17.03,
+    "text": "The dashed line is the piston-single average: point six nine."
+   }
+  ],
+  "snapped": 3
+ },
+ "s4-coin": {
+  "dur": 22.36,
+  "speech": [
+   0.4,
+   21.96
+  ],
+  "sentences": [
+   {
+    "t": 0.4,
+    "text": "Why a funnel?"
+   },
+   {
+    "t": 1.98,
+    "text": "Flip a coin ten times and seven heads means nothing."
+   },
+   {
+    "t": 7.09,
+    "text": "Flip it a thousand times and seven hundred heads tells you something's up."
+   },
+   {
+    "t": 12.81,
+    "text": "A small fleet is the ten flips: one or two accidents swing its rate a lot."
+   },
+   {
+    "t": 19.14,
+    "text": "A big fleet is the thousand flips."
+   }
+  ],
+  "snapped": 4
+ },
+ "s4-limits": {
+  "dur": 25.45,
+  "speech": [
+   0.4,
+   24.99
+  ],
+  "sentences": [
+   {
+    "t": 0.4,
+    "text": "The shaded band is where a type with exactly average safety would land 95 percent of the time, given its fleet size."
+   },
+   {
+    "t": 10.98,
+    "text": "The dashed curves are 99.8 percent."
+   },
+   {
+    "t": 14.99,
+    "text": "A dot outside the band differs from the average by more than chance."
+   },
+   {
+    "t": 20.34,
+    "text": "A dot inside, even one far from the line, may just be luck."
+   }
+  ],
+  "snapped": 3
+ },
+ "s4-dots": {
+  "dur": 11.82,
+  "speech": [
+   0.43,
+   11.37
+  ],
+  "sentences": [
+   {
+    "t": 0.43,
+    "text": "Below the funnel: trainers, including the venerable Skyhawk, and older taildraggers."
+   },
+   {
+    "t": 8.17,
+    "text": "Above it, mostly high-performance travelers."
+   }
+  ],
+  "snapped": 1
+ },
+ "s4-caveat": {
+  "dur": 22.21,
+  "speech": [
+   0.43,
+   21.79
+  ],
+  "sentences": [
+   {
+    "t": 0.43,
+    "text": "And this is the important part."
+   },
+   {
+    "t": 2.46,
+    "text": "Outside the funnel means different, not safer or less safe."
+   },
+   {
+    "t": 7.57,
+    "text": "These are rates per registered airplane, not per hour and not per mission."
+   },
+   {
+    "t": 14.57,
+    "text": "The funnel shows you where to look."
+   },
+   {
+    "t": 17.95,
+    "text": "Why a type sits where it does is for you to work out."
+   }
+  ],
+  "snapped": 4
+ },
+ "s5-category": {
+  "dur": 30.02,
+  "speech": [
+   0.41,
+   29.61
+  ],
+  "sentences": [
+   {
+    "t": 0.41,
+    "text": "Even at the better rate, this category still has fifty-some fatal accidents a year."
+   },
+   {
+    "t": 7.66,
+    "text": "Where are they?"
+   },
+   {
+    "t": 8.99,
+    "text": "Loss of control in flight, including stall-spin, is a third of all fatal accidents since 2000, by far the largest group."
+   },
+   {
+    "t": 20.49,
+    "text": "Then controlled flight into terrain at about eleven percent, powerplant failures at ten, weather at eight."
+   }
+  ],
+  "snapped": 3
+ },
+ "s5-phase": {
+  "dur": 22.4,
+  "speech": [
+   0.44,
+   21.99
+  ],
+  "sentences": [
+   {
+    "t": 0.44,
+    "text": "By phase of flight: a third en route, a fifth while maneuvering, including low-altitude flying, and about fifteen percent each on initial climb and on approach."
+   },
+   {
+    "t": 14.42,
+    "text": "Each accident gets one defining event."
+   },
+   {
+    "t": 17.6,
+    "text": "It groups similar accidents together; it isn't the cause."
+   }
+  ],
+  "snapped": 2
+ },
+ "s6-tour": {
+  "dur": 22.95,
+  "speech": [
+   0.44,
+   22.53
+  ],
+  "sentences": [
+   {
+    "t": 0.44,
+    "text": "Every number here comes from the app, and you can run it for your own airplane."
+   },
+   {
+    "t": 7.38,
+    "text": "Here's mine, the Diamond DA40: inside the funnel, right near the average."
+   },
+   {
+    "t": 12.84,
+    "text": "Any type against any other, by years, purpose, category and phase of flight, down to each NTSB report."
+   }
+  ],
+  "snapped": 2
+ },
+ "s7-end": {
+  "dur": 10.26,
+  "speech": [
+   0.39,
+   9.82
+  ],
+  "sentences": [
+   {
+    "t": 0.39,
+    "text": "GA Accident Stats and the rest of the GeezerGeek Pilot apps are at the link and the QR code."
+   },
+   {
+    "t": 9.02,
+    "text": "Fly safe."
+   }
+  ],
+  "snapped": 1
+ }
+}
