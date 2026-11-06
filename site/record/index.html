@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Piston GA Stats VO Recorder</title>
+<title>Safety Video VO Recorder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -76,7 +76,7 @@ aside h2{font:600 12px "IBM Plex Mono",monospace;letter-spacing:.1em;color:var(-
 <body>
 <div class="wrap">
   <header>
-    <h1>VO Recorder <span>· Piston GA Stats Short</span></h1>
+    <h1>VO Recorder <span>· Safety and Piston Singles</span></h1>
     <div id="tally"></div>
   </header>
 
@@ -106,16 +106,16 @@ aside h2{font:600 12px "IBM Plex Mono",monospace;letter-spacing:.1em;color:var(-
   <aside class="card">
     <h2>Lines</h2>
     <ul id="list"></ul>
-    <div class="legend"><b style="color:var(--amber)">✓</b> saved on this device</div>
+    <div class="legend"><b style="color:var(--amber)">✓</b> saved on this device &nbsp; <b style="color:var(--teal)">●</b> already received</div>
   </aside>
 
-  <p class="tips">Saved files go to your Downloads folder (on iPhone, pick “Save to Files” or AirDrop). Attach them in the Claude chat and they go into the video. Each line shows its target length from the script; a take a second or two either way is fine, since the video is cut to your voice. Record clean: music and noise cleanup are added later.</p>
+  <p class="tips">Saved files go to your Downloads folder (on iPhone, pick “Save to Files” or AirDrop). Attach them in the Claude chat and they go straight into the video.</p>
 </div>
 
 <script>
-const LINES = /*LINES*/[{"name": "s1-hook", "panel": "Scene 1 · Hook", "target": 10, "text": "Per registered airplane, piston twins have fewer accidents than singles. But when a twin does have one, it's twice as likely to be fatal.", "kind": "narration", "live": false}, {"name": "s2-what-it-is", "panel": "Scene 2 · What it is", "target": 10, "text": "This is Piston GA Stats, a free GeezerGeek Pilot app. Every Part 91 NTSB accident since 1982 for fifty-two piston models, turned into rates per registered airplane.", "kind": "narration", "live": false}, {"name": "s3-beech-cirrus", "panel": "Scene 3 · Beech singles vs Cirrus", "target": 20, "text": "Tap a sample pair, like all Beech singles against all Cirrus, and the app marks items that stand out. Their overall accident rates are nearly the same, but the accidents aren't. Loss of control in flight is twenty-seven percent of Cirrus accidents, versus sixteen for Beech.", "kind": "narration", "live": false}, {"name": "s4-your-turn", "panel": "Scene 4 · Your turn", "target": 18, "text": "Now it's your turn. Start with any airplane, swap in another, and see what changes. The one you fly, the one you're thinking of buying, the one you trained in.", "kind": "narration", "live": false}, {"name": "s5-caveat", "panel": "Scene 5 · The fine print", "target": 7, "text": "These are rates per registered airplane, not per hour flown. They show where the records differ, not why.", "kind": "narration", "live": false}, {"name": "s6-close", "panel": "Scene 6 · Close", "target": 10, "text": "Check it out... link and QR code right here. Know your airplane, and fly safely.", "kind": "narration", "live": false}]/*END*/;
+const LINES = /*LINES*/[{"name": "s0-open", "panel": "0 · Cold open", "text": "At the turn of the century, piston single-engine airplanes flying under Part 91 in the US had about 147 fatal accidents a year. Over the last three years: about 56. The registered fleet shrank too, so is that real progress, or just fewer airplanes? Let's look at the numbers. Just the facts. The conclusions are yours.", "kind": "narration", "live": false}, {"name": "s2-sources", "panel": "2 · What's counted · sources", "text": "Everything here comes from two public sources: the NTSB accident database and the FAA aircraft registry. GA Accident Stats, one of my GeezerGeek Pilot apps, refreshes both every month.", "kind": "narration", "live": false}, {"name": "s2-yardstick", "panel": "2 · What's counted · yardstick", "text": "That's 38 piston-single model families from six makers, Part 91 flying only. The yardstick is accidents per thousand registered airplanes per year. Not per flight hour. So an airplane that flies a lot will look worse than one that mostly sits in the hangar. Keep that in mind.", "kind": "narration", "live": false}, {"name": "s3-trend", "panel": "3 · Trend · the line", "text": "Here's the fatal accident rate for all piston singles, as a three-year average. In 2000 it was about one fatal accident per thousand airplanes per year. By 2009 it was about point six three, roughly a third lower. Then it sat on a plateau for well over a decade. In the last three years it dropped again, to about point four four.", "kind": "narration", "live": false}, {"name": "s3-footnotes", "panel": "3 · Trend · footnotes", "text": "Two footnotes. Registry counts before about 2011 still include plenty of airplanes that weren't flying, so the early rates actually read low: the real improvement is likely bigger than this line shows. And the latest drop is new: 2026 is counted through October and prorated to a full year. It isn't only this app's numbers, though. The FAA reports fiscal 2024 had the lowest general aviation fatal accident rate since it began tracking in 2009. Worth watching.", "kind": "narration", "live": false}, {"name": "s3-all", "panel": "3 · Trend · all accidents", "text": "All accidents, not just fatal ones, fell too: from about 850 a year to under 500.", "kind": "narration", "live": false}, {"name": "s4-intro", "panel": "4 · Funnel · intro", "text": "So the whole category improved. But how does one type compare with the rest? That's what a funnel plot is for.", "kind": "narration", "live": false}, {"name": "s4-history", "panel": "4 · Funnel · where it comes from", "text": "It comes from medicine. Statistician David Spiegelhalter developed it in the early 2000s to compare hospitals' surgical results, and it was used in England's reviews of children's heart surgery, so a small unit wasn't condemned for a run of bad luck.", "kind": "narration", "live": false}, {"name": "s4-axes", "panel": "4 · Funnel · axes and average", "text": "Each dot will be one airplane type. Left to right is fleet size, from a few dozen airplanes to over twenty thousand Skyhawks. Up and down is the fatal accident rate, 2000 to today. The dashed line is the piston-single average: point six nine.", "kind": "narration", "live": false}, {"name": "s4-coin", "panel": "4 · Funnel · why a funnel", "text": "Why a funnel? Flip a coin ten times and seven heads means nothing. Flip it a thousand times and seven hundred heads tells you something's up. A small fleet is the ten flips: one or two accidents swing its rate a lot. A big fleet is the thousand flips.", "kind": "narration", "live": false}, {"name": "s4-limits", "panel": "4 · Funnel · limits", "text": "The shaded band is where a type with exactly average safety would land 95 percent of the time, given its fleet size. The dashed curves are 99.8 percent. A dot outside the band differs from the average by more than chance. A dot inside, even one far from the line, may just be luck.", "kind": "narration", "live": false}, {"name": "s4-dots", "panel": "4 · Funnel · dots in", "text": "Below the funnel: trainers, including the venerable Skyhawk, and older taildraggers. Above it, mostly high-performance travelers.", "kind": "narration", "live": false}, {"name": "s4-caveat", "panel": "4 · Funnel · the caveat", "text": "And this is the important part. Outside the funnel means different, not safer or less safe. These are rates per registered airplane, not per hour and not per mission. The funnel shows you where to look. Why a type sits where it does is for you to work out.", "kind": "narration", "live": false}, {"name": "s5-category", "panel": "5 · Still to do · category", "text": "Even at the better rate, this category still has fifty-some fatal accidents a year. Where are they? Loss of control in flight, including stall-spin, is a third of all fatal accidents since 2000, by far the largest group. Then controlled flight into terrain at about eleven percent, powerplant failures at ten, weather at eight.", "kind": "narration", "live": false}, {"name": "s5-phase", "panel": "5 · Still to do · phase", "text": "By phase of flight: a third en route, a fifth while maneuvering, including low-altitude flying, and about fifteen percent each on initial climb and on approach. Each accident gets one defining event. It groups similar accidents together; it isn't the cause.", "kind": "narration", "live": false}, {"name": "s6-tour", "panel": "6 · Try it yourself", "text": "Every number here comes from the app, and you can run it for your own airplane. Here's mine, the Diamond DA40: inside the funnel, right near the average. Any type against any other, by years, purpose, category and phase of flight, down to each NTSB report.", "kind": "narration", "live": false}, {"name": "s7-end", "panel": "7 · End card", "text": "GA Accident Stats and the rest of the GeezerGeek Pilot apps are at the link and the QR code. Fly safe.", "kind": "narration", "live": false}]/*END*/;
 const $ = id => document.getElementById(id);
-const SKEY = 'pgs.rec.saved';
+const SKEY = 'gas.rec.saved';
 let saved = {}; try { saved = JSON.parse(localStorage.getItem(SKEY) || '{}'); } catch (e) {}
 const keep = () => { try { localStorage.setItem(SKEY, JSON.stringify(saved)); } catch (e) {} };
 
@@ -145,7 +145,7 @@ function renderLine() {
   const l = LINES[idx];
   $('kind').textContent = l.kind === 'bubble' ? 'WAYNE BUBBLE' : 'NARRATION';
   $('kind').className = 'kind' + (l.kind === 'bubble' ? ' bubble' : '');
-  $('panel').textContent = l.panel + (l.target ? ` · target ~${l.target} s` : '');
+  $('panel').textContent = l.panel;
   $('fname').textContent = fileName();
   $('script').textContent = l.text;
   $('script').className = l.kind === 'bubble' ? 'bubble' : '';
@@ -173,7 +173,7 @@ function go(i) {
   if (state === 'count' || state === 'rec') return;
   idx = (i + LINES.length) % LINES.length;
   discard(); renderLine(); renderList(); setState('idle'); msg('');
-  try { localStorage.setItem('pgs.rec.idx', idx); } catch (e) {}
+  try { localStorage.setItem('gas.rec.idx', idx); } catch (e) {}
 }
 function msg(t, err) { $('msg').textContent = t; $('msg').className = err ? 'err' : ''; }
 
@@ -273,7 +273,6 @@ async function finishRec() {
   player.src = blobUrl;
   peaks = null; setState('review'); drawWave();
   const secs = ((performance.now() - t0) / 1000).toFixed(1);
-  const tgt = LINES[idx].target, long = tgt && secs > tgt + 3 ? ` That’s over the ~${tgt} s target; try a little brisker if you like.` : '';
   msg(`Recorded ${secs} s. Play it back, then save or redo.`);
   try {
     const ab = await blob.arrayBuffer();
@@ -285,7 +284,7 @@ async function finishRec() {
     const top = Math.max(...peaks);
     if (top > 0.98) msg('Recorded, but it clipped (too loud). Back off the mic a little and redo.', true);
     else if (top < 0.063) msg(`Recorded, but quiet (peaks ${(20 * Math.log10(top)).toFixed(0)} dB, below the green band). Move the phone’s bottom edge closer, about 6 inches, and redo.`, true);
-    else msg(`Recorded ${secs} s, peaks ${(20 * Math.log10(top)).toFixed(0)} dB. Level is good; play it back, then save or redo.${long}`);
+    else msg(`Recorded ${secs} s, peaks ${(20 * Math.log10(top)).toFixed(0)} dB. Level is good; play it back, then save or redo.`);
     drawWave();
   } catch (e) { /* waveform is optional */ }
 }
@@ -364,7 +363,7 @@ addEventListener('resize', () => { if (state === 'review') drawWave(); });
 // ---------- start ----------
 const hashName = decodeURIComponent(location.hash.slice(1));
 let start = LINES.findIndex(l => l.name === hashName);
-if (start < 0) { try { start = +localStorage.getItem('pgs.rec.idx') || 0; } catch (e) { start = 0; } }
+if (start < 0) { try { start = +localStorage.getItem('gas.rec.idx') || 0; } catch (e) { start = 0; } }
 if (start < 0 || start >= LINES.length) start = 0;
 go(start);
 </script>
