@@ -210,6 +210,7 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .pbrand label{ text-transform:none; letter-spacing:normal; display:flex; align-items:flex-start; gap:6px; font-size:12.5px; line-height:1.3; padding:3px 0; cursor:pointer; color:var(--text-primary); }
 .pbrand legend label{ font-weight:600; padding:2px 0 4px; }
 .pbrand input{ accent-color:var(--amber); margin:2px 0 0; flex-shrink:0; }
+.pbrand .rn{ font:400 10.5px 'IBM Plex Mono',monospace; color:var(--text-muted); margin-left:6px; }
 .pbrand .tp{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--teal); border:1px solid rgba(63,167,160,0.5); border-radius:3px; padding:0 3px; margin-left:4px; vertical-align:1px; }
 .pick-foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; font-size:11px; color:var(--text-muted); }
 @media (max-width:560px){ .pick-brands{ columns:auto; } }
@@ -358,7 +359,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.34</span>
+    <span class="ver mono">v0.35</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -815,11 +816,11 @@ function renderPick(){
   const brands=BRANDS.map(b=>{
     const fams=FAMS.map((f,i)=>[f,i]).filter(([f])=>f[0]===b).sort((p,q)=>p[0][1].localeCompare(q[0][1],undefined,{numeric:true}));
     const on=fams.filter(([,i])=>S.has(i)).length;
-    const all = fams.length>1 ? `<legend><label><input type="checkbox" data-brand="${esc(b)}" ${on===fams.length?'checked':''} ${on&&on<fams.length?'data-mixed="1"':''}> ${esc(b)} <small style="font-weight:400;color:var(--text-muted)">all</small></label></legend>` : `<legend>${esc(b)}</legend>`;
-    return `<fieldset class="pbrand">${all}${fams.map(([f,i])=>`<label><input type="checkbox" data-f="${i}" ${S.has(i)?'checked':''}><span>${esc(f[1])}${isTP(i)?'<span class="tp" title="turboprop">TP</span>':''}</span></label>`).join('')}</fieldset>`;
+    const all = fams.length>1 ? `<legend><label><input type="checkbox" data-brand="${esc(b)}" ${on===fams.length?'checked':''} ${on&&on<fams.length?'data-mixed="1"':''}> ${esc(b)} <small style="font-weight:400;color:var(--text-muted)">all</small><span class="rn">${fams.reduce((t,[,i])=>t+(i===JETPROP_I?0:regNow(i)),0).toLocaleString()}</span></label></legend>` : `<legend>${esc(b)}<span class="rn">${fams.reduce((t,[,i])=>t+(i===JETPROP_I?0:regNow(i)),0).toLocaleString()}</span></legend>`;
+    return `<fieldset class="pbrand">${all}${fams.map(([f,i])=>`<label><input type="checkbox" data-f="${i}" ${S.has(i)?'checked':''}><span>${esc(f[1])}${isTP(i)?'<span class="tp" title="turboprop">TP</span>':''}<span class="rn" title="Registered now (FAA registry)">${i===JETPROP_I?'—':regNow(i).toLocaleString()}</span></span></label>`).join('')}</fieldset>`;
   }).join('');
   pp.innerHTML=`<div class="pick">
-    <div class="pick-head"><b><span class="swatch ${key==='a'?'sw-a':'sw-b'}"></span>Type ${key.toUpperCase()} <small>· tick one or more; they are added together</small></b><span class="pick-acts"><button type="button" class="btn" data-q="clear" style="padding:5px 12px">Clear selections</button><button type="button" class="btn primary" data-done style="padding:5px 12px">Done</button></span></div>
+    <div class="pick-head"><b><span class="swatch ${key==='a'?'sw-a':'sw-b'}"></span>Type ${key.toUpperCase()} <small>· tick one or more; they are added together · grey numbers: registered now</small></b><span class="pick-acts"><button type="button" class="btn" data-q="clear" style="padding:5px 12px">Clear selections</button><button type="button" class="btn primary" data-done style="padding:5px 12px">Done</button></span></div>
     <div class="pick-quick" role="group" aria-label="Groups">${q}</div>
     <div class="pick-brands">${brands}</div>
     <div class="pick-foot"><span id="pickMsg" aria-live="polite">${S.size ? `${S.size} type${S.size===1?'':'s'} selected: ${esc(selLabel(st[key]))}` : key==='a' ? 'Tick at least one type for Type A (Done keeps the previous pick).' : 'No Type B: Type A shown alone.'}</span><button type="button" class="btn primary" data-done style="padding:5px 12px">Done</button></div></div>`;
@@ -943,7 +944,8 @@ function renderSummary(){
     ['Fatal accidents', d=>`${d.f.toLocaleString()} <span class="ci">${pct(d.f,d.n)} of accidents</span>`, '', 'fshare'],
     ['Fatalities', d=>d.deaths.toLocaleString()],
     ['Serious-injury accidents', d=>d.s.toLocaleString()],
-    ['Avg. registered fleet', d=>d.noRate?'—':Math.round(d.fleet).toLocaleString()],
+    ['Registered now', (d,i)=>d.noRate?'—':`${fleetYear(sides[i],lastYear()).toLocaleString()}<span class="ci">${regNowNote()}</span>`],
+    [`Avg. registered fleet, ${st.y0}–${st.y1}`, d=>d.noRate?'—':Math.round(d.fleet).toLocaleString()],
     ['Accidents per 1,000 registered aircraft-years', d=>rate(d.n,d.ay,d), 'key', 'rate'],
     ['Fatal accidents per 1,000 registered aircraft-years', d=>rate(d.f,d.ay,d), 'key', 'frate'],
     ['Instructional share of accidents', d=>pct(d.inst,d.purN), '', 'inst'],
@@ -954,7 +956,7 @@ function renderSummary(){
     data.forEach((d,i)=>d.hrs=d.ay*hrs[i]);
     const hr=(k,d,h)=>{ if(d.noRate||d.ay<1) return '—'; const v=1e5*k/d.hrs, [lo,hi]=pci(k).map(x=>1e5*x/d.hrs);
       return `${v.toFixed(2)}<span class="ci">at your ${h.toLocaleString()} h/yr average</span><span class="ci">${lo.toFixed(2)}–${hi.toFixed(2)}</span>`; };
-    rows.splice(7,0,
+    rows.splice(8,0,
       ['(guestimate) Accidents per 100,000 flight hours', (d,i)=>hr(d.n,d,hrs[i]), 'est', null],
       ['(guestimate) Fatal accidents per 100,000 flight hours', (d,i)=>hr(d.f,d,hrs[i]), 'est', null]);
   }
@@ -975,6 +977,10 @@ function renderSummary(){
 const OPTXT={'91':'Part 91','135':'Part 135','all':'Part 91 and 135'};
 let JETPROP_I=-1;
 // a side made only of families whose registry count is known to be incomplete gets no rate
+// v0.35: "Registered now" = airframes on the FAA registry in the registry file's own year (MASTER, plus any
+// deregistered earlier this year), the same count the fleet charts use for that year
+const regNow = i => M.fleet[i][lastYear()-M.fleetY0]||0;
+function regNowNote(){ const [y,m,d]=M.regAsOf.split('-'); return `FAA registry, ${d}-${MON[+m]}-${y}`; }
 function onlyNoRate(sel){ const f=selFams(sel); return f.size>0 && [...f].every(i=>i===JETPROP_I); }
 function pairedBars(el, keys, getLabel, countsA, countsB, totA, totB, clickFn, hl){
   if(!keys.length){ el.innerHTML='<div class="empty">No accidents match these filters.</div>'; return; }
