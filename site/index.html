@@ -177,6 +177,18 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .fine p{ margin:0 0 6px; }
 .fine a{ color:var(--teal); }
 .loading{ font-size:13px; color:var(--text-muted); padding:20px 4px; text-align:center; }
+/* v0.37: tail-number search (section 9) */
+.rc-bar{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.tail-form{ display:flex; gap:6px; align-items:center; }
+.tail-form input{ font:500 13px 'IBM Plex Mono',monospace; text-transform:uppercase; width:13ch; padding:6px 9px; border-radius:6px;
+  border:1px solid var(--bezel-hi); background:var(--bg-deep); color:var(--text-primary); }
+.tail-form input::placeholder{ text-transform:none; font-family:'IBM Plex Sans',sans-serif; color:var(--text-muted); }
+.tail-form input:focus-visible{ outline:2px solid var(--amber); outline-offset:1px; }
+.tail-form .btn{ padding:6px 11px; font-size:12px; }
+.sw-n{ background:var(--bezel-hi); }
+.tail-info{ font-size:12px; color:var(--text-muted); line-height:1.5; margin:0 0 8px; }
+.tail-info a, .acc .body a.lk{ color:var(--teal); }
+.acc .body button.tailgo{ all:unset; cursor:pointer; color:var(--teal); text-decoration:underline; }
 /* v0.21: hours guesses */
 .hrs-row{ gap:10px; }
 .hin{ display:flex; align-items:center; gap:6px; flex:1; min-width:0; }
@@ -366,7 +378,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.36</span>
+    <span class="ver mono">v0.37</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -560,11 +572,19 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 
       <section class="step" aria-labelledby="h8">
         <h2 id="h8"><span class="num">9</span> Latest accidents <span class="sub" id="recentSub"></span></h2>
-        <div class="seg" id="recentWhich" role="group" aria-label="Which type" style="margin-bottom:8px">
-          <button type="button" data-v="both" aria-pressed="true">Both types</button>
-          <button type="button" data-v="a" aria-pressed="false">Type A</button>
-          <button type="button" data-v="b" aria-pressed="false">Type B</button>
+        <div class="rc-bar">
+          <div class="seg" id="recentWhich" role="group" aria-label="Which type">
+            <button type="button" data-v="both" aria-pressed="true">Both types</button>
+            <button type="button" data-v="a" aria-pressed="false">Type A</button>
+            <button type="button" data-v="b" aria-pressed="false">Type B</button>
+          </div>
+          <form class="tail-form" id="tailForm" role="search" autocomplete="off">
+            <label class="sr-only" for="tailIn">Search a specific tail number</label>
+            <input id="tailIn" type="search" inputmode="text" autocapitalize="characters" spellcheck="false" maxlength="8" placeholder="Tail no., e.g. N162GL">
+            <button type="submit" class="btn">Search</button>
+          </form>
         </div>
+        <div id="tailInfo" class="tail-info" hidden></div>
         <div id="recentChip"></div>
         <div id="recentList"></div>
         <div style="margin-top:8px"><button type="button" class="btn" id="moreBtn">Show 25 more</button></div>
@@ -658,7 +678,7 @@ const GG = {
 };
 const GG_ORDER=['all','p','t','ps','pm'];
 const hasBoth = b => { const k=FAMS.map((f,i)=>f[0]===b?isTwin(i):null).filter(x=>x!==null); return k.includes(true)&&k.includes(false); };
-const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'fatal', sevPh:'fatal', trM:'fatal', trS:3, rgM:'active', rgS:3, toM:'fatal', toS:3, toC:null, recent:'both', cat:null, shown:25, preset:null, sfM:'fatal', sfC:null, view:null, coHidden:false, hlOff:false };
+const st = { a:null, b:null, y0:2008, y1:2025, pur:'all', op:'91', pick:null, ha:null, hb:null, sev:'fatal', sevPh:'fatal', trM:'fatal', trS:3, rgM:'active', rgS:3, toM:'fatal', toS:3, toC:null, recent:'both', cat:null, shown:25, preset:null, sfM:'fatal', sfC:null, view:null, coHidden:false, hlOff:false, tail:null };
 const causeCache = {};
 const famSetCache = {};
 
@@ -755,9 +775,10 @@ function buildControls(){
   seg('toMeas', v=>{ st.toM=v; });
   seg('toCat', v=>{ st.toC=v; });
   seg('toSmooth', v=>{ st.toS=+v; });
-  seg('recentWhich', v=>{ st.recent=v; st.shown=25; });
+  seg('recentWhich', v=>{ st.recent=v; st.shown=25; st.tail=null; $('tailIn').value=''; });
   seg('sfMeas', v=>{ st.sfM=v; });
   seg('sfCat', v=>{ st.sfC=v; });
+  $('tailForm').addEventListener('submit', e=>{ e.preventDefault(); const t=normTail($('tailIn').value); runTail(t||$('tailIn').value.trim()||null); });
   $('sfWrap').addEventListener('click', sfClick);
   sfBindGestures();
   $('sfOpen').addEventListener('click', sfOpenFull);
@@ -905,6 +926,7 @@ function readHash(){
   if (['ps','pm','t'].includes(p.get('oc'))) st.toC=p.get('oc');
   if (['a','b'].includes(p.get('r'))) st.recent=p.get('r');
   if (p.has('c') && M.cats.includes(p.get('c'))) st.cat=p.get('c');
+  if (p.has('tail')) st.tail=normTail(p.get('tail'));
   if (st.recent==='b' && !st.b) st.recent='both';
   if (!st.preset) st.preset=matchPreset();  // a plain a/b link that matches a preset lights its chip
 }
@@ -923,6 +945,7 @@ function writeHash(){
   if (st.toC) p.set('oc',st.toC);
   if (st.recent!=='both') p.set('r',st.recent);
   if (st.cat) p.set('c',st.cat);
+  if (st.tail) p.set('tail',st.tail);
   if (st.sfC) p.set('sc',st.sfC);
   if (st.view){ p.set('view',st.view); if (st.sfM==='all') p.set('sm','all'); }
   if (st.sfLbl) p.set('sl','1');
@@ -1206,12 +1229,65 @@ async function loadCauses(brand){
   if(!causeCache[key]) causeCache[key]=fetch(`data/causes-${key}.json`).then(r=>r.ok?r.json():{}).catch(()=>({}));
   return causeCache[key];
 }
+// ---------- v0.37: tail-number search ----------
+// Searches every accident in the data, whatever types, years, Part, purpose or Fatal filter are set,
+// because a search limited to the selection would show a clean record for any tail outside it.
+// Input is forgiving: "162gl", "N-162GL" and " n162gl " all read N162GL. Kept in the link as tail=.
+// FAA Registry N-number page: registry.faa.gov/AircraftInquiry/Search/NNumberResult?nNumberTxt=<N-number>,
+// checked 22-Nov-2026 (N162GL returned its Diamond DA 40 record). It shows the current holder of the number,
+// which may not be the airframe in an older accident: N-numbers are reassigned.
+const tailKey = s => String(s||'').toUpperCase().replace(/[\s-]/g,'');
+function normTail(s){
+  let t=tailKey(s); if(!t) return null;
+  if(!t.startsWith('N')) t='N'+t;
+  return /^N[1-9][0-9A-Z]{0,4}$/.test(t) ? t : null;
+}
+let TAIL_IX=null;
+function tailRows(t){
+  if(!TAIL_IX){ TAIL_IX=new Map(); for(const r of R){ const k=tailKey(r[C.reg]); if(!TAIL_IX.has(k)) TAIL_IX.set(k,[]); TAIL_IX.get(k).push(r); } }
+  return TAIL_IX.get(tailKey(t))||[];
+}
+const faaLink = t => `https://registry.faa.gov/AircraftInquiry/Search/NNumberResult?nNumberTxt=${encodeURIComponent(t)}`;
+function runTail(t){
+  st.tail=t; st.shown=25; $('tailIn').value=t||'';
+  writeHash(); renderRecent();
+  if(t) $('h8').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function fmtAsOf(s){ const [y,m,d]=s.split('-'); return `${d}-${MON[+m]}-${y}`; }
+function renderTailInfo(rr){
+  const box=$('tailInfo'); if(!st.tail){ box.hidden=true; box.innerHTML=''; return; }
+  box.hidden=false;
+  const t=st.tail, ok=normTail(t)===t;
+  if(!ok){ box.innerHTML=`“${esc(t)}” doesn’t look like a US N-number (N, then up to five characters, first digit 1–9).`; return; }
+  const faa=`<a href="${faaLink(t)}" target="_blank" rel="noopener">FAA Registry record for ${esc(t)} &#8599;</a> (who holds the number now)`;
+  if(!rr.length){
+    box.innerHTML=`No accidents found for <b>${esc(t)}</b> among the types this app covers (1982 on, NTSB data as of ${fmtAsOf(M.ntsbAsOf)}). That isn’t proof of a clean record: other makes, homebuilts, turboprop twins and incidents aren’t in this data (see Data, below). ${faa}.`;
+    return;
+  }
+  // a blank year built doesn't count as a different airframe
+  const fams=new Set(rr.map(([r])=>r[C.fam])), yrs=new Set(rr.map(([r])=>r[C.yb]).filter(Boolean));
+  const reuse = (fams.size>1 || yrs.size>1) ? ` These records show more than one airframe (different type or year built), so the number has likely been reassigned.` : '';
+  box.innerHTML=`All accidents for <b>${esc(t)}</b> in this app, any type and any year (your type, year and filter settings don’t apply).${reuse} ${faa}. N-numbers are reassigned, so the current record may be a different airplane from an older accident.`;
+}
 function renderRecent(){
   const list=$('recentList'), chip=$('recentChip');
   const bBtn=$('recentWhich').querySelector('[data-v="b"]'), bothBtn=$('recentWhich').querySelector('[data-v="both"]');
   bBtn.disabled = bothBtn.disabled = !st.b;
   let which = st.b ? st.recent : 'a';
   if(!st.b) setSeg('recentWhich','a');
+  if(st.tail){
+    // tail mode: whole database; each row tagged A (0), B (1) or neither (-1) for its swatch
+    const fa=selFams(st.a), fb=selFams(st.b), t=normTail(st.tail)===st.tail;
+    const rr=(t?tailRows(st.tail):[]).map(r=>[r, fa.has(r[C.fam])?0:fb.has(r[C.fam])?1:-1])
+      .sort((p,q)=> (q[0][C.y]-p[0][C.y]) || (q[0][C.m]-p[0][C.m]) || (q[0][C.d]-p[0][C.d]));
+    $('recentWhich').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));
+    $('recentSub').textContent=t ? `${st.tail} · ${rr.length.toLocaleString()} accident${rr.length===1?'':'s'}, whole database` : 'tail number search';
+    chip.innerHTML=`<span class="chip">Tail number: ${esc(st.tail)} <button type="button" data-clear="tail" aria-label="Clear tail number search">✕</button></span>`;
+    chip.querySelector('button').onclick=()=>{ runTail(null); setSeg('recentWhich', st.b?st.recent:'a'); };
+    renderTailInfo(rr);
+    return drawRecent(rr);
+  }
+  renderTailInfo(null);
   // rows tagged with the side they belong to (a row can match both sides; it is listed once per side)
   const tagged=[];
   if(which!=='b' && st.a) for(const r of rowsFor(st.a,'sev')) tagged.push([r,0]);
@@ -1224,6 +1300,10 @@ function renderRecent(){
   if(st.sev==='fatal') chips.push(`<span class="chip">Fatal only (section 4) <button type="button" data-clear="sev" aria-label="Show all accidents">✕</button></span>`);
   chip.innerHTML=chips.join(' ');
   chip.querySelectorAll('button[data-clear]').forEach(b=>b.onclick=()=>{ if(b.dataset.clear==='cat') st.cat=null; else { st.sev='all'; setSeg('sevSeg','all'); } st.shown=25; update(); });
+  drawRecent(rr);
+}
+function drawRecent(rr){
+  const list=$('recentList');
   const show=rr.slice(0,st.shown);
   list.innerHTML = show.length ? show.map(([r,side],i)=>{
     const cls=r[C.inj]>=0?INJC[r[C.inj]]:'none';
@@ -1231,11 +1311,11 @@ function renderRecent(){
     const fam=FAMS[r[C.fam]];
     const mdl = r[C.mdl] && r[C.mdl]!==fam[1].toUpperCase() ? `${fam[0]} ${r[C.mdl]}` : fam.join(' ');
     return `<div class="acc" data-i="${i}"><button type="button" class="head" aria-expanded="false">
-      <span class="swatch ${side?'sw-b':'sw-a'}" style="margin-top:3px" aria-label="${side?'Type B':'Type A'}"></span>
+      <span class="swatch ${side<0?'sw-n':side?'sw-b':'sw-a'}" style="margin-top:3px" aria-label="${side<0?'Neither selected type':side?'Type B':'Type A'}"></span>
       <span class="dt">${fmtDate(r)}</span>
       <span class="what"><span class="mdl">${esc(mdl)}</span>${r[C.yb]?` <span class="t" style="font-size:11px;color:var(--text-muted)">(${esc(r[C.yb])})</span>`:''}<br>${esc((CAT[M.cats[r[C.cat]]]||[M.cats[r[C.cat]]])[0])}<small>${esc(M.phases[r[C.ph]])}${r[C.st]?' · '+esc(r[C.city]?r[C.city]+', '+r[C.st]:r[C.st]):''} · ${esc(r[C.reg])}</small></span>
       <span class="inj ${cls}">${injTxt}</span></button>
-      <div class="body"></div></div>`; }).join('') : '<div class="empty">No accidents match.</div>';
+      <div class="body"></div></div>`; }).join('') : (st.tail?'':'<div class="empty">No accidents match.</div>');
   $('moreBtn').hidden = rr.length<=st.shown;
   list.querySelectorAll('.acc').forEach(n=>{
     const [r]=show[+n.dataset.i];
@@ -1260,7 +1340,10 @@ function renderRecent(){
       body.innerHTML = `<dl class="dgrid">${dl.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`+
         (pc?`<div><b>NTSB probable cause:</b> ${esc(pc)}</div>`:'<div class="t">No probable cause in the data yet (investigation may still be open).</div>')+
         (fl.length?`<div class="meta">Findings: ${esc(fl.join('; '))}</div>`:'')+
-        ntsbLinks(r[C.ntsb]);
+        ntsbLinks(r[C.ntsb])+
+        `<div class="meta"><a class="lk" href="${faaLink(r[C.reg])}" target="_blank" rel="noopener">FAA Registry record for ${esc(r[C.reg])} &#8599;</a> <span class="t">&mdash; current holder of the number</span></div>`+
+        (st.tail && tailKey(st.tail)===tailKey(r[C.reg]) ? '' : `<div class="meta"><button type="button" class="tailgo" data-t="${esc(r[C.reg])}">All accidents for ${esc(r[C.reg])}</button></div>`);
+      const go=body.querySelector('.tailgo'); if(go) go.addEventListener('click',()=>runTail(normTail(go.dataset.t)||go.dataset.t));
     });
   });
 }
@@ -1726,6 +1809,7 @@ fetch('data/accidents.json').then(r=>{ if(!r.ok) throw new Error(r.status); retu
   $('dataNote').innerHTML=`<b>${R.length.toLocaleString()}</b> accidents, 1982 to date. NTSB data as of ${fmt(M.ntsbAsOf)}; FAA registry as of ${fmt(M.regAsOf)}. Tap Type A or Type B to tick one type or several (they are added together), or a group such as All pistons or All turboprops. All your settings are saved in the page link, so you can bookmark this comparison or share it.`;
   $('loading').hidden=true; $('app').hidden=false;
   update();
+  if(st.tail){ $('tailIn').value=st.tail; setTimeout(()=>$('h8').scrollIntoView({block:'start'}),50); }  // v0.37: a tail= link opens on section 9
 }).catch(err=>{
   $('loading').textContent='Could not load the accident data ('+err.message+'). Please reload the page.';
 });

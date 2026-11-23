@@ -79,3 +79,13 @@ that window with the new settings). In that mode (`body.fv`) only section 3 show
 own size (1 SVG unit = 1 CSS px, redrawn on resize/rotation), and a top bar gives what's shown, Full screen (only
 where the browser allows it for a page element; not on iPhone) and Close (or "Full page" when opened from a link).
 The window's link carries `sm=all` when needed; changes made there don't touch the page that opened it.
+
+Tail-number search (v0.37, 22-Nov-2026): a search box in section 9 finds every accident for one N-number across the
+whole database, ignoring the type, year, Part, purpose and Fatal settings (a search limited to the selection would
+show a clean record for any tail outside it). Input is forgiving (`162gl`, `N-162GL`). Kept in the link as `tail=`;
+a `tail=` link opens on section 9. Rows from neither Type A nor B get a grey swatch. When the records show more than
+one type, or more than one year built, the note says the number was likely reassigned. A miss says the tail isn't in
+this app's types, not that it has a clean record. Each expanded accident links the NTSB case page, the FAA Registry
+N-number page (registry.faa.gov/AircraftInquiry/Search/NNumberResult?nNumberTxt=<N-number>, checked 22-Nov-2026;
+shows the current holder of the number) and "All accidents for <N-number>". Picking Both/Type A/Type B or the chip's
+✕ ends the search.
