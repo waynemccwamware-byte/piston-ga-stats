@@ -189,6 +189,17 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .tail-info{ font-size:12px; color:var(--text-muted); line-height:1.5; margin:0 0 8px; }
 .tail-info a, .acc .body a.lk{ color:var(--teal); }
 .acc .body button.tailgo{ all:unset; cursor:pointer; color:var(--teal); text-decoration:underline; }
+/* v0.38: live NTSB check in tail search */
+.live-tag{ display:inline-block; font:600 9.5px 'IBM Plex Mono',monospace; letter-spacing:.06em; color:var(--teal); border:1px solid var(--teal); border-radius:4px; padding:0 4px; margin-left:6px; vertical-align:1px; }
+.live-box{ border-left:2px solid var(--teal); padding:4px 0 4px 10px; margin:2px 0 8px; }
+.live-box .lh{ font:600 10.5px 'IBM Plex Mono',monospace; letter-spacing:.06em; color:var(--teal); text-transform:uppercase; margin-bottom:3px; }
+.live-box ul{ margin:3px 0 0 16px; padding:0; }
+.live-extra h3{ font-size:12px; font-weight:600; margin:14px 0 4px; color:var(--teal); }
+.live-extra .lx{ border-bottom:1px solid var(--bezel); padding:7px 2px; font-size:12.5px; display:grid; grid-template-columns:86px minmax(0,1fr) auto; gap:8px; }
+.live-extra .lx .dt{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-muted); }
+.live-extra .meta{ color:var(--text-muted); font-size:11px; margin-top:4px; }
+.live-extra .live-box{ font-size:12px; line-height:1.5; }
+.live-extra .lx small{ display:block; color:var(--text-muted); font-size:11px; }
 /* v0.21: hours guesses */
 .hrs-row{ gap:10px; }
 .hin{ display:flex; align-items:center; gap:6px; flex:1; min-width:0; }
@@ -378,7 +389,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.37</span>
+    <span class="ver mono">v0.38</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -587,6 +598,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
         <div id="tailInfo" class="tail-info" hidden></div>
         <div id="recentChip"></div>
         <div id="recentList"></div>
+        <div id="liveExtra" class="live-extra"></div>
         <div style="margin-top:8px"><button type="button" class="btn" id="moreBtn">Show 25 more</button></div>
       </section>
 
@@ -1250,8 +1262,62 @@ function tailRows(t){
 const faaLink = t => `https://registry.faa.gov/AircraftInquiry/Search/NNumberResult?nNumberTxt=${encodeURIComponent(t)}`;
 function runTail(t){
   st.tail=t; st.shown=25; $('tailIn').value=t||'';
+  liveFetch(t);
   writeHash(); renderRecent();
   if(t) $('h8').scrollIntoView({behavior:'smooth',block:'start'});
+}
+// ---------- v0.38: live NTSB check for the tail search ----------
+// The page asks its own Netlify function (netlify/functions/ntsb-tail.mjs), which asks the NTSB Public API
+// (GetAviationCasesFiltered by registration) with the key kept in Netlify. Cases already in the bundled data get
+// the NTSB's current status, probable cause, defining event and findings; cases the bundle lacks (newer than the
+// monthly file, or types outside this app) are listed separately and never counted in any statistics.
+// If the function or the NTSB fails, the bundled data stands and the note says so.
+// Final report PDF: data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/<mkey>/pdf
+// (checked 22-Nov-2026 with mkey 199623, the N124LZ final report).
+const LIVE = { tail:null, state:'off', cases:[], by:new Map(), asOf:null, err:'' };
+function liveFetch(t){
+  LIVE.tail=t; LIVE.cases=[]; LIVE.by=new Map(); LIVE.err='';
+  if(!t || normTail(t)!==t){ LIVE.state='off'; return; }
+  LIVE.state='loading';
+  fetch('/.netlify/functions/ntsb-tail?tail='+encodeURIComponent(t))
+    .then(r=>r.json().then(j=>{ if(!r.ok) throw new Error(j&&j.error||('HTTP '+r.status)); return j; }))
+    .then(j=>{ if(LIVE.tail!==t) return; LIVE.state='ok'; LIVE.asOf=j.asOf; LIVE.cases=j.cases||[];
+      for(const c of LIVE.cases) LIVE.by.set(ntsbBase(c.ntsb), c); })
+    .catch(e=>{ if(LIVE.tail!==t) return; LIVE.state='err'; LIVE.err=e.message||'failed'; })
+    .finally(()=>{ if(st.tail===t) renderRecent(); });
+}
+const pdfLink = mk => `https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/${encodeURIComponent(mk)}/pdf`;
+function fmtIso(s){ if(!s) return ''; const [y,m,d]=s.slice(0,10).split('-'); return `${d}-${MON[+m]}-${y}`; }
+function fmtStamp(s){ const d=new Date(s); if(isNaN(d)) return ''; const p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}-${MON[d.getMonth()+1]}-${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+const liveNewer = c => !!(c && c.reportDate && c.reportDate >= M.ntsbAsOf);   // final report published after our file
+function liveFor(r){ return LIVE.state==='ok' && st.tail && tailKey(st.tail)===tailKey(r[C.reg]) ? LIVE.by.get(ntsbBase(r[C.ntsb])) : null; }
+function liveBox(c){
+  const bits=[];
+  bits.push(`<div class="lh">Live from NTSB · checked ${esc(fmtStamp(LIVE.asOf))}</div>`);
+  bits.push(`<div>Status: ${esc(c.status||'—')}${c.reportDate?` · report ${esc(fmtIso(c.reportDate))}`:''}${liveNewer(c)?' <span class="live-tag">NEW SINCE OUR DATA</span>':''}</div>`);
+  if(c.def) bits.push(`<div>Defining event: ${esc(c.def.name)}${c.def.group?` (${esc(c.def.group)}${c.def.phase?', '+esc(c.def.phase):''})`:''}</div>`);
+  bits.push(c.pc ? `<div><b>NTSB probable cause:</b> ${esc(c.pc)}</div>` : `<div class="t">No probable cause published yet.</div>`);
+  if(c.findings && c.findings.length) bits.push(`<div class="meta">Findings:<ul>${c.findings.map(f=>`<li>${esc(f.text)}${f.cause?' (cause)':''}</li>`).join('')}</ul></div>`);
+  if(c.mkey && c.pc) bits.push(`<div class="meta"><a class="lk" href="${pdfLink(c.mkey)}" target="_blank" rel="noopener">NTSB report (PDF) &#8599;</a></div>`);
+  return `<div class="live-box">${bits.join('')}</div>`;
+}
+function renderLiveExtra(bundledRows){
+  const box=$('liveExtra');
+  if(!st.tail || LIVE.state!=='ok' || tailKey(LIVE.tail)!==tailKey(st.tail)){ box.innerHTML=''; return; }
+  const have=new Set(bundledRows.map(([r])=>ntsbBase(r[C.ntsb])));
+  const extra=LIVE.cases.filter(c=>!have.has(ntsbBase(c.ntsb)));
+  if(!extra.length){ box.innerHTML=''; return; }
+  box.innerHTML=`<h3>Also on file at the NTSB for ${esc(st.tail)} — not in this app’s data, not counted in any statistics</h3>`+
+    extra.map(c=>{
+      const inj = c.fatal ? `Fatal (${c.fatal})` : (c.highest||'—');
+      const cls = c.fatal?'fatl':/serious/i.test(c.highest)?'sers':'none';
+      const ac=[c.ac.make,c.ac.model].filter(Boolean).join(' ');
+      return `<div class="lx"><span class="dt">${esc(fmtIso(c.date))}</span>
+        <span><span class="mdl">${esc(ac||'Aircraft')}</span>${c.ac.yb?` <span class="t" style="font-size:11px;color:var(--text-muted)">(${esc(c.ac.yb)})</span>`:''}<span class="live-tag">LIVE</span><br>${esc(c.def?c.def.name:(c.type||''))}
+        <small>${esc([c.city,c.st].filter(Boolean).join(', '))} · ${esc(c.ac.reg||st.tail)} · ${esc(c.type||'')}${c.ac.damage?' · damage: '+esc(c.ac.damage):''}</small>
+        ${liveBox(c)}${ntsbLinks(c.ntsb)}</span>
+        <span class="inj ${cls}">${esc(inj)}</span></div>`;
+    }).join('');
 }
 function fmtAsOf(s){ const [y,m,d]=s.split('-'); return `${d}-${MON[+m]}-${y}`; }
 function renderTailInfo(rr){
@@ -1261,13 +1327,20 @@ function renderTailInfo(rr){
   if(!ok){ box.innerHTML=`“${esc(t)}” doesn’t look like a US N-number (N, then up to five characters, first digit 1–9).`; return; }
   const faa=`<a href="${faaLink(t)}" target="_blank" rel="noopener">FAA Registry record for ${esc(t)} &#8599;</a> (who holds the number now)`;
   if(!rr.length){
-    box.innerHTML=`No accidents found for <b>${esc(t)}</b> among the types this app covers (1982 on, NTSB data as of ${fmtAsOf(M.ntsbAsOf)}). That isn’t proof of a clean record: other makes, homebuilts, turboprop twins and incidents aren’t in this data (see Data, below). ${faa}.`;
+    box.innerHTML=liveLine().replace(/^<br>/,'')+(LIVE.state==='ok'||LIVE.state==='loading'?'<br>':'')+`No accidents found for <b>${esc(t)}</b> among the types this app covers (1982 on, NTSB data as of ${fmtAsOf(M.ntsbAsOf)}). That isn’t proof of a clean record: other makes, homebuilts, turboprop twins and incidents aren’t in this data (see Data, below). ${faa}.`;
     return;
   }
   // a blank year built doesn't count as a different airframe
   const fams=new Set(rr.map(([r])=>r[C.fam])), yrs=new Set(rr.map(([r])=>r[C.yb]).filter(Boolean));
   const reuse = (fams.size>1 || yrs.size>1) ? ` These records show more than one airframe (different type or year built), so the number has likely been reassigned.` : '';
-  box.innerHTML=`All accidents for <b>${esc(t)}</b> in this app, any type and any year (your type, year and filter settings don’t apply).${reuse} ${faa}. N-numbers are reassigned, so the current record may be a different airplane from an older accident.`;
+  box.innerHTML=`All accidents for <b>${esc(t)}</b> in this app, any type and any year (your type, year and filter settings don’t apply).${reuse} ${faa}. N-numbers are reassigned, so the current record may be a different airplane from an older accident.`+liveLine();
+}
+function liveLine(){
+  if(LIVE.state==='loading') return `<br><span style="color:var(--teal)">Checking the NTSB for newer information…</span>`;
+  if(LIVE.state==='err') return `<br>Live NTSB check unavailable (${esc(LIVE.err)}); showing this app’s data as of ${fmtAsOf(M.ntsbAsOf)}.`;
+  if(LIVE.state!=='ok') return '';
+  const upd=LIVE.cases.filter(liveNewer).length;
+  return `<br><span style="color:var(--teal)">Checked live with the NTSB ${esc(fmtStamp(LIVE.asOf))}: ${LIVE.cases.length} case${LIVE.cases.length===1?'':'s'} on file${upd?`, ${upd} with a report published since this app’s data (${fmtAsOf(M.ntsbAsOf)})`:''}.</span>`;
 }
 function renderRecent(){
   const list=$('recentList'), chip=$('recentChip');
@@ -1285,9 +1358,10 @@ function renderRecent(){
     chip.innerHTML=`<span class="chip">Tail number: ${esc(st.tail)} <button type="button" data-clear="tail" aria-label="Clear tail number search">✕</button></span>`;
     chip.querySelector('button').onclick=()=>{ runTail(null); setSeg('recentWhich', st.b?st.recent:'a'); };
     renderTailInfo(rr);
+    renderLiveExtra(rr);
     return drawRecent(rr);
   }
-  renderTailInfo(null);
+  renderTailInfo(null); renderLiveExtra([]);
   // rows tagged with the side they belong to (a row can match both sides; it is listed once per side)
   const tagged=[];
   if(which!=='b' && st.a) for(const r of rowsFor(st.a,'sev')) tagged.push([r,0]);
@@ -1313,7 +1387,9 @@ function drawRecent(rr){
     return `<div class="acc" data-i="${i}"><button type="button" class="head" aria-expanded="false">
       <span class="swatch ${side<0?'sw-n':side?'sw-b':'sw-a'}" style="margin-top:3px" aria-label="${side<0?'Neither selected type':side?'Type B':'Type A'}"></span>
       <span class="dt">${fmtDate(r)}</span>
-      <span class="what"><span class="mdl">${esc(mdl)}</span>${r[C.yb]?` <span class="t" style="font-size:11px;color:var(--text-muted)">(${esc(r[C.yb])})</span>`:''}<br>${esc((CAT[M.cats[r[C.cat]]]||[M.cats[r[C.cat]]])[0])}<small>${esc(M.phases[r[C.ph]])}${r[C.st]?' · '+esc(r[C.city]?r[C.city]+', '+r[C.st]:r[C.st]):''} · ${esc(r[C.reg])}</small></span>
+      <span class="what"><span class="mdl">${esc(mdl)}</span>${r[C.yb]?` <span class="t" style="font-size:11px;color:var(--text-muted)">(${esc(r[C.yb])})</span>`:''}<br>${(()=>{ const lv=liveFor(r), code=M.cats[r[C.cat]];
+        const nm = lv&&lv.def&&(code==='UNK'||!code) ? lv.def.name : (CAT[code]||[code])[0];
+        return esc(nm)+(lv&&liveNewer(lv)?'<span class="live-tag">NEW NTSB REPORT</span>':''); })()}<small>${esc(M.phases[r[C.ph]])}${r[C.st]?' · '+esc(r[C.city]?r[C.city]+', '+r[C.st]:r[C.st]):''} · ${esc(r[C.reg])}</small></span>
       <span class="inj ${cls}">${injTxt}</span></button>
       <div class="body"></div></div>`; }).join('') : (st.tail?'':'<div class="empty">No accidents match.</div>');
   $('moreBtn').hidden = rr.length<=st.shown;
@@ -1333,13 +1409,14 @@ function drawRecent(rr){
         ['Where', [r[C.city],r[C.st]].filter(Boolean).join(', ')||'—'],
         ['Conditions', [WXC[r[C.wx]]||'', LIGHT[r[C.lt]]||''].filter(Boolean).join(' · ')||'Not reported'],
         ['Flight', `${PUR[r[C.pur]]} · ${M.phases[r[C.ph]]}${M.phd[r[C.phd]]&&M.phd[r[C.phd]]!==M.phases[r[C.ph]]?` (${M.phd[r[C.phd]]})`:''}`],
-        ['Category', `${(CAT[M.cats[r[C.cat]]]||[M.cats[r[C.cat]]])[0]}${r[C.der]?' (derived, pre-2008 coding)':''}`],
+        ['Category', `${(CAT[M.cats[r[C.cat]]]||[M.cats[r[C.cat]]])[0]}${r[C.der]?' (derived, pre-2008 coding)':''}${liveFor(r)?` (this app’s data, ${fmtAsOf(M.ntsbAsOf)})`:''}`],
         ['Outcome', `Injury: ${r[C.inj]>=0?INJ[r[C.inj]]:'—'}${r[C.fat]?` · ${r[C.fat]} fatal`:''}${r[C.ser]?` · ${r[C.ser]} serious`:''} · damage: ${r[C.dmg]>=0?DMG[r[C.dmg]]:'—'}`],
         ['NTSB no.', r[C.ntsb]]
       ];
+      const lv=liveFor(r);
       body.innerHTML = `<dl class="dgrid">${dl.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`+
-        (pc?`<div><b>NTSB probable cause:</b> ${esc(pc)}</div>`:'<div class="t">No probable cause in the data yet (investigation may still be open).</div>')+
-        (fl.length?`<div class="meta">Findings: ${esc(fl.join('; '))}</div>`:'')+
+        (lv ? liveBox(lv) : (pc?`<div><b>NTSB probable cause:</b> ${esc(pc)}</div>`:'<div class="t">No probable cause in the data yet (investigation may still be open).</div>')+
+        (fl.length?`<div class="meta">Findings: ${esc(fl.join('; '))}</div>`:''))+
         ntsbLinks(r[C.ntsb])+
         `<div class="meta"><a class="lk" href="${faaLink(r[C.reg])}" target="_blank" rel="noopener">FAA Registry record for ${esc(r[C.reg])} &#8599;</a> <span class="t">&mdash; current holder of the number</span></div>`+
         (st.tail && tailKey(st.tail)===tailKey(r[C.reg]) ? '' : `<div class="meta"><button type="button" class="tailgo" data-t="${esc(r[C.reg])}">All accidents for ${esc(r[C.reg])}</button></div>`);
@@ -1809,7 +1886,7 @@ fetch('data/accidents.json').then(r=>{ if(!r.ok) throw new Error(r.status); retu
   $('dataNote').innerHTML=`<b>${R.length.toLocaleString()}</b> accidents, 1982 to date. NTSB data as of ${fmt(M.ntsbAsOf)}; FAA registry as of ${fmt(M.regAsOf)}. Tap Type A or Type B to tick one type or several (they are added together), or a group such as All pistons or All turboprops. All your settings are saved in the page link, so you can bookmark this comparison or share it.`;
   $('loading').hidden=true; $('app').hidden=false;
   update();
-  if(st.tail){ $('tailIn').value=st.tail; setTimeout(()=>$('h8').scrollIntoView({block:'start'}),50); }  // v0.37: a tail= link opens on section 9
+  if(st.tail){ $('tailIn').value=st.tail; liveFetch(st.tail); renderRecent(); setTimeout(()=>$('h8').scrollIntoView({block:'start'}),50); }  // v0.37: a tail= link opens on section 9
 }).catch(err=>{
   $('loading').textContent='Could not load the accident data ('+err.message+'). Please reload the page.';
 });

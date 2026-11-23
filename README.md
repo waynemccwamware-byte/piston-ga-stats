@@ -89,3 +89,14 @@ this app's types, not that it has a clean record. Each expanded accident links t
 N-number page (registry.faa.gov/AircraftInquiry/Search/NNumberResult?nNumberTxt=<N-number>, checked 22-Nov-2026;
 shows the current holder of the number) and "All accidents for <N-number>". Picking Both/Type A/Type B or the chip's
 ✕ ends the search.
+
+Live NTSB check (v0.38, 22-Nov-2026): a tail-number search also asks `netlify/functions/ntsb-tail.mjs`, which calls the
+NTSB Public API `GetAviationCasesFiltered?aircraftRegistrationNumber=<N-number>` (api.ntsb.gov, checked 22-Nov-2026 in
+the developer portal with N124LZ) using the `NTSB_API_KEY` Netlify environment variable (secret; header
+`Ocp-Apim-Subscription-Key`). The function returns only status, report date, probable cause, defining event, findings,
+injuries and aircraft; Netlify's edge caches each tail's answer for an hour. In the page, a case already in the bundle
+shows a "Live from NTSB" box (status, probable cause, defining event, findings, report PDF via the mkey:
+data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/<mkey>/pdf) and a "NEW NTSB REPORT" tag when
+the report date is on or after the bundle's NTSB date; cases the bundle lacks are listed under "Also on file at the
+NTSB", never counted in statistics. If the function fails the bundled data stands with a one-line note. The NTSB says
+the monthly avall download moves to this API platform on 05-Apr-2027 (data.ntsb.gov/avdata).
