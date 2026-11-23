@@ -389,7 +389,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.38</span>
+    <span class="ver mono">v0.39</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -1423,6 +1423,8 @@ function drawRecent(rr){
       const go=body.querySelector('.tailgo'); if(go) go.addEventListener('click',()=>runTail(normTail(go.dataset.t)||go.dataset.t));
     });
   });
+  // v0.39: a tail search with a single accident opens its details (again after the live NTSB check re-draws)
+  if(st.tail && show.length===1) list.querySelector('.acc .head').click();
 }
 // NTSB case page (v0.5): web.ntsb.gov/investigations/?ntsbnumber=<no.> shows the NTSB's narrative plus its own
 // "View Report" (final report PDF) and "View Docket" links. Checked 18-Oct-2026 in a browser for
