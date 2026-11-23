@@ -200,6 +200,7 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .live-extra .meta{ color:var(--text-muted); font-size:11px; margin-top:4px; }
 .live-extra .live-box{ font-size:12px; line-height:1.5; }
 .live-extra .lx small{ display:block; color:var(--text-muted); font-size:11px; }
+.live-btn{ padding:4px 10px; font-size:11.5px; margin-top:4px; }
 /* v0.21: hours guesses */
 .hrs-row{ gap:10px; }
 .hin{ display:flex; align-items:center; gap:6px; flex:1; min-width:0; }
@@ -389,7 +390,7 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.39</span>
+    <span class="ver mono">v0.40</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
 
@@ -1275,14 +1276,27 @@ function runTail(t){
 // Final report PDF: data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/<mkey>/pdf
 // (checked 22-Nov-2026 with mkey 199623, the N124LZ final report).
 const LIVE = { tail:null, state:'off', cases:[], by:new Map(), asOf:null, err:'' };
+// v0.40: every answer is kept for the visit, per tail, so the tail search and the per-accident button share it
+const LCACHE = new Map();   // tailKey -> Promise of {asOf, cases, by}
+function liveGet(t){
+  const k=tailKey(t);
+  if(!LCACHE.has(k)){
+    const p=fetch('/.netlify/functions/ntsb-tail?tail='+encodeURIComponent(t))
+      .then(r=>r.json().then(j=>{ if(!r.ok) throw new Error(j&&j.error||('HTTP '+r.status)); return j; }))
+      .then(j=>{ const cases=j.cases||[], by=new Map(); for(const c of cases){ c.__asOf=j.asOf; by.set(ntsbBase(c.ntsb),c); }
+        const e={asOf:j.asOf, cases, by}; LDONE.set(k,e); return e; });
+    p.catch(()=>LCACHE.delete(k));   // a failure can be retried
+    LCACHE.set(k,p);
+  }
+  return LCACHE.get(k);
+}
+const LDONE = new Map();    // tailKey -> settled answer, for synchronous lookups while drawing
 function liveFetch(t){
   LIVE.tail=t; LIVE.cases=[]; LIVE.by=new Map(); LIVE.err='';
   if(!t || normTail(t)!==t){ LIVE.state='off'; return; }
   LIVE.state='loading';
-  fetch('/.netlify/functions/ntsb-tail?tail='+encodeURIComponent(t))
-    .then(r=>r.json().then(j=>{ if(!r.ok) throw new Error(j&&j.error||('HTTP '+r.status)); return j; }))
-    .then(j=>{ if(LIVE.tail!==t) return; LIVE.state='ok'; LIVE.asOf=j.asOf; LIVE.cases=j.cases||[];
-      for(const c of LIVE.cases) LIVE.by.set(ntsbBase(c.ntsb), c); })
+  liveGet(t)
+    .then(e=>{ if(LIVE.tail!==t) return; LIVE.state='ok'; LIVE.asOf=e.asOf; LIVE.cases=e.cases; LIVE.by=e.by; })
     .catch(e=>{ if(LIVE.tail!==t) return; LIVE.state='err'; LIVE.err=e.message||'failed'; })
     .finally(()=>{ if(st.tail===t) renderRecent(); });
 }
@@ -1290,10 +1304,10 @@ const pdfLink = mk => `https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMai
 function fmtIso(s){ if(!s) return ''; const [y,m,d]=s.slice(0,10).split('-'); return `${d}-${MON[+m]}-${y}`; }
 function fmtStamp(s){ const d=new Date(s); if(isNaN(d)) return ''; const p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}-${MON[d.getMonth()+1]}-${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 const liveNewer = c => !!(c && c.reportDate && c.reportDate >= M.ntsbAsOf);   // final report published after our file
-function liveFor(r){ return LIVE.state==='ok' && st.tail && tailKey(st.tail)===tailKey(r[C.reg]) ? LIVE.by.get(ntsbBase(r[C.ntsb])) : null; }
+function liveFor(r){ const e=LDONE.get(tailKey(r[C.reg])); return e ? e.by.get(ntsbBase(r[C.ntsb]))||null : null; }
 function liveBox(c){
   const bits=[];
-  bits.push(`<div class="lh">Live from NTSB · checked ${esc(fmtStamp(LIVE.asOf))}</div>`);
+  bits.push(`<div class="lh">Live from NTSB · checked ${esc(fmtStamp(c.__asOf||LIVE.asOf))}</div>`);
   bits.push(`<div>Status: ${esc(c.status||'—')}${c.reportDate?` · report ${esc(fmtIso(c.reportDate))}`:''}${liveNewer(c)?' <span class="live-tag">NEW SINCE OUR DATA</span>':''}</div>`);
   if(c.def) bits.push(`<div>Defining event: ${esc(c.def.name)}${c.def.group?` (${esc(c.def.group)}${c.def.phase?', '+esc(c.def.phase):''})`:''}</div>`);
   bits.push(c.pc ? `<div><b>NTSB probable cause:</b> ${esc(c.pc)}</div>` : `<div class="t">No probable cause published yet.</div>`);
@@ -1415,11 +1429,25 @@ function drawRecent(rr){
       ];
       const lv=liveFor(r);
       body.innerHTML = `<dl class="dgrid">${dl.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`+
-        (lv ? liveBox(lv) : (pc?`<div><b>NTSB probable cause:</b> ${esc(pc)}</div>`:'<div class="t">No probable cause in the data yet (investigation may still be open).</div>')+
-        (fl.length?`<div class="meta">Findings: ${esc(fl.join('; '))}</div>`:''))+
+        (lv ? liveBox(lv) : `<div class="stale">`+(pc?`<div><b>NTSB probable cause:</b> ${esc(pc)}</div>`:'<div class="t">No probable cause in the data yet (investigation may still be open).</div>')+
+        (fl.length?`<div class="meta">Findings: ${esc(fl.join('; '))}</div>`:'')+
+          (normTail(r[C.reg])===r[C.reg] ? `<div class="meta"><button type="button" class="btn live-btn">Check NTSB for a newer report</button> <span class="live-msg t"></span></div>` : '')+`</div>`)+
         ntsbLinks(r[C.ntsb])+
         `<div class="meta"><a class="lk" href="${faaLink(r[C.reg])}" target="_blank" rel="noopener">FAA Registry record for ${esc(r[C.reg])} &#8599;</a> <span class="t">&mdash; current holder of the number</span></div>`+
         (st.tail && tailKey(st.tail)===tailKey(r[C.reg]) ? '' : `<div class="meta"><button type="button" class="tailgo" data-t="${esc(r[C.reg])}">All accidents for ${esc(r[C.reg])}</button></div>`);
+      const lb=body.querySelector('.live-btn');
+      if(lb) lb.addEventListener('click',()=>{
+        const msg=body.querySelector('.live-msg'); lb.disabled=true; lb.textContent='Checking the NTSB…'; msg.textContent='';
+        liveGet(r[C.reg]).then(e=>{
+          const c=e.by.get(ntsbBase(r[C.ntsb]));
+          if(!c){ lb.remove(); msg.textContent=`The NTSB returned no case ${ntsbBase(r[C.ntsb])} under ${r[C.reg]} (checked ${fmtStamp(e.asOf)}); see the case page below.`; return; }
+          body.querySelector('.stale').outerHTML=liveBox(c);
+          body.querySelectorAll('.dgrid dt').forEach(dt=>{ if(dt.textContent==='Category') dt.nextElementSibling.textContent+=` (this app’s data, ${fmtAsOf(M.ntsbAsOf)})`; });
+          const code=M.cats[r[C.cat]], what=n.querySelector('.what');
+          if(c.def && (code==='UNK'||!code)) what.childNodes.forEach(x=>{ if(x.nodeType===3 && x.textContent.trim()===(CAT[code]||[code])[0]) x.textContent=c.def.name; });
+          if(liveNewer(c) && !what.querySelector('.live-tag')) what.querySelector('small').insertAdjacentHTML('beforebegin','<span class="live-tag">NEW NTSB REPORT</span>');
+        }).catch(err=>{ lb.disabled=false; lb.textContent='Try again'; msg.textContent=`Live NTSB check unavailable (${err.message||'failed'}).`; });
+      });
       const go=body.querySelector('.tailgo'); if(go) go.addEventListener('click',()=>runTail(normTail(go.dataset.t)||go.dataset.t));
     });
   });

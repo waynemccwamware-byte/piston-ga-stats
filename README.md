@@ -100,3 +100,7 @@ data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/<mkey>/p
 the report date is on or after the bundle's NTSB date; cases the bundle lacks are listed under "Also on file at the
 NTSB", never counted in statistics. If the function fails the bundled data stands with a one-line note. The NTSB says
 the monthly avall download moves to this API platform on 05-Apr-2027 (data.ntsb.gov/avdata).
+
+Per-accident live check (v0.40): every expanded accident (any view) has "Check NTSB for a newer report", which asks the
+same function for that accident's tail number and matches the NTSB case number; answers are kept per tail for the visit
+and shared with the tail search. A tail search with a single accident opens its details (v0.39).
