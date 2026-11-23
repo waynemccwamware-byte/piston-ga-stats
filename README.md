@@ -104,3 +104,8 @@ the monthly avall download moves to this API platform on 05-Apr-2027 (data.ntsb.
 Per-accident live check (v0.40): every expanded accident (any view) has "Check NTSB for a newer report", which asks the
 same function for that accident's tail number and matches the NTSB case number; answers are kept per tail for the visit
 and shared with the tail search. A tail search with a single accident opens its details (v0.39).
+
+Tail-number popup (v0.41): "Check latest NTSB status on a specific tail number" under the purpose line opens a dialog
+with its own search box. While it is open it borrows section 9's result blocks (tailInfo, recentChip, recentList,
+liveExtra, moreWrap are moved into the dialog and moved back on close), so it shows exactly what the tail search shows,
+live NTSB check included. Closing it (✕, Escape, backdrop, or the chip's ✕) ends the tail search.
