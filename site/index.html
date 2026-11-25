@@ -203,7 +203,7 @@ svg.trend .dash{ stroke-dasharray:4 4; }
 .live-btn{ padding:4px 10px; font-size:11.5px; margin-top:4px; }
 /* v0.41: tail-number popup under the purpose line */
 .tail-top{ margin:-2px 4px 10px; }
-.tail-top .btn{ padding:7px 12px; font-size:12.5px; }
+.tail-top .btn{ padding:7px 12px; font-size:12.5px; display:inline-block; text-decoration:none; }
 .tail-top .btn:disabled{ opacity:.5; cursor:default; }
 #tailDlg{ width:min(760px,94vw); max-height:88vh; overflow:auto; background:var(--bg-panel); color:var(--text-primary);
   border:1px solid var(--bezel-hi); border-radius:10px; padding:14px 16px 16px; }
@@ -511,10 +511,10 @@ svg.sf.sf-zoomed{ cursor:grab; } svg.sf.sf-zoomed:active{ cursor:grabbing; }
 <div class="rig">
   <div class="title-row">
     <h1>GA Accident Stats</h1>
-    <span class="ver mono">v0.41</span>
+    <span class="ver mono">v0.42</span>
   </div>
   <p class="purpose-line"><span class="purpose-label">Purpose:</span> Know what tends to go wrong in your airplane. Compare US accident records for piston and turboprop types (one or several on each side) by accident category, phase of flight and severity, with registered-fleet rates, top NTSB findings and the latest accidents (currently no accident or registration data from outside the USA).</p>
-  <div class="tail-top"><button type="button" class="btn primary" id="tailTopBtn" disabled>Check latest NTSB status on a specific tail number</button></div>
+  <div class="tail-top"><a class="btn primary" id="trackLink" href="https://tracking-piston-ga-accidents.netlify.app/">Track individual accidents by type, N-number, etc. →</a></div>
   <dialog id="tailDlg" aria-labelledby="tailDlgH">
     <div class="td-head"><h2 id="tailDlgH">NTSB status by tail number</h2><button type="button" class="td-x" id="tailDlgX" aria-label="Close">✕</button></div>
     <form class="tail-form" id="tailDlgForm" autocomplete="off">
@@ -926,8 +926,7 @@ function buildControls(){
   // v0.41: the popup borrows section 9's own result blocks (moved in while it is open, moved back on close),
   // so it shows exactly what the tail search shows, live NTSB check included.
   const DLG_IDS=['tailInfo','recentChip','recentList','liveExtra','moreWrap'], dlg=$('tailDlg');
-  $('tailTopBtn').disabled=false;
-  $('tailTopBtn').addEventListener('click',()=>{ $('tailDlgIn').value=st.tail||''; dlg.showModal(); $('tailDlgIn').focus(); });
+  // v0.42: the top button now goes to Tracking Piston GA Accidents; the tail-number dialog stays for section 9's links
   $('tailDlgX').addEventListener('click',()=>dlg.close());
   dlg.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.preventDefault(); dlg.close(); } });   // a search box would otherwise eat the first Escape
   dlg.addEventListener('click',e=>{ if(e.target===dlg) dlg.close(); });   // click on the backdrop
